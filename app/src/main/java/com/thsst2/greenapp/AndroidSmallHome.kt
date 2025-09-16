@@ -5,8 +5,10 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.EditText
 import android.widget.ImageView
+import androidx.activity.compose.setContent
 import com.bumptech.glide.Glide
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.Text
 
 class AndroidSmallHome : AppCompatActivity() {
 	private var editTextValue1: String = ""
