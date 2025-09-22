@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">GREEN APP</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="new_to_g_r_e_e_n">New to G.R.E.E.N.?</string>
+    <string name="create_an_account">Create an Account</string>
+    <string name="your_tour_companion">Your Tour Companion</string>
+    <string name="g_r_e_e_n">G.R.E.E.N.</string>
 </resources>
