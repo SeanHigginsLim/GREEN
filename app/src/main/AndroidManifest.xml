@@ -15,9 +15,8 @@
         android:theme="@style/Theme.GREENAPP"
         tools:targetApi="31">
         <activity
-            android:name=".AndroidSmallHome"
+            android:name=".AndroidSmallHomeActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.GREENAPP">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

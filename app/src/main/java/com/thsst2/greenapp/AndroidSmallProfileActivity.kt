@@ -4,7 +4,7 @@ import android.view.View
 import com.bumptech.glide.Glide
 import androidx.appcompat.app.AppCompatActivity
 
-class AndroidSmallProfile : AppCompatActivity() {
+class AndroidSmallProfileActivity : AppCompatActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_android_small_profile)

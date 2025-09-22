@@ -38,19 +38,18 @@
 					android:gravity="center_vertical"
 					android:background="#ABE098"
 					android:paddingVertical="7dp"
-					android:paddingHorizontal="39dp"
 					android:orientation="horizontal">
 					<LinearLayout
 						android:id="@+id/rncgy2lwevii"
-						android:layout_width="wrap_content"
+						android:layout_width="0dp"
 						android:layout_height="wrap_content"
+						android:layout_weight="1"
 						android:gravity="center_horizontal"
-						android:layout_marginEnd="40dp"
 						android:orientation="vertical">
 						<ImageView
 							android:id="@+id/rorhz9ugpp3"
-							android:layout_width="30dp"
-							android:layout_height="34dp"
+							android:layout_width="28dp"
+							android:layout_height="28dp"
 							android:src="@mipmap/ic_launcher"
 							android:scaleType="fitXY"
 						/>
@@ -65,10 +64,10 @@
 					</LinearLayout>
 					<LinearLayout
 						android:id="@+id/rm5as5pz13n"
-						android:layout_width="wrap_content"
+						android:layout_width="0dp"
 						android:layout_height="wrap_content"
+						android:layout_weight="1"
 						android:gravity="center_horizontal"
-						android:layout_marginEnd="40dp"
 						android:orientation="vertical">
 						<ImageView
 							android:id="@+id/r92m9lwykfag"
@@ -91,15 +90,12 @@
 						android:layout_width="0dp"
 						android:layout_height="wrap_content"
 						android:layout_weight="1"
-						android:paddingVertical="2dp"
-						android:layout_marginEnd="12dp"
+						android:gravity="center_horizontal"
 						android:orientation="vertical">
 						<ImageView
 							android:id="@+id/r1sboj981btw"
-							android:layout_width="match_parent"
+							android:layout_width="28dp"
 							android:layout_height="28dp"
-							android:layout_marginBottom="2dp"
-							android:layout_marginHorizontal="12dp"
 							android:src="@mipmap/ic_launcher"
 							android:scaleType="fitXY"
 						/>
@@ -108,23 +104,21 @@
 							android:textColor="#FFFFFF"
 							android:textSize="12sp"
 							android:layout_height="wrap_content"
-							android:layout_width="match_parent"
-							android:layout_weight="1"
-							android:gravity="center"
+							android:layout_width="wrap_content"
 							android:text="Map"
 						/>
 					</LinearLayout>
 					<LinearLayout
 						android:id="@+id/ria0sao7b1cd"
-						android:layout_width="wrap_content"
+						android:layout_width="0dp"
 						android:layout_height="wrap_content"
+						android:layout_weight="1"
 						android:gravity="center_horizontal"
 						android:orientation="vertical">
 						<ImageView
 							android:id="@+id/r82fycu2d3ik"
-							android:layout_width="30dp"
-							android:layout_height="30dp"
-							android:layout_marginBottom="2dp"
+							android:layout_width="28dp"
+							android:layout_height="28dp"
 							android:src="@mipmap/ic_launcher"
 							android:scaleType="fitXY"
 						/>
@@ -138,6 +132,7 @@
 						/>
 					</LinearLayout>
 				</LinearLayout>
+
 				<RelativeLayout
 					android:id="@+id/rp7hcg1ul53a"
 					android:layout_width="match_parent"

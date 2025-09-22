@@ -14,7 +14,7 @@
 		android:background="#FFFFFF">
 		<LinearLayout
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
+			android:layout_height="wrap_content"
 			android:orientation="vertical">
 			<LinearLayout
 				android:id="@+id/rln0qy8aokj"
@@ -38,7 +38,7 @@
 						android:textStyle="bold"
 						android:layout_height="wrap_content"
 						android:layout_width="wrap_content"
-						android:text="G.R.E.E.N."
+						android:text="@string/g_r_e_e_n"
 					/>
 				</LinearLayout>
 				<TextView
@@ -48,7 +48,7 @@
 					android:layout_marginStart="93dp"
 					android:layout_height="wrap_content"
 					android:layout_width="wrap_content"
-					android:text="Your Tour Companion"
+					android:text="@string/your_tour_companion"
 				/>
 			</LinearLayout>
 			<LinearLayout
@@ -67,7 +67,7 @@
 					android:layout_marginBottom="27dp"
 					android:layout_height="wrap_content"
 					android:layout_width="wrap_content"
-					android:text="Login"
+					android:text="@string/login"
 				/>
 				<LinearLayout
 					android:id="@+id/rumm9kmpqgsm"
@@ -80,15 +80,17 @@
 					android:clickable="true"
 					android:focusable="true"
 					android:orientation="vertical">
-					<TextView
+
+					<EditText
 						android:id="@+id/rrv4j3rl69ve"
-						android:textColor="#B9B9B9"
-						android:textSize="16sp"
-						android:layout_height="wrap_content"
 						android:layout_width="186dp"
-						android:gravity="center"
-						android:text="Email"
-					/>
+						android:layout_height="wrap_content"
+                        android:autofillHints=""
+                        android:hint="@string/email"
+                        android:gravity="center"
+                        android:inputType="textEmailAddress"
+						android:textColor="#B9B9B9"
+						android:textSize="16sp" />
 				</LinearLayout>
 				<LinearLayout
 					android:id="@+id/rrc8z2w6cq5l"
@@ -101,14 +103,16 @@
 					android:clickable="true"
 					android:focusable="true"
 					android:orientation="vertical">
-					<TextView
+					<EditText
 						android:id="@+id/r3h40j0ejym3"
-						android:textColor="#B9B9B9"
+                        android:autofillHints=""
+                        android:hint="@string/password"
+                        android:inputType="textPassword"
+                        android:textColor="#B9B9B9"
 						android:textSize="16sp"
 						android:layout_height="wrap_content"
 						android:layout_width="186dp"
 						android:gravity="center"
-						android:text="Password"
 					/>
 				</LinearLayout>
 				<LinearLayout
@@ -128,7 +132,7 @@
 						android:textSize="16sp"
 						android:layout_height="wrap_content"
 						android:layout_width="wrap_content"
-						android:text="Login"
+						android:text="@string/login"
 					/>
 				</LinearLayout>
 				<TextView
@@ -138,7 +142,7 @@
 					android:layout_marginBottom="5dp"
 					android:layout_height="wrap_content"
 					android:layout_width="wrap_content"
-					android:text="New to G.R.E.E.N.?"
+					android:text="@string/new_to_g_r_e_e_n"
 				/>
 				<TextView
 					android:id="@+id/rakhddqjl1ls"
@@ -146,7 +150,7 @@
 					android:textSize="16sp"
 					android:layout_height="wrap_content"
 					android:layout_width="wrap_content"
-					android:text="Create an Account"
+					android:text="@string/create_an_account"
 				/>
 			</LinearLayout>
 		</LinearLayout>

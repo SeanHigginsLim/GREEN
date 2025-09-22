@@ -7,7 +7,7 @@ import android.widget.ImageView
 import com.bumptech.glide.Glide
 import androidx.appcompat.app.AppCompatActivity
 
-class AndroidSmallHome : AppCompatActivity() {
+class AndroidSmallHomeActivity : AppCompatActivity() {
 	private var editTextValue1: String = ""
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
