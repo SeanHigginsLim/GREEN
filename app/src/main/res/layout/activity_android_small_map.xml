@@ -17,7 +17,6 @@
 			android:layout_width="match_parent"
 			android:layout_height="0dp"
 			android:layout_weight="1"
-			android:src="@mipmap/ic_launcher"
 			android:scaleType="fitXY"
 		/>
 		<LinearLayout
@@ -52,7 +51,6 @@
 								android:id="@+id/rm6mh7dlmac"
 								android:layout_width="28dp"
 								android:layout_height="28dp"
-								android:src="@mipmap/ic_launcher"
 								android:scaleType="fitXY"
 							/>
 							<TextView
@@ -75,7 +73,6 @@
 								android:id="@+id/rr4suqnw5xu8"
 								android:layout_width="28dp"
 								android:layout_height="28dp"
-								android:src="@mipmap/ic_launcher"
 								android:scaleType="fitXY"
 							/>
 							<TextView
@@ -98,7 +95,6 @@
 								android:id="@+id/r4ygvniz63xa"
 								android:layout_width="28dp"
 								android:layout_height="28dp"
-								android:src="@mipmap/ic_launcher"
 								android:scaleType="fitXY"
 							/>
 							<TextView
@@ -121,7 +117,6 @@
 								android:id="@+id/resno30rwma6"
 								android:layout_width="28dp"
 								android:layout_height="28dp"
-								android:src="@mipmap/ic_launcher"
 								android:scaleType="fitXY"
 							/>
 							<TextView

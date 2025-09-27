@@ -58,15 +58,21 @@ dependencies {
     //Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
 
+    //Recycler View
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
+
     //Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2025.09.00"))
+    implementation(platform("androidx.compose:compose-bom:2025.09.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
 
     //Navigation Compose
-    implementation("androidx.navigation:navigation-compose:2.9.4")
+    implementation("androidx.navigation:navigation-compose:2.9.5")
 
     //Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
@@ -79,8 +85,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:19.2.0")
 
     //Room
-    implementation("androidx.room:room-runtime:2.8.0")
-    implementation("androidx.room:room-ktx:2.8.0")
+    implementation("androidx.room:room-runtime:2.8.1")
+    implementation("androidx.room:room-ktx:2.8.1")
     ksp("androidx.room:room-compiler:2.8.0")
 
     // Coroutines

@@ -41,7 +41,6 @@
 						android:id="@+id/rtpmb3sfkxec"
 						android:layout_width="28dp"
 						android:layout_height="28dp"
-						android:src="@mipmap/ic_launcher"
 						android:scaleType="fitXY"
 					/>
 					<TextView
@@ -64,7 +63,6 @@
 						android:id="@+id/rv2mkds8qk"
 						android:layout_width="28dp"
 						android:layout_height="28dp"
-						android:src="@mipmap/ic_launcher"
 						android:scaleType="fitXY"
 					/>
 					<TextView
@@ -87,7 +85,6 @@
 						android:id="@+id/rm8ia53ujvf"
 						android:layout_width="28dp"
 						android:layout_height="28dp"
-						android:src="@mipmap/ic_launcher"
 						android:scaleType="fitXY"
 					/>
 					<TextView
@@ -110,7 +107,6 @@
 						android:id="@+id/rwt2433i01up"
 						android:layout_width="28dp"
 						android:layout_height="28dp"
-						android:src="@mipmap/ic_launcher"
 						android:scaleType="fitXY"
 					/>
 					<TextView
@@ -141,7 +137,6 @@
 					android:layout_width="44dp"
 					android:layout_height="42dp"
 					android:layout_marginEnd="21dp"
-					android:src="@mipmap/ic_launcher"
 					android:scaleType="fitXY"
 				/>
 				<LinearLayout
@@ -222,7 +217,6 @@
 						android:layout_height="76dp"
 						android:layout_marginBottom="7dp"
 						android:layout_marginHorizontal="8dp"
-						android:src="@mipmap/ic_launcher"
 						android:scaleType="fitXY"
 					/>
 					<TextView
@@ -310,7 +304,6 @@
 							android:layout_height="72dp"
 							android:layout_marginBottom="4dp"
 							android:layout_marginHorizontal="7dp"
-							android:src="@mipmap/ic_launcher"
 							android:scaleType="fitXY"
 						/>
 						<TextView
@@ -457,7 +450,6 @@
 						android:layout_marginEnd="-2dp"
 						android:layout_alignParentBottom="true"
 						android:layout_alignParentRight="true"
-						android:src="@mipmap/ic_launcher"
 						android:scaleType="fitXY"
 					/>
 				</RelativeLayout>
@@ -500,7 +492,6 @@
 							android:id="@+id/rjuo5tbsq7m"
 							android:layout_width="27dp"
 							android:layout_height="24dp"
-							android:src="@mipmap/ic_launcher"
 							android:scaleType="fitXY"
 						/>
 					</LinearLayout>
