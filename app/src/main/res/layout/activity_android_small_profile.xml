@@ -40,7 +40,7 @@
 					android:paddingVertical="7dp"
 					android:orientation="horizontal">
 					<LinearLayout
-						android:id="@+id/rncgy2lwevii"
+						android:id="@+id/home_button"
 						android:layout_width="0dp"
 						android:layout_height="wrap_content"
 						android:layout_weight="1"
@@ -62,7 +62,7 @@
 						/>
 					</LinearLayout>
 					<LinearLayout
-						android:id="@+id/rm5as5pz13n"
+						android:id="@+id/trivia_button"
 						android:layout_width="0dp"
 						android:layout_height="wrap_content"
 						android:layout_weight="1"
@@ -84,7 +84,7 @@
 						/>
 					</LinearLayout>
 					<LinearLayout
-						android:id="@+id/ri4m7dwpo8lm"
+						android:id="@+id/map_button"
 						android:layout_width="0dp"
 						android:layout_height="wrap_content"
 						android:layout_weight="1"
@@ -106,7 +106,7 @@
 						/>
 					</LinearLayout>
 					<LinearLayout
-						android:id="@+id/ria0sao7b1cd"
+						android:id="@+id/profile_button"
 						android:layout_width="0dp"
 						android:layout_height="wrap_content"
 						android:layout_weight="1"

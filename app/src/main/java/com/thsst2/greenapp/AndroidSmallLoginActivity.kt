@@ -13,9 +13,12 @@ class AndroidSmallLoginActivity : AppCompatActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
+
+		// Set up view binding
 		loginBinding = ActivityAndroidSmallLoginBinding.inflate(layoutInflater)
 		setContentView(loginBinding.root)
 
+		// Get Firebase Authentication
 		auth = FirebaseAuth.getInstance()
 
 		// Login button click
@@ -27,21 +30,9 @@ class AndroidSmallLoginActivity : AppCompatActivity() {
 
 		// Signup text click
 		loginBinding.rakhddqjl1ls.setOnClickListener {
+			// Not yet implemented
 //			startActivity(Intent(this, SignupActivity::class.java))
 		}
-//		setContentView(R.layout.activity_android_small_login)
-//		val button1: View = findViewById(R.id.rumm9kmpqgsm)
-//		button1.setOnClickListener {
-//			println("Pressed")
-//		}
-//		val button2: View = findViewById(R.id.rrc8z2w6cq5l)
-//		button2.setOnClickListener {
-//			println("Pressed")
-//		}
-//		val button3: View = findViewById(R.id.r7k1xvbfvys)
-//		button3.setOnClickListener {
-//			println("Pressed")
-//		}
 	}
 
 	private fun loginUser(email: String, password: String) {
@@ -50,15 +41,14 @@ class AndroidSmallLoginActivity : AppCompatActivity() {
 			return
 		}
 
-		auth.signInWithEmailAndPassword(email, password)
-			.addOnCompleteListener(this) { task ->
-				if (task.isSuccessful) {
-					Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
-					startActivity(Intent(this, AndroidSmallHomeActivity::class.java))
-					finish()
-				} else {
-					Toast.makeText(this, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
-				}
+		auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(this) { task ->
+			if (task.isSuccessful) {
+				Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+				startActivity(Intent(this, AndroidSmallHomeActivity::class.java))
+				finish()
+			} else {
+				Toast.makeText(this, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
 			}
+		}
 	}
 }

@@ -1,13 +1,22 @@
 package com.thsst2.greenapp
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import com.bumptech.glide.Glide
 import androidx.appcompat.app.AppCompatActivity
+import com.thsst2.greenapp.databinding.ActivityAndroidSmallTriviaBinding
 
 class AndroidSmallTriviaActivity : AppCompatActivity() {
+	private lateinit var triviaBinding: ActivityAndroidSmallTriviaBinding
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_android_small_trivia)
+
+		// Set up view binding
+		triviaBinding = ActivityAndroidSmallTriviaBinding.inflate(layoutInflater)
+		setContentView(triviaBinding.root)
+
+		// Load all images with glide
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/euck9yhs_expires_30_days.png").into(findViewById(R.id.rtpmb3sfkxec))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/2a2i3aud_expires_30_days.png").into(findViewById(R.id.rv2mkds8qk))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/5tyj8imq_expires_30_days.png").into(findViewById(R.id.rm8ia53ujvf))
@@ -24,6 +33,37 @@ class AndroidSmallTriviaActivity : AppCompatActivity() {
 		val button2: View = findViewById(R.id.rz51uowvk0cr)
 		button2.setOnClickListener {
 			println("Pressed")
+		}
+
+		// Run Navigation Bar
+		setupNavigationBar()
+	}
+
+	private fun setupNavigationBar() {
+		// Home
+		triviaBinding.homeButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallHomeActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
+		}
+
+		// Trivia (Current Activity for AndroidSmallTriviaActivity)
+		triviaBinding.triviaButton.setOnClickListener {
+			recreate()
+		}
+
+		// Map
+		triviaBinding.mapButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallMapActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
+		}
+
+		// Profile
+		triviaBinding.profileButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallProfileActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
 		}
 	}
 }

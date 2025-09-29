@@ -1,13 +1,22 @@
 package com.thsst2.greenapp
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import com.bumptech.glide.Glide
 import androidx.appcompat.app.AppCompatActivity
+import com.thsst2.greenapp.databinding.ActivityAndroidSmallProfileBinding
 
 class AndroidSmallProfileActivity : AppCompatActivity() {
+	private lateinit var profileBinding: ActivityAndroidSmallProfileBinding
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_android_small_profile)
+
+		// Set up view binding
+		profileBinding = ActivityAndroidSmallProfileBinding.inflate(layoutInflater)
+		setContentView(profileBinding.root)
+
+		// Load all images with glide
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/0228mxps_expires_30_days.png").into(findViewById(R.id.rorhz9ugpp3))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/ucnrpwvy_expires_30_days.png").into(findViewById(R.id.r92m9lwykfag))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/5uqcjups_expires_30_days.png").into(findViewById(R.id.r1sboj981btw))
@@ -23,6 +32,37 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 		val button2: View = findViewById(R.id.rqts8trhvc1o)
 		button2.setOnClickListener {
 			println("Pressed")
+		}
+
+		// Run Navigation Bar
+		setupNavigationBar()
+	}
+
+	private fun setupNavigationBar() {
+		// Home
+		profileBinding.homeButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallHomeActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
+		}
+
+		// Trivia
+		profileBinding.triviaButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallTriviaActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
+		}
+
+		// Map
+		profileBinding.mapButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallMapActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
+		}
+
+		// Profile (Current Activity for AndroidSmallProfileActivity)
+		profileBinding.profileButton.setOnClickListener {
+			recreate()
 		}
 	}
 }

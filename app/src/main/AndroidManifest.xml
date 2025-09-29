@@ -25,6 +25,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".AndroidSmallTriviaActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GREENAPP">
+        </activity>
+
+        <activity
+            android:name=".AndroidSmallMapActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GREENAPP">
+        </activity>
+
+        <activity
+            android:name=".AndroidSmallProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GREENAPP">
+        </activity>
     </application>
 
 </manifest>

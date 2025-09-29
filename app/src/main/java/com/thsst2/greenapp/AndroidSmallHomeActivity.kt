@@ -1,4 +1,5 @@
 package com.thsst2.greenapp
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.text.Editable
@@ -26,35 +27,44 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+		// Set up view binding
         homeBinding = ActivityAndroidSmallHomeBinding.inflate(layoutInflater)
         setContentView(homeBinding.root)
 
+		// Load all images with glide
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/59e2tcay_expires_30_days.png").into(homeBinding.rn6y677xm2op)
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/g96kdk7e_expires_30_days.png").into(homeBinding.r1niin00ofei)
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/wklyakqn_expires_30_days.png").into(homeBinding.ra0p1lhf2i3g)
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/qz8xcg2m_expires_30_days.png").into(homeBinding.rjvarnxwuapq)
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/b60kjme5_expires_30_days.png").into(homeBinding.rlqd4vorx07s)
 
+		// Run Navigation Bar
+		setupNavigationBar()
+
 		// RecyclerView
 		adapter = MyAdapter(messages)
 		homeBinding.recyclerViewChatReplies.adapter = adapter
 		homeBinding.recyclerViewChatReplies.layoutManager = LinearLayoutManager(this)
 
-		// --- Start of Your Retrofit Initialization with OkHttpClient ---
+		// Initialize retrofit sing okHttpClient
 		val okHttpClient = OkHttpClient.Builder()
 			.connectTimeout(30, TimeUnit.SECONDS) // Connection timeout
-			.readTimeout(60, TimeUnit.SECONDS)    // Read timeout (e.g., 60 seconds or more for Llama)
-			.writeTimeout(60, TimeUnit.SECONDS)   // Write timeout
+			.readTimeout(120, TimeUnit.SECONDS)    // Read timeout (e.g., 60 seconds or more for Llama)
+			.writeTimeout(120, TimeUnit.SECONDS)   // Write timeout
 			.build()
 
+        // NOTE: URL might vary each run, please replace with the most recent one
+        val ngrokApiUrl = "https://preharmonious-saul-spectrologically.ngrok-free.dev"
+
 		val retrofit = Retrofit.Builder()
-			.baseUrl("http://192.168.68.103:8000/") // Ensure this is your PC's current IP and FastAPI port
-			.client(okHttpClient) // Add the custom OkHttpClient
+			.baseUrl("$ngrokApiUrl/")
+			.client(okHttpClient) // Add custom OkHttpClient
 			.addConverterFactory(GsonConverterFactory.create())
 			.build()
 		chatApi = retrofit.create(ChatApi::class.java)
-		// --- End of Your Retrofit Initialization with OkHttpClient ---
 
+		// Capture user message and send to API
 		val editText = homeBinding.r0zz50xix97ik
 		editText.setOnEditorActionListener { v, actionId, event ->
 			if (actionId == EditorInfo.IME_ACTION_SEND) {
@@ -99,6 +109,34 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			} else {
 				false // let other actions pass through
 			}
+		}
+	}
+
+	private fun setupNavigationBar() {
+		// Home (Current Activity for AndroidSmallHomeActivity)
+		homeBinding.homeButton.setOnClickListener {
+			recreate()
+		}
+
+		// Trivia
+		homeBinding.triviaButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallTriviaActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
+		}
+
+		// Map
+		homeBinding.mapButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallMapActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
+		}
+
+		// Profile
+		homeBinding.profileButton.setOnClickListener {
+			val intent = Intent(this, AndroidSmallProfileActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+			startActivity(intent)
 		}
 	}
 }
