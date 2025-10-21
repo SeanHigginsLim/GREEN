@@ -3,12 +3,13 @@ package com.thsst2.greenapp.algorithms
 import com.thsst2.greenapp.data.PoiEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class RandomBFSTest {
 
     @Test
-    fun testFindPathReturnsAllPois() {
+    fun testFindPathReturnsAllPois_NoDislikes() {
         val dummyPois = listOf(
             PoiEntity(
                 poiId = 1,
@@ -77,7 +78,7 @@ class RandomBFSTest {
         )
 
         val randomBFS = RandomBFS()
-        val path = randomBFS.findPath(dummyPois)
+        val path = randomBFS.findPath(dummyPois, disinterests = emptyList())
 
         println("RandomBFS produced path = $path")
 
@@ -87,10 +88,36 @@ class RandomBFSTest {
     }
 
     @Test
-    fun testFindPathEmptyInput() {
+    fun testFindPathEmptyInput_NoDislikes() {
         val randomBFS = RandomBFS()
-        val path = randomBFS.findPath(emptyList())
+        val path = randomBFS.findPath(emptyList(), disinterests = emptyList())
         println("RandomBFS produced path = $path")
         assertTrue(path.isEmpty())
+    }
+
+    @Test
+    fun testFindPathRespectsCategoryDislikes() {
+        val dummyPois = listOf(
+            PoiEntity(poiId = 1, name = "Park", description = "", category = listOf("Nature"), latitude = 0.0, longitude = 0.0),
+            PoiEntity(poiId = 2, name = "Gallery", description = "", category = listOf("Art"), latitude = 0.0, longitude = 0.0),
+            PoiEntity(poiId = 3, name = "Zoo", description = "", category = listOf("Animals"), latitude = 0.0, longitude = 0.0),
+            PoiEntity(poiId = 4, name = "Theater", description = "", category = listOf("Entertainment"), latitude = 0.0, longitude = 0.0),
+            PoiEntity(poiId = 5, name = "Aquarium", description = "", category = listOf("Animals", "Education"), latitude = 0.0, longitude = 0.0)
+        )
+
+        val disinterests = listOf("Animals")
+        val expectedAllowed = dummyPois.filter { poi -> poi.category.none { it.equals("Animals", ignoreCase = true) } }
+
+        val randomBFS = RandomBFS()
+        val path = randomBFS.findPath(dummyPois, disinterests = disinterests)
+
+        println("RandomBFS (disinterests=$disinterests) produced path = $path")
+
+        // Ensure disliked categories are not present
+        assertFalse(path.any { poi -> poi.category.any { cat -> cat.equals("Animals", ignoreCase = true) } })
+
+        // Path should contain exactly the allowed POIs
+        assertEquals(expectedAllowed.size, path.size)
+        assertTrue(path.containsAll(expectedAllowed))
     }
 }
