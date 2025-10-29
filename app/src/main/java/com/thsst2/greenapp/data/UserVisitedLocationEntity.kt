@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "user_feedback",
+    tableName = "user_visited_location",
     foreignKeys = [
         ForeignKey(
             entity = PoiEntity::class,
@@ -14,19 +14,18 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
-            entity = UserLogEntity::class,
-            parentColumns = ["userLogId"],
-            childColumns = ["userLogId"],
+            entity = SessionEntity::class,
+            parentColumns = ["sessionId"],
+            childColumns = ["sessionId"],
             onDelete = ForeignKey.CASCADE
         )
     ]
 )
-data class UserFeedbackEntity(
+data class UserVisitedLocationEntity(
     @PrimaryKey(autoGenerate = true)
-    val userFeedbackId: Long = 0,
+    val userVisitedLocationId: Long = 0,
     val poiId: Long,
-    val userLogId: Long?,
-    val rating: Int?,                   // e.g., 1-5 stars
-    val comments: String?,
-    val timestamp: Long
+    val sessionId: Long,
+    val timestamp: Long,
+    val duration: Long
 )

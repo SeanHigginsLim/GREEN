@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "user_tour_path_history",
+    tableName = "performance_metrics",
     foreignKeys = [
         ForeignKey(
             entity = SessionEntity::class,
@@ -15,11 +15,11 @@ import androidx.room.PrimaryKey
         )
     ]
 )
-data class UserTourPathHistoryEntity(
+data class PerformanceMetricsEntity(
     @PrimaryKey(autoGenerate = true)
-    val userTourPathHistoryId: Long = 0,
+    val performanceMetricsId: Long = 0,
     val sessionId: Long,
-    val pathSequence: List<String>, // Store as JSON or comma-separated IDs
-    val algorithmUsed: String?,
-    val status: String?
+    val routeAccuracyScore: Long,
+    val querySuccessRate: Long,
+    val completionRate: Long
 )

@@ -5,8 +5,14 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "user_feedback",
+    tableName = "geofence_trigger",
     foreignKeys = [
+        ForeignKey(
+            entity = UserEntity::class,
+            parentColumns = ["userId"],
+            childColumns = ["userId"],
+            onDelete = ForeignKey.CASCADE
+        ),
         ForeignKey(
             entity = PoiEntity::class,
             parentColumns = ["poiId"],
@@ -21,12 +27,13 @@ import androidx.room.PrimaryKey
         )
     ]
 )
-data class UserFeedbackEntity(
+data class GeofenceTriggerEntity(
     @PrimaryKey(autoGenerate = true)
-    val userFeedbackId: Long = 0,
+    val geofenceTriggerId: Long = 0,
+    val userId: Long,
     val poiId: Long,
     val userLogId: Long?,
-    val rating: Int?,                   // e.g., 1-5 stars
-    val comments: String?,
-    val timestamp: Long
+    val entryTime: String,
+    val exitTime: String,
+    val triggerType: String
 )

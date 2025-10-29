@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "user_query",
+    tableName = "session",
     foreignKeys = [
         ForeignKey(
             entity = UserEntity::class,
@@ -15,12 +15,11 @@ import androidx.room.PrimaryKey
         )
     ]
 )
-data class UserQueryEntity(
+data class SessionEntity (
     @PrimaryKey(autoGenerate = true)
-    val userQueryId: Long = 0,
+    val sessionId: Long = 0,
     val userId: Long,
-    val text: String,
-    val timestamp: Long,
-    val intentDetected: String?,
-    val responseType: String?
+    val componentsUsed: String?,                 // e.g. ["Chat","Map","Trivia"]
+    val sessionStartedAt: String,                // ISO timestamp
+    val sessionEndedAt: String? = null
 )

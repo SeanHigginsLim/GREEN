@@ -12,13 +12,19 @@ import androidx.room.PrimaryKey
             parentColumns = ["userId"],
             childColumns = ["userId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = SessionEntity::class,
+            parentColumns = ["sessionId"],
+            childColumns = ["sessionId"],
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
 data class UserLocationEntity(
     @PrimaryKey(autoGenerate = true)
     val userLocationId: Long = 0,
-    val userId: Long,
+    val sessionId: Long,
     val latitude: Double,
     val longitude: Double,
     val timestamp: Long,

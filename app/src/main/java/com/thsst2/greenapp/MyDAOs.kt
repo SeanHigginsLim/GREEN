@@ -1,0 +1,401 @@
+package com.thsst2.greenapp
+
+import androidx.room.*
+import com.thsst2.greenapp.data.*
+import com.thsst2.greenapp.data.connections.*
+
+// Generic Base DAO
+interface BaseDao<T> {
+    @Insert
+    suspend fun insert(entity: T): Long
+
+    @Update
+    suspend fun update(entity: T)
+
+    @Delete
+    suspend fun delete(entity: T)
+}
+
+// DialogueHistory DAO
+@Dao
+interface DialogueHistoryDao: BaseDao<DialogueHistoryEntity> {
+    @Query("SELECT * FROM dialogue_history WHERE dialogueHistoryId = :id")
+    suspend fun getDialogueHistoryById(id: Long): DialogueHistoryEntity?
+
+    @Query("SELECT * FROM dialogue_history")
+    suspend fun getAllDialogueHistories(): List<DialogueHistoryEntity>
+
+    @Query("SELECT * FROM dialogue_history WHERE userId = :userId ORDER BY turnNumber ASC")
+    suspend fun getDialogueHistoryByUser(userId: Long): List<DialogueHistoryEntity>
+
+    @Transaction
+    @Query("SELECT * FROM dialogue_history WHERE userId = :userId")
+    suspend fun getDialogueHistoryWithUser(userId: Long): List<DialogueHistoryWithUser>
+
+    @Query("SELECT * FROM dialogue_history")
+    suspend fun getAll()
+
+    @Query("DELETE FROM dialogue_history")
+    suspend fun deleteAll()
+}
+
+// GeneratedPath DAO
+@Dao
+interface GeneratedPathDao: BaseDao<GeneratedPathEntity> {
+    @Query("SELECT * FROM generated_path WHERE generatedPathId = :id")
+    suspend fun getGeneratedPathById(id: Long): GeneratedPathEntity?
+
+    @Query("SELECT * FROM generated_path")
+    suspend fun getAllGeneratedPaths(): List<GeneratedPathEntity>
+
+    @Query("SELECT * FROM generated_path WHERE userId = :userId")
+    suspend fun getGeneratedPathsByUser(userId: Long): List<GeneratedPathEntity>
+
+    @Query("SELECT * FROM generated_path WHERE userLogId = :userLogId")
+    suspend fun getGeneratedPathsByUserLog(userLogId: Long): List<GeneratedPathEntity>
+
+    @Transaction
+    @Query("SELECT * FROM generated_path WHERE generatedPathId = :id")
+    suspend fun getGeneratedPathWithUser(id: Long): GeneratedPathWithUser
+
+    @Transaction
+    @Query("SELECT * FROM generated_path WHERE generatedPathId = :id")
+    suspend fun getGeneratedPathWithPois(id: Long): GeneratedPathWithPoi
+
+    @Query("SELECT * FROM generated_path")
+    suspend fun getAll()
+
+    @Query("DELETE FROM generated_path")
+    suspend fun deleteAll()
+}
+
+// GeofenceTrigger DAO
+@Dao
+interface GeofenceTriggerDao: BaseDao<GeofenceTriggerEntity> {
+    @Query("SELECT * FROM geofence_trigger WHERE geofenceTriggerId = :id")
+    suspend fun getGeofenceTriggerById(id: Long): GeofenceTriggerEntity?
+
+    @Query("SELECT * FROM geofence_trigger")
+    suspend fun getAllGeofenceTriggers(): List<GeofenceTriggerEntity>
+
+    @Query("SELECT * FROM geofence_trigger WHERE userId = :userId")
+    suspend fun getGeofenceTriggersByUser(userId: Long): List<GeofenceTriggerEntity>
+
+    @Query("SELECT * FROM geofence_trigger WHERE poiId = :poiId")
+    suspend fun getGeofenceTriggersByPoi(poiId: Long): List<GeofenceTriggerEntity>
+
+    @Query("SELECT * FROM geofence_trigger WHERE userLogId = :userLogId")
+    suspend fun getGeofenceTriggersByUserLog(userLogId: Long): List<GeofenceTriggerEntity>
+
+    @Transaction
+    @Query("SELECT * FROM geofence_trigger WHERE geofenceTriggerId = :id")
+    suspend fun getGeofenceTriggerWithUser(id: Long): GeofenceTriggerWithUser
+
+    @Transaction
+    @Query("SELECT * FROM geofence_trigger WHERE geofenceTriggerId = :id")
+    suspend fun getGeofenceTriggerWithPois(id: Long): GeofenceTriggerWithPoi
+
+    @Query("SELECT * FROM geofence_trigger")
+    suspend fun getAll()
+
+    @Query("DELETE FROM geofence_trigger")
+    suspend fun deleteAll()
+}
+
+// IntentLog DAO
+@Dao
+interface IntentLogDao: BaseDao<IntentLogEntity> {
+    @Query("SELECT * FROM intent_log WHERE intentLogId = :id")
+    suspend fun getIntentLogById(id: Long): IntentLogEntity?
+
+    @Query("SELECT * FROM intent_log")
+    suspend fun getAllIntentLogs(): List<IntentLogEntity>
+
+    @Query("SELECT * FROM intent_log WHERE userId = :userId")
+    suspend fun getIntentLogsByUser(userId: Long): List<IntentLogEntity>
+
+    @Transaction
+    @Query("SELECT * FROM intent_log WHERE intentLogId = :id")
+    suspend fun getIntentLogWithUser(id: Long): IntentLogWithUser
+
+    @Query("SELECT * FROM intent_log")
+    suspend fun getAll()
+
+    @Query("DELETE FROM intent_log")
+    suspend fun deleteAll()
+}
+
+// PathDeviationAlert DAO
+@Dao
+interface PathDeviationAlertDao: BaseDao<PathDeviationAlertEntity> {
+    @Query("SELECT * FROM path_deviation_alert WHERE pathDeviationAlertId = :id")
+    suspend fun getPathDeviationAlertById(id: Long): PathDeviationAlertEntity?
+
+    @Query("SELECT * FROM path_deviation_alert")
+    suspend fun getAllPathDeviationAlerts(): List<PathDeviationAlertEntity>
+
+    @Query("SELECT * FROM path_deviation_alert WHERE userId = :userId")
+    suspend fun getPathDeviationAlertsByUser(userId: Long): List<PathDeviationAlertEntity>
+
+    @Transaction
+    @Query("SELECT * FROM path_deviation_alert WHERE pathDeviationAlertId = :id")
+    suspend fun getPathDeviationAlertWithUser(id: Long): PathDeviationAlertWithUser
+
+    @Query("SELECT * FROM path_deviation_alert")
+    suspend fun getAll()
+
+    @Query("DELETE FROM path_deviation_alert")
+    suspend fun deleteAll()
+}
+
+// PerformanceMetrics DAO
+@Dao
+interface PerformanceMetricsDao: BaseDao<PerformanceMetricsEntity> {
+    @Query("SELECT * FROM performance_metrics WHERE performanceMetricsId = :id")
+    suspend fun getPerformanceMetricsById(id: Long): PerformanceMetricsEntity?
+
+    @Query("SELECT * FROM performance_metrics WHERE sessionId = :sessionId")
+    suspend fun getMetricsBySession(sessionId: Long): List<PerformanceMetricsEntity>
+
+    @Query("SELECT * FROM performance_metrics")
+    suspend fun getAll()
+
+    @Query("DELETE FROM performance_metrics")
+    suspend fun deleteAll()
+}
+
+// Poi DAO
+@Dao
+interface PoiDao: BaseDao<PoiEntity> {
+    @Query("SELECT * FROM poi WHERE poiId = :id")
+    suspend fun getPoiById(id: Long): PoiEntity?
+
+    @Query("SELECT * FROM poi")
+    suspend fun getAllPois(): List<PoiEntity>
+
+    @Query("SELECT * FROM poi")
+    suspend fun getAll()
+
+    @Query("DELETE FROM poi")
+    suspend fun deleteAll()
+}
+
+// ResponseJustification DAO
+@Dao
+interface ResponseJustificationDao: BaseDao<ResponseJustificationEntity> {
+    @Query("SELECT * FROM response_justification WHERE responseJustificationId = :id")
+    suspend fun getResponseJustificationById(id: Long): ResponseJustificationEntity?
+
+    @Query("SELECT * FROM response_justification WHERE userQueryId = :userQueryId")
+    suspend fun getResponseJustificationsByQuery(userQueryId: Long): List<ResponseJustificationEntity>
+
+    @Query("SELECT * FROM response_justification")
+    suspend fun getAll()
+
+    @Query("DELETE FROM response_justification")
+    suspend fun deleteAll()
+}
+
+// Session DAO
+@Dao
+interface SessionDao: BaseDao<SessionEntity> {
+    @Query("SELECT * FROM session WHERE sessionId = :id")
+    suspend fun getSessionById(id: Long): SessionEntity?
+
+    @Query("SELECT * FROM session WHERE userId = :userId")
+    suspend fun getSessionsByUser(userId: Long): List<SessionEntity>
+
+    @Query("SELECT * FROM session")
+    suspend fun getAll()
+
+    @Query("DELETE FROM session")
+    suspend fun deleteAll()
+}
+
+// User DAO
+@Dao
+interface UserDao: BaseDao<UserEntity> {
+    @Query("SELECT * FROM user WHERE userId = :id")
+    suspend fun getUserById(id: Long): UserEntity?
+
+    @Query("SELECT * FROM user")
+    suspend fun getAllUsers(): List<UserEntity>
+
+    @Query("SELECT * FROM user")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user")
+    suspend fun deleteAll()
+}
+
+// UserRole DAO
+@Dao
+interface UserRoleDao: BaseDao<UserRoleEntity> {
+    @Query("SELECT * FROM user_role WHERE userRoleId = :id")
+    suspend fun getUserRoleById(id: Long): UserRoleEntity?
+
+    @Query("SELECT * FROM user_role")
+    suspend fun getAllUserRoles(): List<UserRoleEntity>
+
+    @Query("SELECT * FROM user_role")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_role")
+    suspend fun deleteAll()
+}
+
+// UserPreferences DAO
+@Dao
+interface UserPreferencesDao: BaseDao<UserPreferencesEntity> {
+    @Query("SELECT * FROM user_preferences WHERE userPreferencesId = :id")
+    suspend fun getUserPreferencesById(id: Long): UserPreferencesEntity?
+
+    @Query("SELECT * FROM user_preferences WHERE userId = :userId")
+    suspend fun getPreferencesByUser(userId: Long): List<UserPreferencesEntity>
+
+    @Query("SELECT * FROM user_preferences")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_preferences")
+    suspend fun deleteAll()
+}
+
+// UserQuery DAO
+@Dao
+interface UserQueryDao: BaseDao<UserQueryEntity> {
+    @Query("SELECT * FROM user_query WHERE userQueryId = :id")
+    suspend fun getUserQueryById(id: Long): UserQueryEntity?
+
+    @Query("SELECT * FROM user_query WHERE userId = :userId")
+    suspend fun getUserQueriesByUser(userId: Long): List<UserQueryEntity>
+
+    @Query("SELECT * FROM user_query")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_query")
+    suspend fun deleteAll()
+}
+
+// UserFeedback DAO
+@Dao
+interface UserFeedbackDao: BaseDao<UserFeedbackEntity> {
+    @Query("SELECT * FROM user_feedback WHERE userFeedbackId = :id")
+    suspend fun getUserFeedbackById(id: Long): UserFeedbackEntity?
+
+    @Query("SELECT * FROM user_feedback WHERE userLogId = :userLogId")
+    suspend fun getFeedbackByUserLog(userLogId: Long): List<UserFeedbackEntity>
+
+    @Query("SELECT * FROM user_feedback WHERE poiId = :poiId")
+    suspend fun getFeedbackByPoi(poiId: Long): List<UserFeedbackEntity>
+
+    @Query("SELECT * FROM user_feedback")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_feedback")
+    suspend fun deleteAll()
+}
+
+// UserInteractionTime DAO
+@Dao
+interface UserInteractionTimeDao: BaseDao<UserInteractionTimeEntity> {
+    @Query("SELECT * FROM user_interaction_time WHERE userInteractionTimeId = :id")
+    suspend fun getInteractionTimeById(id: Long): UserInteractionTimeEntity?
+
+    @Query("SELECT * FROM user_interaction_time WHERE userLogId = :userLogId")
+    suspend fun getInteractionTimesByUserLog(userLogId: Long): List<UserInteractionTimeEntity>
+
+    @Query("SELECT * FROM user_interaction_time WHERE poiId = :poiId")
+    suspend fun getInteractionTimesByPoi(poiId: Long): List<UserInteractionTimeEntity>
+
+    @Query("SELECT * FROM user_interaction_time")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_interaction_time")
+    suspend fun deleteAll()
+}
+
+// UserLocation DAO
+@Dao
+interface UserLocationDao: BaseDao<UserLocationEntity> {
+    @Query("SELECT * FROM user_location WHERE userLocationId = :id")
+    suspend fun getUserLocationById(id: Long): UserLocationEntity?
+
+    @Query("SELECT * FROM user_location WHERE sessionId = :sessionId")
+    suspend fun getLocationsBySession(sessionId: Long): List<UserLocationEntity>
+
+    @Query("SELECT * FROM user_location")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_location")
+    suspend fun deleteAll()
+}
+
+// UserLog DAO
+@Dao
+interface UserLogDao: BaseDao<UserLogEntity> {
+    @Query("SELECT * FROM user_log WHERE userLogId = :id")
+    suspend fun getUserLogById(id: Long): UserLogEntity?
+
+    @Query("SELECT * FROM user_log WHERE userId = :userId")
+    suspend fun getUserLogsByUser(userId: Long): List<UserLogEntity>
+
+    @Query("SELECT * FROM user_log")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_log")
+    suspend fun deleteAll()
+}
+
+// UserSkippedOrDislikedLocation DAO
+@Dao
+interface UserSkippedOrDislikedLocationDao: BaseDao<UserSkippedOrDislikedLocationEntity> {
+    @Query("SELECT * FROM user_skipped_or_disliked_location WHERE userSkippedOrDislikedLocationId = :id")
+    suspend fun getById(id: Long): UserSkippedOrDislikedLocationEntity?
+
+    @Query("SELECT * FROM user_skipped_or_disliked_location WHERE sessionId = :sessionId")
+    suspend fun getBySession(sessionId: Long): List<UserSkippedOrDislikedLocationEntity>
+
+    @Query("SELECT * FROM user_skipped_or_disliked_location WHERE poiId = :poiId")
+    suspend fun getByPoi(poiId: Long): List<UserSkippedOrDislikedLocationEntity>
+
+    @Query("SELECT * FROM user_skipped_or_disliked_location")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_skipped_or_disliked_location")
+    suspend fun deleteAll()
+}
+
+// UserTourPathHistory DAO
+@Dao
+interface UserTourPathHistoryDao: BaseDao<UserTourPathHistoryEntity> {
+    @Query("SELECT * FROM user_tour_path_history WHERE userTourPathHistoryId = :id")
+    suspend fun getById(id: Long): UserTourPathHistoryEntity?
+
+    @Query("SELECT * FROM user_tour_path_history WHERE sessionId = :sessionId")
+    suspend fun getBySession(sessionId: Long): List<UserTourPathHistoryEntity>
+
+    @Query("SELECT * FROM user_tour_path_history")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_tour_path_history")
+    suspend fun deleteAll()
+}
+
+// UserVisitedLocation DAO
+@Dao
+interface UserVisitedLocationDao: BaseDao<UserVisitedLocationEntity> {
+    @Query("SELECT * FROM user_visited_location WHERE userVisitedLocationId = :id")
+    suspend fun getById(id: Long): UserVisitedLocationEntity?
+
+    @Query("SELECT * FROM user_visited_location WHERE sessionId = :sessionId")
+    suspend fun getBySession(sessionId: Long): List<UserVisitedLocationEntity>
+
+    @Query("SELECT * FROM user_visited_location WHERE poiId = :poiId")
+    suspend fun getByPoi(poiId: Long): List<UserVisitedLocationEntity>
+
+    @Query("SELECT * FROM user_visited_location")
+    suspend fun getAll()
+
+    @Query("DELETE FROM user_visited_location")
+    suspend fun deleteAll()
+}

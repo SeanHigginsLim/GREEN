@@ -5,14 +5,8 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "intent_log",
+    tableName = "response_justification",
     foreignKeys = [
-        ForeignKey(
-            entity = UserEntity::class,
-            parentColumns = ["userId"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
-        ),
         ForeignKey(
             entity = UserQueryEntity::class,
             parentColumns = ["userQueryId"],
@@ -21,12 +15,10 @@ import androidx.room.PrimaryKey
         )
     ]
 )
-data class IntentLogEntity(
+data class ResponseJustificationEntity(
     @PrimaryKey(autoGenerate = true)
-    val intentLogId: Long = 0,
-    val userId: Long,
+    val responseJustificationId: Long = 0,
     val userQueryId: Long,
-    val intentLabel: String,
-    val confidenceScore: Double?,
-    val entities: String? // Store as JSON or comma-separated
+    val explanation: String,
+    val sourceDocs: List<String>, //list
 )

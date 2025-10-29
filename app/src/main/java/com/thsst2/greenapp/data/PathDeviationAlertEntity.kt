@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "user_visited_locations",
+    tableName = "path_deviation_alert",
     foreignKeys = [
         ForeignKey(
             entity = UserEntity::class,
@@ -14,18 +14,19 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
-            entity = PoiEntity::class,
-            parentColumns = ["poiId"],
-            childColumns = ["poiId"],
+            entity = UserLogEntity::class,
+            parentColumns = ["userLogId"],
+            childColumns = ["userLogId"],
             onDelete = ForeignKey.CASCADE
         )
     ]
 )
-data class UserVisitedLocationsEntity(
+data class PathDeviationAlertEntity(
     @PrimaryKey(autoGenerate = true)
-    val userVisitedLocationsId: Long = 0,
+    val pathDeviationAlertId: Long = 0,
     val userId: Long,
-    val poiId: Long,
-    val timestamp: Long,
-    val duration: Long
+    val userLogId: Long?,
+    val deviationLocation: String,
+    val timeStamp: String,
+    val noticeSent: Boolean
 )

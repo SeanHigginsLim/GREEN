@@ -5,8 +5,14 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "user_feedback",
+    tableName = "generated_path",
     foreignKeys = [
+        ForeignKey(
+            entity = UserEntity::class,
+            parentColumns = ["userId"],
+            childColumns = ["userId"],
+            onDelete = ForeignKey.CASCADE
+        ),
         ForeignKey(
             entity = PoiEntity::class,
             parentColumns = ["poiId"],
@@ -21,12 +27,13 @@ import androidx.room.PrimaryKey
         )
     ]
 )
-data class UserFeedbackEntity(
+data class GeneratedPathEntity(
     @PrimaryKey(autoGenerate = true)
-    val userFeedbackId: Long = 0,
+    val generatedPathId: Long = 0,
+    val userId: Long,
     val poiId: Long,
     val userLogId: Long?,
-    val rating: Int?,                   // e.g., 1-5 stars
-    val comments: String?,
-    val timestamp: Long
+    val pathType: String,
+    val estimatedDuration: String,
+    val routeAlgorithm: String
 )
