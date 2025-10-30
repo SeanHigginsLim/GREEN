@@ -1,37 +1,27 @@
 package com.thsst2.greenapp.algorithms
 
 import com.thsst2.greenapp.data.PoiEntity
+import com.thsst2.greenapp.graph.PoiGraph
+import com.thsst2.greenapp.graph.FilteredAdjacencyList
 import kotlin.random.Random
 
 class RandomBFS {
 
     /**
-     * Find a random BFS-like ordering over POIs while excluding POIs whose
+     * Find a random BFS-like ordering over POIs using graph structure while excluding POIs whose
      * categories match any of the user's disinterests (case-insensitive).
-     *
-     * Calling code can pass an empty collection to keep all POIs.
      */
     fun findPath(
-        allPois: List<PoiEntity>,
+        graph: PoiGraph,
+        dislikedPoiIds: Set<Int> = emptySet(),
         disinterests: Collection<String> = emptyList()
     ): List<PoiEntity> {
-        if (allPois.isEmpty()) return emptyList()
-
-        val disSet: Set<String> = disinterests
-            .map { it.lowercase().trim() }
-            .filter { it.isNotEmpty() }
-            .toSet()
-
-        // Filter out POIs whose any category matches a disinterest
-        val allowedPois: List<PoiEntity> = if (disSet.isEmpty()) {
-            allPois
-        } else {
-            allPois.filter { poi ->
-                val poiCats = poi.category.map { it.lowercase().trim() }
-                poiCats.none { it in disSet }
-            }
-        }
-
+        
+        // Apply filters to the graph
+        val filteredGraph = FilteredAdjacencyList(graph)
+        filteredGraph.applyFilters(dislikedPoiIds, disinterests)
+        
+        val allowedPois = filteredGraph.getAllowedPois()
         if (allowedPois.isEmpty()) return emptyList()
 
         val visited = mutableSetOf<PoiEntity>()
@@ -47,11 +37,17 @@ class RandomBFS {
             val current = queue.removeFirst()
             path.add(current)
 
-            // treat remaining allowed POIs as neighbors in random order
-            val neighbors: List<PoiEntity> = allowedPois.filter { it !in visited }.shuffled(Random.Default)
-            for (neighbor in neighbors) {
-                queue.add(neighbor)
-                visited.add(neighbor)
+            // Get actual graph neighbors, then randomize the order
+            val graphNeighbors = filteredGraph.getNeighbors(current.poiId)
+                .mapNotNull { edge -> graph.getNode(edge.to) }
+                .filter { it !in visited }
+                .shuffled(Random.Default)
+
+            for (neighbor in graphNeighbors) {
+                if (neighbor !in visited) {
+                    queue.add(neighbor)
+                    visited.add(neighbor)
+                }
             }
         }
 
