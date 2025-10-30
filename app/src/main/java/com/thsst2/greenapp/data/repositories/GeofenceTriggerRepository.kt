@@ -1,6 +1,6 @@
 package com.thsst2.greenapp.data.repositories
 
-import com.thsst2.greenapp.data.MyAppDatabase
+import com.thsst2.greenapp.MyAppDatabase
 import com.thsst2.greenapp.data.GeofenceTriggerEntity
 
 class GeofenceTriggerRepository(private val db: MyAppDatabase) : BaseRepository() {

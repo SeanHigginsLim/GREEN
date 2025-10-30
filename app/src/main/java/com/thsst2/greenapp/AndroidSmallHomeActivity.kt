@@ -8,10 +8,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.google.firebase.FirebaseApp
 import com.thsst2.greenapp.data.*
 import com.thsst2.greenapp.data.repositories.SessionRepository
 import com.thsst2.greenapp.databinding.ActivityAndroidSmallHomeBinding
 import com.google.firebase.auth.FirebaseAuth
+import com.thsst2.greenapp.data.repositories.UserRepository
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import retrofit2.*
@@ -58,6 +60,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		homeBinding = ActivityAndroidSmallHomeBinding.inflate(layoutInflater)
 		setContentView(homeBinding.root)
 
+		FirebaseApp.initializeApp(this)
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
 
@@ -96,6 +99,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			userId = userId,
 			userRoleId = null,
 		)
+		saveUserLocally(user)
 
 		val sessionProfile = SessionEntity(
 			sessionId = sessionId,
@@ -274,6 +278,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		lifecycleScope.launch {
 			val repo = SessionRepository(db)
 			repo.insertSession(session, true)
+		}
+	}
+
+	private fun saveUserLocally(user: UserEntity) {
+		lifecycleScope.launch {
+			val repo = UserRepository(db)
+			repo.insertUser(user, true)
 		}
 	}
 

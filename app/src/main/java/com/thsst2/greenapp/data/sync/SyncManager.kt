@@ -1,7 +1,7 @@
 package com.thsst2.greenapp.data.sync
 
 import android.content.Context
-import com.thsst2.greenapp.data.MyAppDatabase
+import com.thsst2.greenapp.MyAppDatabase
 import com.thsst2.greenapp.data.repositories.*
 
 class SyncManager(private val context: Context) {

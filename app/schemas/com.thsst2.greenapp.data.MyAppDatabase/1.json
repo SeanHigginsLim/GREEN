@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "4761cb634390b932e398338e9a66e731",
+    "identityHash": "03ff724e28a6a15a6ff048b99cffa1c4",
     "entities": [
       {
         "tableName": "user",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` INTEGER NOT NULL, `userRoleId` INTEGER NOT NULL, PRIMARY KEY(`userId`), FOREIGN KEY(`userRoleId`) REFERENCES `user_role`(`userRoleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` INTEGER NOT NULL, `userRoleId` INTEGER, PRIMARY KEY(`userId`), FOREIGN KEY(`userRoleId`) REFERENCES `user_role`(`userRoleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userId",
@@ -17,8 +17,7 @@
           {
             "fieldPath": "userRoleId",
             "columnName": "userRoleId",
-            "affinity": "INTEGER",
-            "notNull": true
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -1196,7 +1195,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4761cb634390b932e398338e9a66e731')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '03ff724e28a6a15a6ff048b99cffa1c4')"
     ]
   }
 }

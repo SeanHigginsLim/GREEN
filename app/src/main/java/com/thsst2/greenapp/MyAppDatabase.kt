@@ -1,31 +1,30 @@
-package com.thsst2.greenapp.data
+package com.thsst2.greenapp
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.thsst2.greenapp.DialogueHistoryDao
-import com.thsst2.greenapp.GeneratedPathDao
-import com.thsst2.greenapp.GeofenceTriggerDao
-import com.thsst2.greenapp.IntentLogDao
-import com.thsst2.greenapp.PathDeviationAlertDao
-import com.thsst2.greenapp.PerformanceMetricsDao
-import com.thsst2.greenapp.PoiDao
-import com.thsst2.greenapp.ResponseJustificationDao
-import com.thsst2.greenapp.SessionDao
-import com.thsst2.greenapp.TypeConverter
-import com.thsst2.greenapp.UserDao
-import com.thsst2.greenapp.UserFeedbackDao
-import com.thsst2.greenapp.UserInteractionTimeDao
-import com.thsst2.greenapp.UserLocationDao
-import com.thsst2.greenapp.UserLogDao
-import com.thsst2.greenapp.UserPreferencesDao
-import com.thsst2.greenapp.UserQueryDao
-import com.thsst2.greenapp.UserRoleDao
-import com.thsst2.greenapp.UserSkippedOrDislikedLocationDao
-import com.thsst2.greenapp.UserTourPathHistoryDao
-import com.thsst2.greenapp.UserVisitedLocationDao
+import com.thsst2.greenapp.data.DialogueHistoryEntity
+import com.thsst2.greenapp.data.GeneratedPathEntity
+import com.thsst2.greenapp.data.GeofenceTriggerEntity
+import com.thsst2.greenapp.data.IntentLogEntity
+import com.thsst2.greenapp.data.PathDeviationAlertEntity
+import com.thsst2.greenapp.data.PerformanceMetricsEntity
+import com.thsst2.greenapp.data.PoiEntity
+import com.thsst2.greenapp.data.ResponseJustificationEntity
+import com.thsst2.greenapp.data.SessionEntity
+import com.thsst2.greenapp.data.UserEntity
+import com.thsst2.greenapp.data.UserFeedbackEntity
+import com.thsst2.greenapp.data.UserInteractionTimeEntity
+import com.thsst2.greenapp.data.UserLocationEntity
+import com.thsst2.greenapp.data.UserLogEntity
+import com.thsst2.greenapp.data.UserPreferencesEntity
+import com.thsst2.greenapp.data.UserQueryEntity
+import com.thsst2.greenapp.data.UserRoleEntity
+import com.thsst2.greenapp.data.UserSkippedOrDislikedLocationEntity
+import com.thsst2.greenapp.data.UserTourPathHistoryEntity
+import com.thsst2.greenapp.data.UserVisitedLocationEntity
 
 @Database(
     entities = [
@@ -51,7 +50,7 @@ import com.thsst2.greenapp.UserVisitedLocationDao
         UserVisitedLocationEntity::class,
         UserSkippedOrDislikedLocationEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(TypeConverter::class)

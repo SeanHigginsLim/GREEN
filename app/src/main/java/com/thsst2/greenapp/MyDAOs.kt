@@ -6,10 +6,10 @@ import com.thsst2.greenapp.data.connections.*
 
 // Generic Base DAO
 interface BaseDao<T> {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(entity: T): Long
 
-    @Update
+    @Update(onConflict = OnConflictStrategy.REPLACE)
     suspend fun update(entity: T)
 
     @Delete
