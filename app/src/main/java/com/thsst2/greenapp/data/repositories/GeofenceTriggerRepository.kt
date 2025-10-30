@@ -10,7 +10,7 @@ class GeofenceTriggerRepository(private val db: MyAppDatabase) : BaseRepository(
         if (syncToFirebase) uploadToFirebase("geofence_triggers", geofenceTrigger.geofenceTriggerId.toString(), geofenceTrigger)
     }
 
-    suspend fun getAll() = db.geofenceTriggerDao().getAll()
+    suspend fun getAll(): List<GeofenceTriggerEntity> = db.geofenceTriggerDao().getAll()
 
     suspend fun deleteAll() = db.geofenceTriggerDao().deleteAll()
 }

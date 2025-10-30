@@ -24,6 +24,7 @@ import androidx.room.PrimaryKey
 data class UserLocationEntity(
     @PrimaryKey(autoGenerate = true)
     val userLocationId: Long = 0,
+    val userId: Long,
     val sessionId: Long,
     val latitude: Double,
     val longitude: Double,

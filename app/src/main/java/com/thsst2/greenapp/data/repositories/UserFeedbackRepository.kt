@@ -10,7 +10,7 @@ class UserFeedbackRepository(private val db: MyAppDatabase) : BaseRepository() {
         if (syncToFirebase) uploadToFirebase("user_feedback", userFeedback.userFeedbackId.toString(), userFeedback)
     }
 
-    suspend fun getAll() = db.userFeedbackDao().getAll()
+    suspend fun getAll(): List<UserFeedbackEntity> = db.userFeedbackDao().getAll()
 
     suspend fun deleteAll() = db.userFeedbackDao().deleteAll()
 }

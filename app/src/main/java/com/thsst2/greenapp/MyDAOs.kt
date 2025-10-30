@@ -33,7 +33,7 @@ interface DialogueHistoryDao: BaseDao<DialogueHistoryEntity> {
     suspend fun getDialogueHistoryWithUser(userId: Long): List<DialogueHistoryWithUser>
 
     @Query("SELECT * FROM dialogue_history")
-    suspend fun getAll()
+    suspend fun getAll(): List<DialogueHistoryEntity>
 
     @Query("DELETE FROM dialogue_history")
     suspend fun deleteAll()
@@ -63,7 +63,7 @@ interface GeneratedPathDao: BaseDao<GeneratedPathEntity> {
     suspend fun getGeneratedPathWithPois(id: Long): GeneratedPathWithPoi
 
     @Query("SELECT * FROM generated_path")
-    suspend fun getAll()
+    suspend fun getAll(): List<GeneratedPathEntity>
 
     @Query("DELETE FROM generated_path")
     suspend fun deleteAll()
@@ -96,7 +96,7 @@ interface GeofenceTriggerDao: BaseDao<GeofenceTriggerEntity> {
     suspend fun getGeofenceTriggerWithPois(id: Long): GeofenceTriggerWithPoi
 
     @Query("SELECT * FROM geofence_trigger")
-    suspend fun getAll()
+    suspend fun getAll(): List<GeofenceTriggerEntity>
 
     @Query("DELETE FROM geofence_trigger")
     suspend fun deleteAll()
@@ -119,7 +119,7 @@ interface IntentLogDao: BaseDao<IntentLogEntity> {
     suspend fun getIntentLogWithUser(id: Long): IntentLogWithUser
 
     @Query("SELECT * FROM intent_log")
-    suspend fun getAll()
+    suspend fun getAll(): List<IntentLogEntity>
 
     @Query("DELETE FROM intent_log")
     suspend fun deleteAll()
@@ -142,7 +142,7 @@ interface PathDeviationAlertDao: BaseDao<PathDeviationAlertEntity> {
     suspend fun getPathDeviationAlertWithUser(id: Long): PathDeviationAlertWithUser
 
     @Query("SELECT * FROM path_deviation_alert")
-    suspend fun getAll()
+    suspend fun getAll(): List<PathDeviationAlertEntity>
 
     @Query("DELETE FROM path_deviation_alert")
     suspend fun deleteAll()
@@ -158,7 +158,7 @@ interface PerformanceMetricsDao: BaseDao<PerformanceMetricsEntity> {
     suspend fun getMetricsBySession(sessionId: Long): List<PerformanceMetricsEntity>
 
     @Query("SELECT * FROM performance_metrics")
-    suspend fun getAll()
+    suspend fun getAll(): List<PerformanceMetricsEntity>
 
     @Query("DELETE FROM performance_metrics")
     suspend fun deleteAll()
@@ -174,7 +174,7 @@ interface PoiDao: BaseDao<PoiEntity> {
     suspend fun getAllPois(): List<PoiEntity>
 
     @Query("SELECT * FROM poi")
-    suspend fun getAll()
+    suspend fun getAll(): List<PoiEntity>
 
     @Query("DELETE FROM poi")
     suspend fun deleteAll()
@@ -190,7 +190,7 @@ interface ResponseJustificationDao: BaseDao<ResponseJustificationEntity> {
     suspend fun getResponseJustificationsByQuery(userQueryId: Long): List<ResponseJustificationEntity>
 
     @Query("SELECT * FROM response_justification")
-    suspend fun getAll()
+    suspend fun getAll(): List<ResponseJustificationEntity>
 
     @Query("DELETE FROM response_justification")
     suspend fun deleteAll()
@@ -206,7 +206,7 @@ interface SessionDao: BaseDao<SessionEntity> {
     suspend fun getSessionsByUser(userId: Long): List<SessionEntity>
 
     @Query("SELECT * FROM session")
-    suspend fun getAll()
+    suspend fun getAll(): List<SessionEntity>
 
     @Query("DELETE FROM session")
     suspend fun deleteAll()
@@ -222,7 +222,7 @@ interface UserDao: BaseDao<UserEntity> {
     suspend fun getAllUsers(): List<UserEntity>
 
     @Query("SELECT * FROM user")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserEntity>
 
     @Query("DELETE FROM user")
     suspend fun deleteAll()
@@ -238,7 +238,7 @@ interface UserRoleDao: BaseDao<UserRoleEntity> {
     suspend fun getAllUserRoles(): List<UserRoleEntity>
 
     @Query("SELECT * FROM user_role")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserRoleEntity>
 
     @Query("DELETE FROM user_role")
     suspend fun deleteAll()
@@ -254,7 +254,7 @@ interface UserPreferencesDao: BaseDao<UserPreferencesEntity> {
     suspend fun getPreferencesByUser(userId: Long): List<UserPreferencesEntity>
 
     @Query("SELECT * FROM user_preferences")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserPreferencesEntity>
 
     @Query("DELETE FROM user_preferences")
     suspend fun deleteAll()
@@ -270,7 +270,7 @@ interface UserQueryDao: BaseDao<UserQueryEntity> {
     suspend fun getUserQueriesByUser(userId: Long): List<UserQueryEntity>
 
     @Query("SELECT * FROM user_query")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserQueryEntity>
 
     @Query("DELETE FROM user_query")
     suspend fun deleteAll()
@@ -289,7 +289,7 @@ interface UserFeedbackDao: BaseDao<UserFeedbackEntity> {
     suspend fun getFeedbackByPoi(poiId: Long): List<UserFeedbackEntity>
 
     @Query("SELECT * FROM user_feedback")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserFeedbackEntity>
 
     @Query("DELETE FROM user_feedback")
     suspend fun deleteAll()
@@ -308,7 +308,7 @@ interface UserInteractionTimeDao: BaseDao<UserInteractionTimeEntity> {
     suspend fun getInteractionTimesByPoi(poiId: Long): List<UserInteractionTimeEntity>
 
     @Query("SELECT * FROM user_interaction_time")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserInteractionTimeEntity>
 
     @Query("DELETE FROM user_interaction_time")
     suspend fun deleteAll()
@@ -324,7 +324,7 @@ interface UserLocationDao: BaseDao<UserLocationEntity> {
     suspend fun getLocationsBySession(sessionId: Long): List<UserLocationEntity>
 
     @Query("SELECT * FROM user_location")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserLocationEntity>
 
     @Query("DELETE FROM user_location")
     suspend fun deleteAll()
@@ -340,7 +340,7 @@ interface UserLogDao: BaseDao<UserLogEntity> {
     suspend fun getUserLogsByUser(userId: Long): List<UserLogEntity>
 
     @Query("SELECT * FROM user_log")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserLogEntity>
 
     @Query("DELETE FROM user_log")
     suspend fun deleteAll()
@@ -359,7 +359,7 @@ interface UserSkippedOrDislikedLocationDao: BaseDao<UserSkippedOrDislikedLocatio
     suspend fun getByPoi(poiId: Long): List<UserSkippedOrDislikedLocationEntity>
 
     @Query("SELECT * FROM user_skipped_or_disliked_location")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserSkippedOrDislikedLocationEntity>
 
     @Query("DELETE FROM user_skipped_or_disliked_location")
     suspend fun deleteAll()
@@ -375,7 +375,7 @@ interface UserTourPathHistoryDao: BaseDao<UserTourPathHistoryEntity> {
     suspend fun getBySession(sessionId: Long): List<UserTourPathHistoryEntity>
 
     @Query("SELECT * FROM user_tour_path_history")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserTourPathHistoryEntity>
 
     @Query("DELETE FROM user_tour_path_history")
     suspend fun deleteAll()
@@ -393,8 +393,16 @@ interface UserVisitedLocationDao: BaseDao<UserVisitedLocationEntity> {
     @Query("SELECT * FROM user_visited_location WHERE poiId = :poiId")
     suspend fun getByPoi(poiId: Long): List<UserVisitedLocationEntity>
 
+    @Transaction
+    @Query("SELECT * FROM user_visited_location WHERE sessionId = :id")
+    suspend fun getUserVisitedLocationWithSession(id: Long): List<UserVisitedLocationWithSession>
+
+    @Transaction
+    @Query("SELECT * FROM user_visited_location WHERE poiId = :id")
+    suspend fun getUserVisitedLocationWithPoi(id: Long): List<UserVisitedLocationWithPoi>
+
     @Query("SELECT * FROM user_visited_location")
-    suspend fun getAll()
+    suspend fun getAll(): List<UserVisitedLocationEntity>
 
     @Query("DELETE FROM user_visited_location")
     suspend fun deleteAll()

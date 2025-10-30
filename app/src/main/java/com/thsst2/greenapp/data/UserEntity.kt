@@ -16,5 +16,5 @@ import androidx.room.PrimaryKey
 )
 data class UserEntity (
     @PrimaryKey val userId: Long,
-    val userRoleId: Long,           // FK → roles table (student, faculty, guest)
+    val userRoleId: Long?,           // FK → roles table (student, faculty, guest)
 )

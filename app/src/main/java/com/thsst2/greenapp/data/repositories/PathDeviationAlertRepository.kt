@@ -10,7 +10,7 @@ class PathDeviationAlertRepository(private val db: MyAppDatabase) : BaseReposito
         if (syncToFirebase) uploadToFirebase("path_deviation_alerts", pathDeviationAlert.pathDeviationAlertId.toString(), pathDeviationAlert)
     }
 
-    suspend fun getAll() = db.pathDeviationAlertDao().getAll()
+    suspend fun getAll(): List<PathDeviationAlertEntity> = db.pathDeviationAlertDao().getAll()
 
     suspend fun deleteAll() = db.pathDeviationAlertDao().deleteAll()
 }

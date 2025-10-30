@@ -6,41 +6,83 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.thsst2.greenapp.databinding.ActivityAndroidSmallLoginBinding
+import com.thsst2.greenapp.databinding.ActivityAndroidSmallSignupBinding
 
 class AndroidSmallLoginActivity : AppCompatActivity() {
 	private lateinit var loginBinding: ActivityAndroidSmallLoginBinding
+	private lateinit var signupBinding: ActivityAndroidSmallSignupBinding
 	private lateinit var auth: FirebaseAuth
 	private lateinit var sessionManager: SessionManager
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
-		// Set up view binding
-		loginBinding = ActivityAndroidSmallLoginBinding.inflate(layoutInflater)
-		setContentView(loginBinding.root)
-
 		// Get Firebase Authentication
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
 
-		// If already logged in, go straight to Home
+		showLoginLayout()
+	}
+
+	private fun showLoginLayout() {
+		loginBinding = ActivityAndroidSmallLoginBinding.inflate(layoutInflater)
+		setContentView(loginBinding.root)
+
+		// Auto redirect if already logged in
 		if (auth.currentUser != null && sessionManager.isLoggedIn()) {
 			startActivity(Intent(this, AndroidSmallHomeActivity::class.java))
 			finish()
 			return
 		}
 
-		// Login button click
 		loginBinding.r7k1xvbfvys.setOnClickListener {
 			val email = loginBinding.rrv4j3rl69ve.text.toString().trim()
 			val password = loginBinding.r3h40j0ejym3.text.toString().trim()
 			loginUser(email, password)
 		}
 
-		// Signup text click
 		loginBinding.rakhddqjl1ls.setOnClickListener {
-			// Not yet implemented
-//			startActivity(Intent(this, SignupActivity::class.java))
+			showSignupLayout()
+		}
+	}
+
+	private fun showSignupLayout() {
+		val signupBinding = ActivityAndroidSmallSignupBinding.inflate(layoutInflater)
+		setContentView(signupBinding.root)
+
+		val emailInput = signupBinding.signupEmail
+		val passwordInput = signupBinding.signupPassword
+		val confirmInput = signupBinding.signupConfirm
+		val signupButton = signupBinding.signupButton
+		val backToLogin = signupBinding.backToLogin
+
+		signupButton.setOnClickListener {
+			val email = emailInput.text.toString().trim()
+			val password = passwordInput.text.toString().trim()
+			val confirm = confirmInput.text.toString().trim()
+
+			if (email.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
+				Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
+				return@setOnClickListener
+			}
+			if (password != confirm) {
+				Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
+				return@setOnClickListener
+			}
+
+			auth.createUserWithEmailAndPassword(email, password)
+				.addOnCompleteListener(this) { task ->
+					if (task.isSuccessful) {
+						Toast.makeText(this, "Account created! You can now log in.", Toast.LENGTH_SHORT).show()
+						showLoginLayout()
+					} else {
+						Toast.makeText(this, "Sign up failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+					}
+				}
+		}
+
+		backToLogin.setOnClickListener {
+			showLoginLayout()
 		}
 	}
 

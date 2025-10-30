@@ -18,13 +18,13 @@ class SyncManager(private val context: Context) {
         val dialogueRepo = DialogueHistoryRepository(db)
 
         // Example: push unsynced logs (you can filter them in DAO)
-//        db.sessionDao().getAll().forEach { sessionRepo.insertSession(it, true) }
-//        db.userLogDao().getAll().forEach { logRepo.insertLog(it, true) }
-//        db.performanceMetricsDao().getAll().forEach { perfRepo.insertMetrics(it, true) }
-//        db.userFeedbackDao().getAll().forEach { feedbackRepo.insertFeedback(it, true) }
-//        db.geofenceTriggerDao().getAll().forEach { geoRepo.insertTrigger(it, true) }
-//        db.pathDeviationAlertDao().getAll().forEach { pathRepo.insertAlert(it, true) }
-//        db.userLocationDao().getAll().forEach { locRepo.insertLocation(it, true) }
-//        db.dialogueHistoryDao().getAll().forEach { dialogueRepo.insertDialogue(it, true) }
+        db.sessionDao().getAll().forEach { sessionRepo.insertSession(it, true) }
+        db.userLogDao().getAll().forEach { logRepo.insertLog(it, true) }
+        db.performanceMetricsDao().getAll().forEach { perfRepo.insertMetrics(it, true) }
+        db.userFeedbackDao().getAll().forEach { feedbackRepo.insertFeedback(it, true) }
+        db.geofenceTriggerDao().getAll().forEach { geoRepo.insertTrigger(it, true) }
+        db.pathDeviationAlertDao().getAll().forEach { pathRepo.insertAlert(it, true) }
+        db.userLocationDao().getAll().forEach { locRepo.insertLocation(it, true) }
+        db.dialogueHistoryDao().getAll().forEach { dialogueRepo.insertDialogue(it, true) }
     }
 }

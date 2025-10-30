@@ -27,6 +27,12 @@
         </activity>
 
         <activity
+            android:name=".AndroidSmallLoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GREENAPP">
+        </activity>
+
+        <activity
             android:name=".AndroidSmallTriviaActivity"
             android:exported="false"
             android:theme="@style/Theme.GREENAPP">
@@ -43,6 +49,7 @@
             android:exported="false"
             android:theme="@style/Theme.GREENAPP">
         </activity>
+
     </application>
 
 </manifest>

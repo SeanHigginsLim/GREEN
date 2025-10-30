@@ -10,7 +10,7 @@ class UserLocationRepository(private val db: MyAppDatabase) : BaseRepository() {
         if (syncToFirebase) uploadToFirebase("user_locations", userLocation.userLocationId.toString(), userLocation)
     }
 
-    suspend fun getAll() = db.userLocationDao().getAll()
+    suspend fun getAll(): List<UserLocationEntity> = db.userLocationDao().getAll()
 
     suspend fun deleteAll() = db.userLocationDao().deleteAll()
 }

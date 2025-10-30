@@ -10,7 +10,7 @@ class SessionRepository(private val db: MyAppDatabase) : BaseRepository() {
         if (syncToFirebase) uploadToFirebase("sessions", session.sessionId.toString(), session)
     }
 
-    suspend fun getAllSessions() = db.sessionDao().getAll()
+    suspend fun getAll(): List<SessionEntity> = db.sessionDao().getAll()
 
     suspend fun deleteAll() = db.sessionDao().deleteAll()
 }

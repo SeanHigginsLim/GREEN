@@ -10,7 +10,7 @@ class UserLogRepository(private val db: MyAppDatabase) : BaseRepository() {
         if (syncToFirebase) uploadToFirebase("user_logs", userLog.userLogId.toString(), userLog)
     }
 
-    suspend fun getAll() = db.userLogDao().getAll()
+    suspend fun getAll(): List<UserLogEntity> = db.userLogDao().getAll()
 
     suspend fun deleteAll() = db.userLogDao().deleteAll()
 }

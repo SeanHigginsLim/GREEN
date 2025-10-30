@@ -19,7 +19,7 @@ data class UserTourPathHistoryEntity(
     @PrimaryKey(autoGenerate = true)
     val userTourPathHistoryId: Long = 0,
     val sessionId: Long,
-    val pathSequence: List<String>, // Store as JSON or comma-separated IDs
-    val algorithmUsed: String?,
+    val pathSequence: List<String>?, // Store as JSON or comma-separated IDs
+    val algorithmUsed: String,
     val status: String?
 )
