@@ -51,8 +51,8 @@ interface GeneratedPathDao: BaseDao<GeneratedPathEntity> {
     @Query("SELECT * FROM generated_path WHERE userId = :userId")
     suspend fun getGeneratedPathsByUser(userId: Long): List<GeneratedPathEntity>
 
-    @Query("SELECT * FROM generated_path WHERE userLogId = :userLogId")
-    suspend fun getGeneratedPathsByUserLog(userLogId: Long): List<GeneratedPathEntity>
+//    @Query("SELECT * FROM generated_path WHERE userLogId = :userLogId")
+//    suspend fun getGeneratedPathsByUserLog(userLogId: Long): List<GeneratedPathEntity>
 
     @Transaction
     @Query("SELECT * FROM generated_path WHERE generatedPathId = :id")
@@ -251,7 +251,7 @@ interface UserPreferencesDao: BaseDao<UserPreferencesEntity> {
     suspend fun getUserPreferencesById(id: Long): UserPreferencesEntity?
 
     @Query("SELECT * FROM user_preferences WHERE userId = :userId")
-    suspend fun getPreferencesByUser(userId: Long): List<UserPreferencesEntity>
+    suspend fun getPreferencesByUser(userId: Long): UserPreferencesEntity
 
     @Query("SELECT * FROM user_preferences")
     suspend fun getAll(): List<UserPreferencesEntity>

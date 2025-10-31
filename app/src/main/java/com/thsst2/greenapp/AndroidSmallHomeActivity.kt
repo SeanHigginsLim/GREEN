@@ -109,6 +109,33 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		)
 		saveSessionLocally(sessionProfile)
 
+		// 🔹 NEW: Check if user has an existing profile
+		lifecycleScope.launch {
+			try {
+				// You can replace `userDao()` and `UserProfileDao` depending on your schema
+				val existingProfile = db.userDao().getUserById(userId)
+
+				if (existingProfile == null || existingProfile.userRoleId == null) {
+					// If profile is missing or incomplete → redirect to profile creation
+					Log.d("HomeActivity", "No profile found. Redirecting to Profile Creation...")
+
+					val intent = Intent(
+						this@AndroidSmallHomeActivity,
+						AndroidSmallProfileActivity::class.java // ⚠️ Make sure this Activity exists
+					)
+					intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+					startActivity(intent)
+					finish()
+					return@launch
+				} else {
+					Log.d("HomeActivity", "User profile exists. Proceeding to home UI.")
+				}
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "Profile check failed: ${e.localizedMessage}")
+			}
+		}
+		// 🔹 END OF NEW BLOCK
+
 		// Load images
 		loadImages()
 
@@ -195,14 +222,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		// Build context string
 		val userRoleId = db.userDao().getUserById(userId)?.userRoleId ?: 1
-		val userRoleName = userRoleDao.getUserRoleById(userRoleId)?.roles ?: "student"
-		val activePreferences = userPreferencesDao.getPreferencesByUser(userId).map { it.userPreferencesId }
+		val userRoleName = userRoleDao.getUserRoleById(userRoleId)?.role ?: "student"
+		val activePreferences = userPreferencesDao.getPreferencesByUser(userId)
 		val userVisitedLocation = userVisitedLocationDao.getById(userId)
 		val visitedPOIs = userVisitedLocation?.let { visited ->
 			db.poiDao().getPoiById(visited.poiId)?.let { listOf(it) }
 		} ?: emptyList()
 
-		val allPreferences = activePreferences + tempAdditionalPreferences
+		val allPreferences = activePreferences.interests + tempAdditionalPreferences
 
 		val contextString = buildString {
 			append("I am a $userRoleName. ")

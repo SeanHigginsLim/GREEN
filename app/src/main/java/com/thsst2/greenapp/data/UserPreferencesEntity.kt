@@ -20,6 +20,6 @@ data class UserPreferencesEntity(
     val userPreferencesId: Long = 0,
     val userId: Long,
     val interests: List<String>,
-    val disinterests: List<String>,
-    val tourPace: String
+    val disinterests: List<String>?,
+    val tourPace: String?
 )

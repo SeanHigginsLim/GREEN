@@ -12,6 +12,12 @@ import androidx.room.PrimaryKey
             parentColumns = ["userId"],
             childColumns = ["userId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = GeneratedPathEntity::class,
+            parentColumns = ["generatedPathId"],
+            childColumns = ["generatedPathId"],
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
