@@ -231,7 +231,7 @@ interface UserDao: BaseDao<UserEntity> {
 // UserRole DAO
 @Dao
 interface UserRoleDao: BaseDao<UserRoleEntity> {
-    @Query("SELECT * FROM user_role WHERE userRoleId = :id")
+    @Query("SELECT * FROM user_role WHERE userId = :id")
     suspend fun getUserRoleById(id: Long): UserRoleEntity?
 
     @Query("SELECT * FROM user_role")

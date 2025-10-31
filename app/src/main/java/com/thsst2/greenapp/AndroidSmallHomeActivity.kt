@@ -22,13 +22,13 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
-
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
 	private val messages = mutableListOf<String>()
 	private lateinit var adapter: MyAdapter
 	private lateinit var chatApi: ChatApi
 	private lateinit var auth: FirebaseAuth
 	private lateinit var sessionManager: SessionManager
+	private lateinit var tourCoordinator: TourCoordinator
 
 	// DAOs
 	private lateinit var db: MyAppDatabase
@@ -63,6 +63,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		FirebaseApp.initializeApp(this)
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
+		tourCoordinator = TourCoordinator(this)
 
 		// Initialize DB & DAOs
 		db = MyAppDatabase.getInstance(this)
@@ -96,8 +97,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		sessionId = UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE
 
 		val user = UserEntity(
-			userId = userId,
-			userRoleId = null,
+			userId = userId
 		)
 		saveUserLocally(user)
 
@@ -113,9 +113,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		lifecycleScope.launch {
 			try {
 				// You can replace `userDao()` and `UserProfileDao` depending on your schema
-				val existingProfile = db.userDao().getUserById(userId)
+				val existingProfile = db.userRoleDao().getUserRoleById(userId)
 
-				if (existingProfile == null || existingProfile.userRoleId == null) {
+				if (existingProfile == null) {
 					// If profile is missing or incomplete → redirect to profile creation
 					Log.d("HomeActivity", "No profile found. Redirecting to Profile Creation...")
 
@@ -221,8 +221,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		)
 
 		// Build context string
-		val userRoleId = db.userDao().getUserById(userId)?.userRoleId ?: 1
-		val userRoleName = userRoleDao.getUserRoleById(userRoleId)?.role ?: "student"
+		val userRole = db.userRoleDao().getUserRoleById(userId)
+		val userRoleName = userRole?.role
 		val activePreferences = userPreferencesDao.getPreferencesByUser(userId)
 		val userVisitedLocation = userVisitedLocationDao.getById(userId)
 		val visitedPOIs = userVisitedLocation?.let { visited ->
@@ -266,6 +266,21 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 						// TODO: Ask for additional preferences & optionally update UserPreferencesEntity
 						// TODO: Trigger RAG + path generation
+						// If user wants a tour, call TourCoordinator
+						if (userMessage.contains("tour", ignoreCase = true)) {
+							lifecycleScope.launch {
+								val generatedPath = tourCoordinator.startTourForUser(userId)
+								if (generatedPath != null) {
+									messages.add("Bot: Tour generated successfully!")
+									adapter.notifyItemInserted(messages.size - 1)
+									homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+								} else {
+									messages.add("Bot: Could not generate tour.")
+									adapter.notifyItemInserted(messages.size - 1)
+									homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+								}
+							}
+						}
 					}
 				}
 			}
