@@ -1,34 +1,43 @@
 package com.thsst2.greenapp.algorithms
 
 import com.thsst2.greenapp.data.PoiEntity
+import com.thsst2.greenapp.graph.GraphBuilder
+import com.thsst2.greenapp.graph.FilteredAdjacencyList
 
-class TourPathPlanner() {
+class TourPathPlanner {
 
-    // note: accept allPois so RandomBFS can operate
+    /**
+     * Plan a tour based on user preferences and constraints using graph infrastructure
+     */
     fun planTour(
         allPois: List<PoiEntity>,
         startPoint: PoiEntity? = null,
         preferences: List<PoiEntity>? = null,
-        ordered: Boolean = false
+        ordered: Boolean = false,
+        dislikedPoiIds: Set<Long> = emptySet(),
+        disinterests: Collection<String> = emptyList(),
+        maxDistance: Double = Double.MAX_VALUE
     ): List<PoiEntity> {
+        
+        if (allPois.isEmpty()) return emptyList()
+        
+        // Build the graph from all POIs
+        val graph = GraphBuilder().buildGraph(allPois)
+        
         return when {
-//            // No start and no preferences -> random BFS over all POIs
-//            startPoint == null && (preferences == null || preferences.isEmpty()) -> {
-//                RandomBFS().findPath(allPois)
-//            }
-//
-//            // Preferences provided, no strict order -> multi-label A*
-//            preferences != null && preferences.isNotEmpty() && !ordered -> {
-//                MultiLabelAStar().findPath(preferences, allPois)
-//            }
-//
-//            // Ordered preferences -> chained A*
-//            preferences != null && preferences.isNotEmpty() && ordered -> {
-//                ChainedAStar().findPath(preferences)
-//            }
+            // No preferences -> random BFS over filtered graph
+            preferences == null || preferences.isEmpty() -> {
+                RandomBFS().findPath(graph, dislikedPoiIds, disinterests)
+            }
 
+            // Preferences provided, no strict order -> multi-label approach
+            !ordered -> {
+                MultiLabelAStar().findPath(graph, preferences, dislikedPoiIds, disinterests)
+            }
+
+            // Ordered preferences -> chained approach
             else -> {
-                emptyList()
+                ChainedAStar().findPath(graph, preferences, dislikedPoiIds, disinterests)
             }
         }
     }

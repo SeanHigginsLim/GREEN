@@ -6,12 +6,12 @@ import com.thsst2.greenapp.data.PoiEntity
  * Represents a graph of Points of Interest with weighted edges
  */
 data class PoiGraph(
-    val nodes: Map<Int, PoiEntity>,
-    val adjacencyList: Map<Int, List<Edge>>
+    val nodes: Map<Long, PoiEntity>,
+    val adjacencyList: Map<Long, List<Edge>>
 ) {
-    fun getNode(poiId: Int): PoiEntity? = nodes[poiId]
+    fun getNode(poiId: Long): PoiEntity? = nodes[poiId]
     
-    fun getEdges(poiId: Int): List<Edge> = adjacencyList[poiId] ?: emptyList()
+    fun getEdges(poiId: Long): List<Edge> = adjacencyList[poiId] ?: emptyList()
     
     fun getAllNodes(): Collection<PoiEntity> = nodes.values
 }
@@ -20,8 +20,8 @@ data class PoiGraph(
  * Represents a weighted edge between two POIs
  */
 data class Edge(
-    val from: Int,
-    val to: Int,
+    val from: Long,
+    val to: Long,
     val weight: Double,
     val distance: Double
 )

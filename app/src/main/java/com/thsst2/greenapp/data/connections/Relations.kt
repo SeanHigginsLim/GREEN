@@ -298,10 +298,10 @@ data class GeneratedPathWithUser(
 data class GeneratedPathWithPoi(
     @Embedded val generatedPath: GeneratedPathEntity,
     @Relation(
-        parentColumn = "poiId",
-        entityColumn = "poiId"
+        parentColumn = "generatedPathId",
+        entityColumn = "generatedPathId"
     )
-    val poi: PoiEntity
+    val pois: List<PoiEntity>
 )
 data class GeneratedPathWithUserLog(
     @Embedded val generatedPath: GeneratedPathEntity,

@@ -2,22 +2,17 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "03ff724e28a6a15a6ff048b99cffa1c4",
+    "identityHash": "75cfb28d052c3f77cfeb57dc21ef1891",
     "entities": [
       {
         "tableName": "user",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` INTEGER NOT NULL, `userRoleId` INTEGER, PRIMARY KEY(`userId`), FOREIGN KEY(`userRoleId`) REFERENCES `user_role`(`userRoleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` INTEGER NOT NULL, PRIMARY KEY(`userId`))",
         "fields": [
           {
             "fieldPath": "userId",
             "columnName": "userId",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "userRoleId",
-            "columnName": "userRoleId",
-            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -25,24 +20,11 @@
           "columnNames": [
             "userId"
           ]
-        },
-        "foreignKeys": [
-          {
-            "table": "user_role",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "userRoleId"
-            ],
-            "referencedColumns": [
-              "userRoleId"
-            ]
-          }
-        ]
+        }
       },
       {
         "tableName": "user_role",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userRoleId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `roles` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userRoleId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `role` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userRoleId",
@@ -51,8 +33,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "roles",
-            "columnName": "roles",
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -62,11 +50,24 @@
           "columnNames": [
             "userRoleId"
           ]
-        }
+        },
+        "foreignKeys": [
+          {
+            "table": "user",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "userId"
+            ],
+            "referencedColumns": [
+              "userId"
+            ]
+          }
+        ]
       },
       {
         "tableName": "user_preferences",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userPreferencesId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `interests` TEXT NOT NULL, `disinterests` TEXT NOT NULL, `tourPace` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userPreferencesId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `interests` TEXT NOT NULL, `disinterests` TEXT, `tourPace` TEXT, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userPreferencesId",
@@ -89,14 +90,12 @@
           {
             "fieldPath": "disinterests",
             "columnName": "disinterests",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "tourPace",
             "columnName": "tourPace",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -234,7 +233,7 @@
       },
       {
         "tableName": "generated_path",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`generatedPathId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `poiId` INTEGER NOT NULL, `userLogId` INTEGER, `pathType` TEXT NOT NULL, `estimatedDuration` TEXT NOT NULL, `routeAlgorithm` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userLogId`) REFERENCES `user_log`(`userLogId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`generatedPathId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `pathType` TEXT NOT NULL, `estimatedDuration` TEXT NOT NULL, `routeAlgorithm` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "generatedPathId",
@@ -247,17 +246,6 @@
             "columnName": "userId",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "poiId",
-            "columnName": "poiId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "userLogId",
-            "columnName": "userLogId",
-            "affinity": "INTEGER"
           },
           {
             "fieldPath": "pathType",
@@ -294,28 +282,6 @@
             ],
             "referencedColumns": [
               "userId"
-            ]
-          },
-          {
-            "table": "poi",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "poiId"
-            ],
-            "referencedColumns": [
-              "poiId"
-            ]
-          },
-          {
-            "table": "user_log",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "userLogId"
-            ],
-            "referencedColumns": [
-              "userLogId"
             ]
           }
         ]
@@ -606,11 +572,17 @@
       },
       {
         "tableName": "poi",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`poiId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `category` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`poiId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `generatedPathId` INTEGER NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `category` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, FOREIGN KEY(`generatedPathId`) REFERENCES `generated_path`(`generatedPathId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "poiId",
             "columnName": "poiId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatedPathId",
+            "columnName": "generatedPathId",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -649,7 +621,20 @@
           "columnNames": [
             "poiId"
           ]
-        }
+        },
+        "foreignKeys": [
+          {
+            "table": "generated_path",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "generatedPathId"
+            ],
+            "referencedColumns": [
+              "generatedPathId"
+            ]
+          }
+        ]
       },
       {
         "tableName": "response_justification",
@@ -761,7 +746,7 @@
       },
       {
         "tableName": "user_log",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userLogId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userLogId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `generatedPathId` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`generatedPathId`) REFERENCES `generated_path`(`generatedPathId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userLogId",
@@ -772,6 +757,12 @@
           {
             "fieldPath": "userId",
             "columnName": "userId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatedPathId",
+            "columnName": "generatedPathId",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -792,6 +783,17 @@
             ],
             "referencedColumns": [
               "userId"
+            ]
+          },
+          {
+            "table": "generated_path",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "generatedPathId"
+            ],
+            "referencedColumns": [
+              "generatedPathId"
             ]
           }
         ]
@@ -1195,7 +1197,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '03ff724e28a6a15a6ff048b99cffa1c4')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '75cfb28d052c3f77cfeb57dc21ef1891')"
     ]
   }
 }
