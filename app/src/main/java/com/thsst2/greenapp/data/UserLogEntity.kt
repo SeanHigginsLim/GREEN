@@ -25,5 +25,5 @@ data class UserLogEntity(
     @PrimaryKey(autoGenerate = true)
     val userLogId: Long = 0,
     val userId: Long,
-    val generatedPathId: Long
+    val generatedPathId: Long = 0
 )

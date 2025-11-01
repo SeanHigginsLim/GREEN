@@ -7,10 +7,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Test
 
-class RandomBFSTest {
+class ChainedAStarTest {
 
     @Test
-    fun testFindPathReturnsAllPois_NoDislikes() {
+    fun testFindPathReturnsAllPreferences_NoDislikes() {
         val dummyPois = listOf(
             PoiEntity(
                 poiId = 1L,
@@ -38,63 +38,45 @@ class RandomBFSTest {
             ),
             PoiEntity(
                 poiId = 4L,
-                name = "Botanical Garden",
-                description = "Greenhouse and plant collections.",
-                category = listOf("Nature", "Education"),
-                latitude = 40.667622,
-                longitude = -73.962475
-            ),
-            PoiEntity(
-                poiId = 5L,
-                name = "Historic Theater",
-                description = "An old downtown theater hosting plays and concerts.",
-                category = listOf("Entertainment", "History"),
-                latitude = 40.712776,
-                longitude = -74.005974
-            ),
-            PoiEntity(
-                poiId = 6L,
                 name = "Science Center",
                 description = "Interactive science exhibits for all ages.",
                 category = listOf("Education"),
                 latitude = 40.730610,
                 longitude = -73.935242
-            ),
-            PoiEntity(
-                poiId = 7L,
-                name = "Riverside Walk",
-                description = "Scenic walking path along the river.",
-                category = listOf("Nature", "Recreation"),
-                latitude = 40.800537,
-                longitude = -73.958241
-            ),
-            PoiEntity(
-                poiId = 8L,
-                name = "City Aquarium",
-                description = "Marine life exhibits and shows.",
-                category = listOf("Animals", "Education"),
-                latitude = 40.574926,
-                longitude = -73.989308
             )
         )
 
+        val preferences = listOf(dummyPois[0], dummyPois[2], dummyPois[1]) // Park, Zoo, Museum
         val graph = GraphBuilder().buildGraph(dummyPois)
-        val randomBFS = RandomBFS()
-        val path = randomBFS.findPath(graph, disinterests = emptyList())
+        
+        val chainedAStar = ChainedAStar()
+        val path = chainedAStar.findPath(graph, preferences)
 
-        println("RandomBFS produced path = $path")
+        println("ChainedAStar produced path = $path")
 
-        // Check that all POIs are visited (note: some POIs might not be connected due to distance limits)
-        assertTrue(path.isNotEmpty())
-        assertTrue(path.all { it in dummyPois })
+        // Check that all preferences are visited in order
+        assertEquals(preferences.size, path.size)
+        assertEquals(preferences, path) // Should maintain exact order
     }
 
     @Test
-    fun testFindPathEmptyInput_NoDislikes() {
-        val graph = GraphBuilder().buildGraph(emptyList())
-        val randomBFS = RandomBFS()
-        val path = randomBFS.findPath(graph, disinterests = emptyList())
-        println("RandomBFS produced path = $path")
+    fun testFindPathEmptyPreferences() {
+        val dummyPois = listOf(
+            PoiEntity(
+                poiId = 1L, 
+                name = "Park", 
+                description = "", 
+                category = listOf("Nature"), 
+                latitude = 40.748817, 
+                longitude = -73.985428
+            )
+        )
+        val graph = GraphBuilder().buildGraph(dummyPois)
+        
+        val chainedAStar = ChainedAStar()
+        val path = chainedAStar.findPath(graph, emptyList())
+        
+        println("ChainedAStar with empty preferences produced path = $path")
         assertTrue(path.isEmpty())
     }
 
@@ -143,20 +125,22 @@ class RandomBFSTest {
             )
         )
 
+        val preferences = listOf(dummyPois[0], dummyPois[2], dummyPois[1], dummyPois[4]) // Park, Zoo, Gallery, Aquarium
         val disinterests = listOf("Animals")
-        val expectedAllowed = dummyPois.filter { poi -> poi.category.none { it.equals("Animals", ignoreCase = true) } }
+        val expectedAllowed = preferences.filter { poi -> poi.category.none { it.equals("Animals", ignoreCase = true) } }
         val graph = GraphBuilder().buildGraph(dummyPois)
 
-        val randomBFS = RandomBFS()
-        val path = randomBFS.findPath(graph, disinterests = disinterests)
+        val chainedAStar = ChainedAStar()
+        val path = chainedAStar.findPath(graph, preferences, disinterests = disinterests)
 
-        println("RandomBFS (disinterests=$disinterests) produced path = $path")
+        println("ChainedAStar (disinterests=$disinterests) produced path = $path")
 
         // Ensure disliked categories are not present
         assertFalse(path.any { poi -> poi.category.any { cat -> cat.equals("Animals", ignoreCase = true) } })
 
-        // Path should contain only allowed POIs
-        assertTrue(path.all { it in expectedAllowed })
+        // Path should contain exactly the allowed preferences in order
+        assertEquals(expectedAllowed.size, path.size)
+        assertEquals(expectedAllowed, path)
     }
 
     @Test
@@ -188,19 +172,21 @@ class RandomBFSTest {
             )
         )
 
+        val preferences = dummyPois
         val dislikedPoiIds = setOf(2L) // Dislike Gallery
         val graph = GraphBuilder().buildGraph(dummyPois)
 
-        val randomBFS = RandomBFS()
-        val path = randomBFS.findPath(graph, dislikedPoiIds = dislikedPoiIds)
+        val chainedAStar = ChainedAStar()
+        val path = chainedAStar.findPath(graph, preferences, dislikedPoiIds = dislikedPoiIds)
 
-        println("RandomBFS (dislikedPoiIds=$dislikedPoiIds) produced path = $path")
+        println("ChainedAStar (dislikedPoiIds=$dislikedPoiIds) produced path = $path")
 
         // Ensure disliked POI is not present
         assertFalse(path.any { it.poiId == 2L })
 
-        // Path should contain only allowed POIs
-        assertTrue(path.all { it.poiId != 2L })
-        assertTrue(path.isNotEmpty())
+        // Path should contain only allowed preferences
+        assertEquals(2, path.size)
+        assertTrue(path.contains(dummyPois[0])) // Park
+        assertTrue(path.contains(dummyPois[2])) // Theater
     }
 }
