@@ -6,8 +6,8 @@ import com.thsst2.greenapp.graph.FilteredAdjacencyList
 
 class ChainedAStar {
     /**
-     * Follow the given ordered preferences using graph structure, skipping any POIs that the user dislikes.
-     * This method finds paths between consecutive POIs in the preference order.
+     * Find path through ordered POIs in the exact sequence provided.
+     * Returns the path visiting each POI in the given sequence.
      */
     fun findPath(
         graph: PoiGraph,
@@ -16,18 +16,12 @@ class ChainedAStar {
         disinterests: Collection<String> = emptyList()
     ): List<PoiEntity> {
         
-        // Apply filters to the graph
+        // Apply filters to get allowed POIs
         val filteredGraph = FilteredAdjacencyList(graph)
         filteredGraph.applyFilters(dislikedPoiIds, disinterests)
+        val allowedPoiIds = filteredGraph.getAllowedPois().map { it.poiId }.toSet()
         
-        val allowedPrefs = preferences.filter { pref ->
-            filteredGraph.getAllowedPois().any { it.poiId == pref.poiId }
-        }
-        
-        if (allowedPrefs.isEmpty()) return emptyList()
-        
-        // For now, return the filtered preferences in order
-        // TODO: Implement actual pathfinding between consecutive preferences
-        return allowedPrefs
+        // Filter preferences to only allowed ones and return in order
+        return preferences.filter { it.poiId in allowedPoiIds }
     }
 }

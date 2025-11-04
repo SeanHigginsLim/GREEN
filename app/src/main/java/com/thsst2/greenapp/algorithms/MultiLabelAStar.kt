@@ -3,13 +3,13 @@ package com.thsst2.greenapp.algorithms
 import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.graph.PoiGraph
 import com.thsst2.greenapp.graph.FilteredAdjacencyList
+import java.util.*
 
 class MultiLabelAStar {
 
     /**
-     * Multi-label planner using graph structure that:
-     *  - keeps all preference POIs (in the order provided) that are not disliked
-     *  - then appends remaining allowed POIs from the graph
+     * Find the fastest tour path through unordered POIs using weighted edges.
+     * Returns the path with optimal visiting sequence that minimizes total travel cost.
      */
     fun findPath(
         graph: PoiGraph,
@@ -18,22 +18,112 @@ class MultiLabelAStar {
         disinterests: Collection<String> = emptyList()
     ): List<PoiEntity> {
         
-        // Apply filters to the graph
+        // Apply filters to get allowed POIs
         val filteredGraph = FilteredAdjacencyList(graph)
         filteredGraph.applyFilters(dislikedPoiIds, disinterests)
-        
         val allowedPois = filteredGraph.getAllowedPois()
+        val allowedPoiIds = allowedPois.map { it.poiId }.toSet()
         
-        fun allowed(p: PoiEntity): Boolean {
-            return allowedPois.any { it.poiId == p.poiId }
+        val validPreferences = preferences.filter { it.poiId in allowedPoiIds }
+        
+        // No preferences: return all allowed POIs as path
+        if (validPreferences.isEmpty()) return allowedPois
+        
+        // Single preference: return path with this POI plus remaining POIs
+        if (validPreferences.size == 1) {
+            val remaining = allowedPois.filterNot { it.poiId == validPreferences[0].poiId }
+            return validPreferences + remaining
         }
-
-        // keep preferences order but drop disliked ones
-        val keptPrefs = preferences.filter { allowed(it) }
-
-        // append remaining allowed POIs (not in keptPrefs) from graph
-        val rest = allowedPois.filterNot { poi -> keptPrefs.any { it.poiId == poi.poiId } }
-
-        return keptPrefs + rest
+        
+        // Multi-Goal A*: find fastest path order through preferences using weighted edges
+        data class State(val poi: PoiEntity, val unvisited: Int, val path: List<PoiEntity>, val cost: Double)
+        
+        val goalIndices = validPreferences.withIndex().associate { it.value.poiId to it.index }
+        val allVisited = 0  // All bits 0 = all goals visited
+        
+        val openSet = PriorityQueue<State>(compareBy { it.cost })
+        val visited = mutableSetOf<Pair<Long, Int>>()
+        
+        // Try starting from each goal to find globally optimal path
+        validPreferences.forEach { start ->
+            val startIndex = goalIndices[start.poiId]!!
+            val startMask = ((1 shl validPreferences.size) - 1) xor (1 shl startIndex)
+            openSet.add(State(start, startMask, listOf(start), 0.0))
+        }
+        
+        while (openSet.isNotEmpty()) {
+            val current = openSet.poll() ?: continue
+            
+            // Found complete fastest path through all preferences
+            if (current.unvisited == allVisited) {
+                // Append remaining allowed POIs to complete the path
+                val remaining = allowedPois.filterNot { poi -> 
+                    validPreferences.any { pref -> pref.poiId == poi.poiId }
+                }
+                return current.path + remaining
+            }
+            
+            val stateKey = current.poi.poiId to current.unvisited
+            if (stateKey in visited) continue
+            visited.add(stateKey)
+            
+            // Expand to unvisited goals using weighted edges from graph
+            for (i in validPreferences.indices) {
+                if ((current.unvisited and (1 shl i)) != 0) {
+                    val nextGoal = validPreferences[i]
+                    val edgeWeight = getShortestWeight(current.poi.poiId, nextGoal.poiId, filteredGraph)
+                    
+                    if (edgeWeight < Double.MAX_VALUE) {
+                        val newMask = current.unvisited xor (1 shl i)
+                        val newPath = current.path + nextGoal
+                        val newCost = current.cost + edgeWeight
+                        
+                        openSet.add(State(nextGoal, newMask, newPath, newCost))
+                    }
+                }
+            }
+        }
+        
+        // Fallback: return preferences + remaining as path if no optimal path found
+        val remaining = allowedPois.filterNot { poi -> 
+            validPreferences.any { pref -> pref.poiId == poi.poiId }
+        }
+        return validPreferences + remaining
+    }
+    
+    /**
+     * Get shortest weighted path between two POIs using graph's weighted edges
+     */
+    private fun getShortestWeight(fromId: Long, toId: Long, filteredGraph: FilteredAdjacencyList): Double {
+        if (fromId == toId) return 0.0
+        
+        // Check direct weighted edge first
+        filteredGraph.getNeighbors(fromId).find { it.to == toId }?.let { return it.weight }
+        
+        // Dijkstra for shortest weighted path using graph's edges
+        val distances = mutableMapOf(fromId to 0.0)
+        val queue = PriorityQueue<Pair<Double, Long>>(compareBy { it.first })
+        queue.add(0.0 to fromId)
+        val visited = mutableSetOf<Long>()
+        
+        while (queue.isNotEmpty()) {
+            val (dist, nodeId) = queue.poll() ?: continue
+            if (nodeId in visited) continue
+            visited.add(nodeId)
+            
+            if (nodeId == toId) return dist
+            
+            filteredGraph.getNeighbors(nodeId).forEach { edge ->
+                if (edge.to !in visited) {
+                    val newDist = dist + edge.weight
+                    if (newDist < (distances[edge.to] ?: Double.MAX_VALUE)) {
+                        distances[edge.to] = newDist
+                        queue.add(newDist to edge.to)
+                    }
+                }
+            }
+        }
+        
+        return Double.MAX_VALUE
     }
 }
