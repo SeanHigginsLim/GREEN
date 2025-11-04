@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "75cfb28d052c3f77cfeb57dc21ef1891",
+    "identityHash": "37f6d05158892f10415d85e6c9aa6cf7",
     "entities": [
       {
         "tableName": "user",
@@ -233,7 +233,7 @@
       },
       {
         "tableName": "generated_path",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`generatedPathId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `pathType` TEXT NOT NULL, `estimatedDuration` TEXT NOT NULL, `routeAlgorithm` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`generatedPathId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `poiId` INTEGER NOT NULL, `pathType` TEXT NOT NULL, `estimatedDuration` TEXT NOT NULL, `routeAlgorithm` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "generatedPathId",
@@ -244,6 +244,12 @@
           {
             "fieldPath": "userId",
             "columnName": "userId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "poiId",
+            "columnName": "poiId",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -1197,7 +1203,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '75cfb28d052c3f77cfeb57dc21ef1891')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '37f6d05158892f10415d85e6c9aa6cf7')"
     ]
   }
 }
