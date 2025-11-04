@@ -1,26 +1,22 @@
-package com.thsst2.greenapp
+package com.thsst2.greenapp.logic
 
 import android.content.Context
 import android.util.Log
 import com.thsst2.greenapp.MyAppDatabase
+import com.thsst2.greenapp.RAGEngine
 import com.thsst2.greenapp.algorithms.TourPathPlanner
-import com.thsst2.greenapp.data.GeneratedPathEntity
-import com.thsst2.greenapp.data.PoiEntity
-import com.thsst2.greenapp.data.UserPreferencesEntity
+import com.thsst2.greenapp.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class TourCoordinator(private val context: Context) {
 
     private val db = MyAppDatabase.getInstance(context)
-    private val DialogueManager = DialogueManager()
-    private val RAGEngine = RAGEngine()
+    private val ragEngine = RAGEngine()
     private val tourPathPlanner = TourPathPlanner()
-    private val FirebaseSync = FirebaseSync()
 
     suspend fun startTourForUser(userId: Long): GeneratedPathEntity? = withContext(Dispatchers.IO) {
         try {
-            // 1️⃣ Fetch User + Preferences
             val user = db.userDao().getUserById(userId)
             val prefs = db.userPreferencesDao().getPreferencesByUser(userId)
 
@@ -29,54 +25,79 @@ class TourCoordinator(private val context: Context) {
                 return@withContext null
             }
 
-            Log.d(
-                "TourCoordinator",
-                "Starting tour with prefs: ${prefs.interests}"
+            Log.d("TourCoordinator", "Starting tour with prefs: ${prefs.interests}")
+
+            // Retrieve relevant POIs using RAGEngine
+            val relevantPOIs = ragEngine.getRelevantPOIs(prefs)
+            if (relevantPOIs.isEmpty()) {
+                Log.w("TourCoordinator", "No POIs found for preferences: ${prefs.interests}")
+                return@withContext null
+            }
+
+            // Identify user's disliked POIs/disinterests
+            val dislikedIds = db.userSkippedOrDislikedLocationDao()
+                .getAll()
+                .map { it.poiId }
+                .toSet()
+
+            val disinterests = prefs.disinterests ?: emptyList()
+
+            //Determine ordered flag
+            val ordered = prefs.tourPace?.contains("ordered", ignoreCase = true) ?: false
+
+            // Generate path using the algos
+            val path = tourPathPlanner.planTour(
+                allPois = relevantPOIs,
+                preferences = relevantPOIs.take(3), // top few as “preferred”
+                ordered = ordered,
+                dislikedPoiIds = dislikedIds,
+                disinterests = disinterests
             )
 
-            // 2️⃣ Dialogue Manager interprets intent
-            val intent = DialogueManager.processUserIntent("Generate me a tour", prefs)
+            if (path.isEmpty()) {
+                Log.w("TourCoordinator", "Path generation returned empty.")
+                return@withContext null
+            }
 
-            // 3️⃣ Retrieve POIs based on preferences (RAG)
-            val relevantPOIs = RAGEngine.getRelevantPOIs(prefs)
+            //Save generated path metadata
+            val generatedPathEntity = GeneratedPathEntity(
+                userId = userId,
+                poiId = path.firstOrNull()?.poiId ?: 0L,//use first POI id or 0 (not sure)
+                pathType = "Generated",
+                estimatedDuration = "${path.size * 10} min",                   
+                routeAlgorithm = when {
+                    ordered -> "ChainedAStar"
+                    prefs.interests.isNotEmpty() -> "MultiLabelAStar"
+                    else -> "RandomBFS"
+                }
+            )
 
-            // 4️⃣ Generate tour path
-            val generatedPath = tourPathPlanner.planTour(relevantPOIs)
+            val pathId = db.generatedPathDao().insert(generatedPathEntity)
 
-            // Save Generated Path to Room
-//            val generatedPathEntity = GeneratedPathEntity(
-//                userId = userId,
-//                pathType = generatedPath.pathType,
-//                estimatedDuration = generatedPath.estimatedDuration,
-//                routeAlgorithm = generatedPath.routeAlgorithm
-//            )
-//            db.generatedPathDao().insert(generatedPathEntity)
+            //Save each POI in path order
+            path.forEachIndexed { index, poi ->
+                val poiEntity = poi.copy(generatedPathId = pathId)
+                db.poiDao().insert(poiEntity)
 
-            // Save POIs to Room
-//            for (poi in relevantPOIs) {
-    //            val poiEntity = PoiEntity(
-    //                generatedPathId = generatedPathEntity.generatedPathId,
-    //                name = poi.name,
-    //                description = poi.description,
-    //                category = poi.category,
-    //                latitude = poi.latitude,
-    //                longitude = poi.longitude
-    //            )
-    //            db.poiDao().insert(poiEntity)
-//            }
+                val pathSequence = path.map { it.name }  //simple sequence of POI names
 
-            // 6️⃣ Simulate sync to Firebase
-//            FirebaseSync.syncEntity("generated_paths", generatedPathEntity)
-//            for (poi in relevantPOIs) {
-//                FirebaseSync.syncEntity("poi_entity", poi)
-//            }
+                db.userTourPathHistoryDao().insert(
+                    UserTourPathHistoryEntity(
+                        sessionId = System.currentTimeMillis(),
+                        pathSequence = pathSequence,
+                        algorithmUsed = generatedPathEntity.routeAlgorithm,
+                        status = "Generated"
+                    )
+                )
+            }
 
-//            Log.d("TourCoordinator", "Tour successfully generated: ${generatedPath.size} stops")
-//            return@withContext generatedPathEntity
-            return@withContext null
+            Log.d("TourCoordinator", "Tour successfully generated with ${path.size} stops.")
+            return@withContext generatedPathEntity
+
         } catch (e: Exception) {
-            Log.e("TourCoordinator", "Error generating tour", e)
+            Log.e("TourCoordinator", "Error generating tour: ${e.localizedMessage}")
             return@withContext null
         }
     }
 }
+
