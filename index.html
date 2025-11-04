@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GREEN Algorithm Test Results Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .card-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .success { color: #27ae60; }
+        .info { color: #3498db; }
+        .warning { color: #f39c12; }
+
+        .test-details {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .test-details h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .test-class {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #27ae60;
+        }
+
+        .test-class h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .test-method {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .test-method:last-child {
+            border-bottom: none;
+        }
+
+        .test-name {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .test-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .status-pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.8;
+        }
+
+        .build-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .link-button {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 10px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        .link-button:hover {
+            background: #219a52;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌿 GREEN Algorithm Test Results</h1>
+            <p>Pathfinding & Navigation Algorithm Test Suite Dashboard</p>
+        </div>
+
+        <div class="summary-cards">
+            <div class="card">
+                <span class="card-icon">✅</span>
+                <div class="card-title">Total Tests</div>
+                <div class="card-value success">14</div>
+                <div>All tests executed successfully</div>
+            </div>
+
+            <div class="card">
+                <span class="card-icon">🎯</span>
+                <div class="card-title">Success Rate</div>
+                <div class="card-value success">100%</div>
+                <div>Perfect test execution</div>
+            </div>
+
+            <div class="card">
+                <span class="card-icon">⚡</span>
+                <div class="card-title">Execution Time</div>
+                <div class="card-value info">0.076s</div>
+                <div>Lightning fast algorithms</div>
+            </div>
+
+            <div class="card">
+                <span class="card-icon">🚫</span>
+                <div class="card-title">Failures</div>
+                <div class="card-value success">0</div>
+                <div>No failures detected</div>
+            </div>
+        </div>
+
+        <div class="test-details">
+            <h2>📊 Algorithm Test Results Breakdown</h2>
+            <div class="test-grid">
+                <div class="test-class">
+                    <h3>🔗 ChainedAStarTest</h3>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathReturnsAllPreferences_NoDislikes</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathRespectsCategoryDislikes</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathRespectsDislikedPoiIds</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathEmptyPreferences</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                </div>
+
+                <div class="test-class">
+                    <h3>🏷️ MultiLabelAStarTest</h3>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathPreferencesOrder</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathRespectsCategoryDislikes</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathRespectsDislikedPoiIds</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathEmptyPreferences</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathReturnsPreferencesFirst_NoDislikes</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                </div>
+
+                <div class="test-class">
+                    <h3>🎲 RandomBFSTest</h3>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathRespectsCategoryDislikes</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathRespectsDislikedPoiIds</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathReturnsAllPois_NoDislikes</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                    <div class="test-method">
+                        <span class="test-name">testFindPathEmptyInput_NoDislikes</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                </div>
+
+                <div class="test-class">
+                    <h3>🧪 ExampleUnitTest</h3>
+                    <div class="test-method">
+                        <span class="test-name">addition_isCorrect</span>
+                        <span class="test-status status-pass">PASS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="build-info">
+            <h3>🔧 Build Information</h3>
+            <p><strong>Build Status:</strong> SUCCESS ✅</p>
+            <p><strong>Build Time:</strong> 20 seconds</p>
+            <p><strong>Gradle Version:</strong> 8.13</p>
+            <p><strong>Kotlin Version:</strong> 2.2.10</p>
+            <p><strong>Android Build Tools:</strong> 8.13.0</p>
+            <p><strong>Total Tasks:</strong> 61 (33 executed, 28 up-to-date)</p>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="app/build/reports/tests/testReleaseUnitTest/index.html" class="link-button">📈 View Full Gradle Report</a>
+                <a href="https://github.com/User/GREEN" class="link-button">🔗 View Source Code</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Generated on: <span id="currentDate"></span></p>
+            <p>GREEN App - Pathfinding Algorithm Test Suite</p>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        document.getElementById('currentDate').textContent = new Date().toLocaleString();
+
+        // Add some interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+            
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'translateY(-5px)';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
