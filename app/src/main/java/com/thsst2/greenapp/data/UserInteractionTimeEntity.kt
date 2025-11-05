@@ -12,12 +12,6 @@ import androidx.room.PrimaryKey
             parentColumns = ["poiId"],
             childColumns = ["poiId"],
             onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = UserLogEntity::class,
-            parentColumns = ["userLogId"],
-            childColumns = ["userLogId"],
-            onDelete = ForeignKey.CASCADE
         )
     ]
 )
@@ -25,7 +19,6 @@ data class UserInteractionTimeEntity(
     @PrimaryKey(autoGenerate = true)
     val userInteractionTimeId: Long = 0,
     val poiId: Long,
-    val userLogId: Long?,
     val duration: Long, // Duration in seconds or milliseconds
     val timestamp: Long
 )

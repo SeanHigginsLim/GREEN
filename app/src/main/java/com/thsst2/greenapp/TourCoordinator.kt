@@ -2,11 +2,8 @@ package com.thsst2.greenapp
 
 import android.content.Context
 import android.util.Log
-import com.thsst2.greenapp.MyAppDatabase
 import com.thsst2.greenapp.algorithms.TourPathPlanner
 import com.thsst2.greenapp.data.GeneratedPathEntity
-import com.thsst2.greenapp.data.PoiEntity
-import com.thsst2.greenapp.data.UserPreferencesEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -20,7 +17,7 @@ class TourCoordinator(private val context: Context) {
 
     suspend fun startTourForUser(userId: Long): GeneratedPathEntity? = withContext(Dispatchers.IO) {
         try {
-            // 1️⃣ Fetch User + Preferences
+            // Fetch User + Preferences
             val user = db.userDao().getUserById(userId)
             val prefs = db.userPreferencesDao().getPreferencesByUser(userId)
 
@@ -34,13 +31,13 @@ class TourCoordinator(private val context: Context) {
                 "Starting tour with prefs: ${prefs.interests}"
             )
 
-            // 2️⃣ Dialogue Manager interprets intent
+            // Dialogue Manager interprets intent
             val intent = DialogueManager.processUserIntent("Generate me a tour", prefs)
 
-            // 3️⃣ Retrieve POIs based on preferences (RAG)
+            // Retrieve POIs based on preferences (RAG)
             val relevantPOIs = RAGEngine.getRelevantPOIs(prefs)
 
-            // 4️⃣ Generate tour path
+            // Generate tour path
             val generatedPath = tourPathPlanner.planTour(relevantPOIs)
 
             // Save Generated Path to Room
@@ -65,7 +62,7 @@ class TourCoordinator(private val context: Context) {
     //            db.poiDao().insert(poiEntity)
 //            }
 
-            // 6️⃣ Simulate sync to Firebase
+            // Simulate sync to Firebase
 //            FirebaseSync.syncEntity("generated_paths", generatedPathEntity)
 //            for (poi in relevantPOIs) {
 //                FirebaseSync.syncEntity("poi_entity", poi)

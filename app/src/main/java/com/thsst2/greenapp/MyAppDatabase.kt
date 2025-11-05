@@ -87,9 +87,7 @@ abstract class MyAppDatabase : RoomDatabase() {
                     context.applicationContext,
                     MyAppDatabase::class.java,
                     "greenapp_database"
-                )
-                    .fallbackToDestructiveMigration(false)
-                    .build()
+                ).fallbackToDestructiveMigration(false).build()
                 INSTANCE = instance
                 instance
             }

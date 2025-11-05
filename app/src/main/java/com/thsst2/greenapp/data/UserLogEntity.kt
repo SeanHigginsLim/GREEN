@@ -18,6 +18,30 @@ import androidx.room.PrimaryKey
             parentColumns = ["generatedPathId"],
             childColumns = ["generatedPathId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = GeofenceTriggerEntity::class,
+            parentColumns = ["geofenceTriggerId"],
+            childColumns = ["geofenceTriggerId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = PathDeviationAlertEntity::class,
+            parentColumns = ["pathDeviationAlertId"],
+            childColumns = ["pathDeviationAlertId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = UserFeedbackEntity::class,
+            parentColumns = ["userFeedbackId"],
+            childColumns = ["userFeedbackId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = UserInteractionTimeEntity::class,
+            parentColumns = ["userInteractionTimeId"],
+            childColumns = ["userInteractionTimeId"],
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
@@ -25,5 +49,9 @@ data class UserLogEntity(
     @PrimaryKey(autoGenerate = true)
     val userLogId: Long = 0,
     val userId: Long,
-    val generatedPathId: Long = 0
+    val generatedPathId: Long,
+    val geofenceTriggerId: Long,
+    val pathDeviationAlertId: Long,
+    val userFeedbackId: Long,
+    val userInteractionTimeId: Long
 )

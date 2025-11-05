@@ -12,12 +12,6 @@ import androidx.room.PrimaryKey
             parentColumns = ["userId"],
             childColumns = ["userId"],
             onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = UserLogEntity::class,
-            parentColumns = ["userLogId"],
-            childColumns = ["userLogId"],
-            onDelete = ForeignKey.CASCADE
         )
     ]
 )
@@ -25,7 +19,6 @@ data class PathDeviationAlertEntity(
     @PrimaryKey(autoGenerate = true)
     val pathDeviationAlertId: Long = 0,
     val userId: Long,
-    val userLogId: Long?,
     val deviationLocation: String,
     val timeStamp: String,
     val noticeSent: Boolean

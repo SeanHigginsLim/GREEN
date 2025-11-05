@@ -18,7 +18,7 @@ import androidx.room.PrimaryKey
 data class PoiEntity(
     @PrimaryKey(autoGenerate = true)
     val poiId: Long = 0,
-    val generatedPathId: Long = 0,
+    val generatedPathId: Long,
     val name: String,
     val description: String?,
     val category: List<String>,

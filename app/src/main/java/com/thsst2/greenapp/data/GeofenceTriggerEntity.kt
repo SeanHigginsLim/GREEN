@@ -18,12 +18,6 @@ import androidx.room.PrimaryKey
             parentColumns = ["poiId"],
             childColumns = ["poiId"],
             onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = UserLogEntity::class,
-            parentColumns = ["userLogId"],
-            childColumns = ["userLogId"],
-            onDelete = ForeignKey.CASCADE
         )
     ]
 )
@@ -32,7 +26,6 @@ data class GeofenceTriggerEntity(
     val geofenceTriggerId: Long = 0,
     val userId: Long,
     val poiId: Long,
-    val userLogId: Long?,
     val entryTime: String,
     val exitTime: String,
     val triggerType: String

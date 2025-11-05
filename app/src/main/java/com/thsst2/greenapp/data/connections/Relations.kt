@@ -238,40 +238,40 @@ data class UserRoleWithUser(
 data class UserLogWithGeneratedPath(
     @Embedded val userLog: UserLogEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "generatedPathId",
+        entityColumn = "generatedPathId"
     )
     val generatedPaths: List<GeneratedPathEntity>
 )
 data class UserLogWithGeofenceTrigger(
     @Embedded val userLog: UserLogEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "geofenceTriggerId",
+        entityColumn = "geofenceTriggerId"
     )
     val geofenceTriggers: List<GeofenceTriggerEntity>
 )
 data class UserLogWithPathDeviationAlert(
     @Embedded val userLog: UserLogEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "pathDeviationAlertId",
+        entityColumn = "pathDeviationAlertId"
     )
     val pathDeviationAlerts: List<PathDeviationAlertEntity>
 )
 data class UserLogWithUserFeedback(
     @Embedded val userLog: UserLogEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "userFeedbackId",
+        entityColumn = "userFeedbackId"
     )
     val userFeedbacks: List<UserFeedbackEntity>
 )
 data class UserLogWithUserInteractionTime(
     @Embedded val userLog: UserLogEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "userInteractionTimeId",
+        entityColumn = "userInteractionTimeId"
     )
     val userInteractionTimes: List<UserInteractionTimeEntity>
 )
@@ -306,8 +306,8 @@ data class GeneratedPathWithPoi(
 data class GeneratedPathWithUserLog(
     @Embedded val generatedPath: GeneratedPathEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "generatedPathId",
+        entityColumn = "generatedPathId"
     )
     val userLog: UserLogEntity
 )
@@ -332,8 +332,8 @@ data class GeofenceTriggerWithPoi(
 data class GeofenceTriggerWithUserLog(
     @Embedded val geofenceTrigger: GeofenceTriggerEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "geofenceTriggerId",
+        entityColumn = "geofenceTriggerId"
     )
     val userLog: UserLogEntity
 )
@@ -360,8 +360,8 @@ data class PathDeviationAlertWithUser(
 data class PathDeviationAlertWithUserLog(
     @Embedded val pathDeviationAlert: PathDeviationAlertEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "pathDeviationAlertId",
+        entityColumn = "pathDeviationAlertId"
     )
     val userLog: UserLogEntity
 )
@@ -408,8 +408,8 @@ data class UserTourPathHistoryWithSession(
 data class UserFeedbackWithUserLog(
     @Embedded val userFeedback: UserFeedbackEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "userFeedbackId",
+        entityColumn = "userFeedbackId"
     )
     val userLog: UserLogEntity
 )
@@ -418,8 +418,8 @@ data class UserFeedbackWithUserLog(
 data class UserInteractionTimeWithUserLog(
     @Embedded val userInteractionTime: UserInteractionTimeEntity,
     @Relation(
-        parentColumn = "userLogId",
-        entityColumn = "userLogId"
+        parentColumn = "userInteractionTime",
+        entityColumn = "userInteractionTime"
     )
     val userLog: UserLogEntity
 )
