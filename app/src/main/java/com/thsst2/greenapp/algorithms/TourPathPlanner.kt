@@ -8,6 +8,8 @@ class TourPathPlanner {
 
     /**
      * Plan a tour based on user preferences and constraints using graph infrastructure
+     * 
+     * @param startPoint Optional starting location (e.g., user's current GPS location or preferred start POI)
      */
     fun planTour(
         allPois: List<PoiEntity>,
@@ -27,17 +29,17 @@ class TourPathPlanner {
         return when {
             // No preferences -> random BFS over filtered graph
             preferences == null || preferences.isEmpty() -> {
-                RandomBFS().findPath(graph, dislikedPoiIds, disinterests)
+                RandomBFS().findPath(graph, dislikedPoiIds, disinterests, startPoint)
             }
 
             // Preferences provided, no strict order -> multi-label approach
             !ordered -> {
-                MultiLabelAStar().findPath(graph, preferences, dislikedPoiIds, disinterests)
+                MultiLabelAStar().findPath(graph, preferences, dislikedPoiIds, disinterests, startPoint)
             }
 
             // Ordered preferences -> chained approach
             else -> {
-                ChainedAStar().findPath(graph, preferences, dislikedPoiIds, disinterests)
+                ChainedAStar().findPath(graph, preferences, dislikedPoiIds, disinterests, startPoint)
             }
         }
     }

@@ -10,12 +10,15 @@ class MultiLabelAStar {
     /**
      * Find the fastest tour path through unordered POIs using weighted edges.
      * Returns the path with optimal visiting sequence that minimizes total travel cost.
+     * 
+     * @param startPoint Optional starting location (e.g., user's current location or preferred start)
      */
     fun findPath(
         graph: PoiGraph,
         preferences: List<PoiEntity>,
         dislikedPoiIds: Set<Long> = emptySet(),
-        disinterests: Collection<String> = emptyList()
+        disinterests: Collection<String> = emptyList(),
+        startPoint: PoiEntity? = null
     ): List<PoiEntity> {
         
         // Apply filters to get allowed POIs
@@ -32,7 +35,13 @@ class MultiLabelAStar {
         // Single preference: return path with this POI plus remaining POIs
         if (validPreferences.size == 1) {
             val remaining = allowedPois.filterNot { it.poiId == validPreferences[0].poiId }
-            return validPreferences + remaining
+            
+            // If start point provided, prepend route to first preference
+            return if (startPoint != null && startPoint.poiId != validPreferences[0].poiId) {
+                listOf(startPoint) + validPreferences + remaining
+            } else {
+                validPreferences + remaining
+            }
         }
         
         // Multi-Goal A*: find fastest path order through preferences using weighted edges
@@ -44,11 +53,21 @@ class MultiLabelAStar {
         val openSet = PriorityQueue<State>(compareBy { it.cost })
         val visited = mutableSetOf<Pair<Long, Int>>()
         
-        // Try starting from each goal to find globally optimal path
-        validPreferences.forEach { start ->
-            val startIndex = goalIndices[start.poiId]!!
-            val startMask = ((1 shl validPreferences.size) - 1) xor (1 shl startIndex)
-            openSet.add(State(start, startMask, listOf(start), 0.0))
+        // If start point provided, begin from there; otherwise try each preference as start
+        if (startPoint != null && startPoint.poiId !in goalIndices) {
+            // Start from user location, visit all preferences
+            val startMask = (1 shl validPreferences.size) - 1
+            openSet.add(State(startPoint, startMask, listOf(startPoint), 0.0))
+        } else {
+            // Try starting from each preference to find globally optimal path
+            validPreferences.forEach { start ->
+                val startIndex = goalIndices[start.poiId]!!
+                val startMask = ((1 shl validPreferences.size) - 1) xor (1 shl startIndex)
+                
+                // If startPoint is one of the preferences, prioritize starting there
+                val initialCost = if (startPoint != null && start.poiId == startPoint.poiId) 0.0 else 0.0
+                openSet.add(State(start, startMask, listOf(start), initialCost))
+            }
         }
         
         while (openSet.isNotEmpty()) {
@@ -58,7 +77,8 @@ class MultiLabelAStar {
             if (current.unvisited == allVisited) {
                 // Append remaining allowed POIs to complete the path
                 val remaining = allowedPois.filterNot { poi -> 
-                    validPreferences.any { pref -> pref.poiId == poi.poiId }
+                    validPreferences.any { pref -> pref.poiId == poi.poiId } ||
+                    (startPoint != null && poi.poiId == startPoint.poiId)
                 }
                 return current.path + remaining
             }
@@ -88,7 +108,13 @@ class MultiLabelAStar {
         val remaining = allowedPois.filterNot { poi -> 
             validPreferences.any { pref -> pref.poiId == poi.poiId }
         }
-        return validPreferences + remaining
+        
+        // Prepend start point if provided
+        return if (startPoint != null && startPoint.poiId !in validPreferences.map { it.poiId }) {
+            listOf(startPoint) + validPreferences + remaining
+        } else {
+            validPreferences + remaining
+        }
     }
     
     /**
