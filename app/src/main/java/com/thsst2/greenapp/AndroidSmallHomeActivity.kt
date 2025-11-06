@@ -113,7 +113,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		lifecycleScope.launch {
 			try {
 				// You can replace `userDao()` and `UserProfileDao` depending on your schema
-				val existingProfile = db.userRoleDao().getUserRoleById(userId)
+				val existingProfile = db.userPreferencesDao().getPreferencesByUser(userId)
 
 				if (existingProfile == null) {
 					// If profile is missing or incomplete → redirect to profile creation

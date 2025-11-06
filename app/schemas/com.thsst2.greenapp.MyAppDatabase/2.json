@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "75cfb28d052c3f77cfeb57dc21ef1891",
+    "identityHash": "8d9c493ee8b8e4f2bd8d3c133041da98",
     "entities": [
       {
         "tableName": "user",
@@ -288,7 +288,7 @@
       },
       {
         "tableName": "geofence_trigger",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`geofenceTriggerId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `poiId` INTEGER NOT NULL, `userLogId` INTEGER, `entryTime` TEXT NOT NULL, `exitTime` TEXT NOT NULL, `triggerType` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userLogId`) REFERENCES `user_log`(`userLogId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`geofenceTriggerId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `poiId` INTEGER NOT NULL, `entryTime` TEXT NOT NULL, `exitTime` TEXT NOT NULL, `triggerType` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "geofenceTriggerId",
@@ -307,11 +307,6 @@
             "columnName": "poiId",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "userLogId",
-            "columnName": "userLogId",
-            "affinity": "INTEGER"
           },
           {
             "fieldPath": "entryTime",
@@ -359,17 +354,6 @@
             ],
             "referencedColumns": [
               "poiId"
-            ]
-          },
-          {
-            "table": "user_log",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "userLogId"
-            ],
-            "referencedColumns": [
-              "userLogId"
             ]
           }
         ]
@@ -446,7 +430,7 @@
       },
       {
         "tableName": "path_deviation_alert",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pathDeviationAlertId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `userLogId` INTEGER, `deviationLocation` TEXT NOT NULL, `timeStamp` TEXT NOT NULL, `noticeSent` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userLogId`) REFERENCES `user_log`(`userLogId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pathDeviationAlertId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `deviationLocation` TEXT NOT NULL, `timeStamp` TEXT NOT NULL, `noticeSent` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "pathDeviationAlertId",
@@ -459,11 +443,6 @@
             "columnName": "userId",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "userLogId",
-            "columnName": "userLogId",
-            "affinity": "INTEGER"
           },
           {
             "fieldPath": "deviationLocation",
@@ -500,17 +479,6 @@
             ],
             "referencedColumns": [
               "userId"
-            ]
-          },
-          {
-            "table": "user_log",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "userLogId"
-            ],
-            "referencedColumns": [
-              "userLogId"
             ]
           }
         ]
@@ -746,7 +714,7 @@
       },
       {
         "tableName": "user_log",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userLogId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `generatedPathId` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`generatedPathId`) REFERENCES `generated_path`(`generatedPathId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userLogId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `generatedPathId` INTEGER NOT NULL, `geofenceTriggerId` INTEGER NOT NULL, `pathDeviationAlertId` INTEGER NOT NULL, `userFeedbackId` INTEGER NOT NULL, `userInteractionTimeId` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`generatedPathId`) REFERENCES `generated_path`(`generatedPathId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`geofenceTriggerId`) REFERENCES `geofence_trigger`(`geofenceTriggerId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`pathDeviationAlertId`) REFERENCES `path_deviation_alert`(`pathDeviationAlertId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userFeedbackId`) REFERENCES `user_feedback`(`userFeedbackId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userInteractionTimeId`) REFERENCES `user_interaction_time`(`userInteractionTimeId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userLogId",
@@ -763,6 +731,30 @@
           {
             "fieldPath": "generatedPathId",
             "columnName": "generatedPathId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "geofenceTriggerId",
+            "columnName": "geofenceTriggerId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pathDeviationAlertId",
+            "columnName": "pathDeviationAlertId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userFeedbackId",
+            "columnName": "userFeedbackId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userInteractionTimeId",
+            "columnName": "userInteractionTimeId",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -795,12 +787,56 @@
             "referencedColumns": [
               "generatedPathId"
             ]
+          },
+          {
+            "table": "geofence_trigger",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "geofenceTriggerId"
+            ],
+            "referencedColumns": [
+              "geofenceTriggerId"
+            ]
+          },
+          {
+            "table": "path_deviation_alert",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "pathDeviationAlertId"
+            ],
+            "referencedColumns": [
+              "pathDeviationAlertId"
+            ]
+          },
+          {
+            "table": "user_feedback",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "userFeedbackId"
+            ],
+            "referencedColumns": [
+              "userFeedbackId"
+            ]
+          },
+          {
+            "table": "user_interaction_time",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "userInteractionTimeId"
+            ],
+            "referencedColumns": [
+              "userInteractionTimeId"
+            ]
           }
         ]
       },
       {
         "tableName": "user_feedback",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userFeedbackId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `poiId` INTEGER NOT NULL, `userLogId` INTEGER, `rating` INTEGER, `comments` TEXT, `timestamp` INTEGER NOT NULL, FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userLogId`) REFERENCES `user_log`(`userLogId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userFeedbackId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `poiId` INTEGER NOT NULL, `userId` INTEGER NOT NULL, `rating` INTEGER, `comments` TEXT, `timestamp` INTEGER NOT NULL, FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userFeedbackId",
@@ -815,9 +851,10 @@
             "notNull": true
           },
           {
-            "fieldPath": "userLogId",
-            "columnName": "userLogId",
-            "affinity": "INTEGER"
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "rating",
@@ -855,21 +892,21 @@
             ]
           },
           {
-            "table": "user_log",
+            "table": "user",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "userLogId"
+              "userId"
             ],
             "referencedColumns": [
-              "userLogId"
+              "userId"
             ]
           }
         ]
       },
       {
         "tableName": "user_interaction_time",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userInteractionTimeId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `poiId` INTEGER NOT NULL, `userLogId` INTEGER, `duration` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userLogId`) REFERENCES `user_log`(`userLogId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userInteractionTimeId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `poiId` INTEGER NOT NULL, `userId` INTEGER NOT NULL, `duration` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userInteractionTimeId",
@@ -884,9 +921,10 @@
             "notNull": true
           },
           {
-            "fieldPath": "userLogId",
-            "columnName": "userLogId",
-            "affinity": "INTEGER"
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "duration",
@@ -920,14 +958,14 @@
             ]
           },
           {
-            "table": "user_log",
+            "table": "user",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "userLogId"
+              "userId"
             ],
             "referencedColumns": [
-              "userLogId"
+              "userId"
             ]
           }
         ]
@@ -1197,7 +1235,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '75cfb28d052c3f77cfeb57dc21ef1891')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8d9c493ee8b8e4f2bd8d3c133041da98')"
     ]
   }
 }

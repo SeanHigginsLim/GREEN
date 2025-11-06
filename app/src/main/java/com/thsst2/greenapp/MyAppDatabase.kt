@@ -50,7 +50,7 @@ import com.thsst2.greenapp.data.UserVisitedLocationEntity
         UserVisitedLocationEntity::class,
         UserSkippedOrDislikedLocationEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(TypeConverter::class)

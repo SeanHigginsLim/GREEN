@@ -51,8 +51,8 @@ interface GeneratedPathDao: BaseDao<GeneratedPathEntity> {
     @Query("SELECT * FROM generated_path WHERE userId = :userId")
     suspend fun getGeneratedPathsByUser(userId: Long): List<GeneratedPathEntity>
 
-//    @Query("SELECT * FROM generated_path WHERE userLogId = :userLogId")
-//    suspend fun getGeneratedPathsByUserLog(userLogId: Long): List<GeneratedPathEntity>
+//    @Query("SELECT * FROM generated_path WHERE userId = :userId")
+//    suspend fun getGeneratedPathsByUserLog(userId: Long): List<GeneratedPathEntity>
 
     @Transaction
     @Query("SELECT * FROM generated_path WHERE generatedPathId = :id")
@@ -84,8 +84,8 @@ interface GeofenceTriggerDao: BaseDao<GeofenceTriggerEntity> {
     @Query("SELECT * FROM geofence_trigger WHERE poiId = :poiId")
     suspend fun getGeofenceTriggersByPoi(poiId: Long): List<GeofenceTriggerEntity>
 
-    @Query("SELECT * FROM geofence_trigger WHERE userLogId = :userLogId")
-    suspend fun getGeofenceTriggersByUserLog(userLogId: Long): List<GeofenceTriggerEntity>
+    @Query("SELECT * FROM geofence_trigger WHERE userId = :userId")
+    suspend fun getGeofenceTriggersByUserLog(userId: Long): List<GeofenceTriggerEntity>
 
     @Transaction
     @Query("SELECT * FROM geofence_trigger WHERE geofenceTriggerId = :id")
@@ -282,8 +282,8 @@ interface UserFeedbackDao: BaseDao<UserFeedbackEntity> {
     @Query("SELECT * FROM user_feedback WHERE userFeedbackId = :id")
     suspend fun getUserFeedbackById(id: Long): UserFeedbackEntity?
 
-    @Query("SELECT * FROM user_feedback WHERE userLogId = :userLogId")
-    suspend fun getFeedbackByUserLog(userLogId: Long): List<UserFeedbackEntity>
+    @Query("SELECT * FROM user_feedback WHERE userId = :userId")
+    suspend fun getFeedbackByUserLog(userId: Long): List<UserFeedbackEntity>
 
     @Query("SELECT * FROM user_feedback WHERE poiId = :poiId")
     suspend fun getFeedbackByPoi(poiId: Long): List<UserFeedbackEntity>
@@ -301,8 +301,8 @@ interface UserInteractionTimeDao: BaseDao<UserInteractionTimeEntity> {
     @Query("SELECT * FROM user_interaction_time WHERE userInteractionTimeId = :id")
     suspend fun getInteractionTimeById(id: Long): UserInteractionTimeEntity?
 
-    @Query("SELECT * FROM user_interaction_time WHERE userLogId = :userLogId")
-    suspend fun getInteractionTimesByUserLog(userLogId: Long): List<UserInteractionTimeEntity>
+    @Query("SELECT * FROM user_interaction_time WHERE userId = :userId")
+    suspend fun getInteractionTimesByUserLog(userId: Long): List<UserInteractionTimeEntity>
 
     @Query("SELECT * FROM user_interaction_time WHERE poiId = :poiId")
     suspend fun getInteractionTimesByPoi(poiId: Long): List<UserInteractionTimeEntity>
@@ -380,9 +380,9 @@ interface UserTourPathHistoryDao: BaseDao<UserTourPathHistoryEntity> {
     @Query("DELETE FROM user_tour_path_history")
     suspend fun deleteAll()
 }
-
-// UserVisitedLocation DAO
 @Dao
+// UserVisitedLocation DAO
+
 interface UserVisitedLocationDao: BaseDao<UserVisitedLocationEntity> {
     @Query("SELECT * FROM user_visited_location WHERE userVisitedLocationId = :id")
     suspend fun getById(id: Long): UserVisitedLocationEntity?
