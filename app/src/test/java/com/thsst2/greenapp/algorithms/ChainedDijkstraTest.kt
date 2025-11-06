@@ -7,10 +7,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Test
 
-class MultiLabelAStarTest {
+class ChainedDijkstraTest {
 
     @Test
-    fun testFindPathReturnsPreferencesFirst_NoDislikes() {
+    fun testFindPathReturnsAllPreferences_NoDislikes() {
         val dummyPois = listOf(
             PoiEntity(
                 poiId = 1L,
@@ -46,19 +46,17 @@ class MultiLabelAStarTest {
             )
         )
 
-        val preferences = listOf(dummyPois[1], dummyPois[3]) // Museum, Science Center
+        val preferences = listOf(dummyPois[0], dummyPois[2], dummyPois[1]) // Park, Zoo, Museum
         val graph = GraphBuilder().buildGraph(dummyPois)
         
-        val multiLabelAStar = MultiLabelAStar()
-        val path = multiLabelAStar.findPath(graph, preferences)
+        val chainedDijkstra = ChainedDijkstra()
+        val path = chainedDijkstra.findPath(graph, preferences)
 
-        println("MultiLabelAStar produced path = $path")
+        println("chainedDijkstra produced path = $path")
 
-        // Check that all POIs are visited and preferences come first
-        assertEquals(dummyPois.size, path.size)
-        assertEquals(dummyPois[1], path[0]) // Museum first
-        assertEquals(dummyPois[3], path[1]) // Science Center second
-        assertTrue(path.containsAll(dummyPois))
+        // Check that all preferences are visited in order
+        assertEquals(preferences.size, path.size)
+        assertEquals(preferences, path) // Should maintain exact order
     }
 
     @Test
@@ -71,26 +69,15 @@ class MultiLabelAStarTest {
                 category = listOf("Nature"), 
                 latitude = 40.748817, 
                 longitude = -73.985428
-            ),
-            PoiEntity(
-                poiId = 2L, 
-                name = "Gallery", 
-                description = "", 
-                category = listOf("Art"), 
-                latitude = 40.761431, 
-                longitude = -73.977621
             )
         )
         val graph = GraphBuilder().buildGraph(dummyPois)
         
-        val multiLabelAStar = MultiLabelAStar()
-        val path = multiLabelAStar.findPath(graph, emptyList())
+        val chainedDijkstra = ChainedDijkstra()
+        val path = chainedDijkstra.findPath(graph, emptyList())
         
-        println("MultiLabelAStar with empty preferences produced path = $path")
-        
-        // Should return all POIs when no preferences
-        assertEquals(dummyPois.size, path.size)
-        assertTrue(path.containsAll(dummyPois))
+        println("chainedDijkstra with empty preferences produced path = $path")
+        assertTrue(path.isEmpty())
     }
 
     @Test
@@ -138,27 +125,22 @@ class MultiLabelAStarTest {
             )
         )
 
-        val preferences = listOf(dummyPois[0], dummyPois[2]) // Park, Zoo
+        val preferences = listOf(dummyPois[0], dummyPois[2], dummyPois[1], dummyPois[4]) // Park, Zoo, Gallery, Aquarium
         val disinterests = listOf("Animals")
+        val expectedAllowed = preferences.filter { poi -> poi.category.none { it.equals("Animals", ignoreCase = true) } }
         val graph = GraphBuilder().buildGraph(dummyPois)
 
-        val multiLabelAStar = MultiLabelAStar()
-        val path = multiLabelAStar.findPath(graph, preferences, disinterests = disinterests)
+        val chainedDijkstra = ChainedDijkstra()
+        val path = chainedDijkstra.findPath(graph, preferences, disinterests = disinterests)
 
-        println("MultiLabelAStar (disinterests=$disinterests) produced path = $path")
+        println("chainedDijkstra (disinterests=$disinterests) produced path = $path")
 
         // Ensure disliked categories are not present
         assertFalse(path.any { poi -> poi.category.any { cat -> cat.equals("Animals", ignoreCase = true) } })
 
-        // Path should start with allowed preferences (only Park in this case)
-        assertTrue(path.isNotEmpty())
-        assertEquals(dummyPois[0], path[0]) // Park should be first
-        
-        // Should contain Park, Gallery, Theater but not Zoo or Aquarium
-        assertEquals(3, path.size)
-        assertTrue(path.contains(dummyPois[0])) // Park
-        assertTrue(path.contains(dummyPois[1])) // Gallery
-        assertTrue(path.contains(dummyPois[3])) // Theater
+        // Path should contain exactly the allowed preferences in order
+        assertEquals(expectedAllowed.size, path.size)
+        assertEquals(expectedAllowed, path)
     }
 
     @Test
@@ -190,74 +172,21 @@ class MultiLabelAStarTest {
             )
         )
 
-        val preferences = listOf(dummyPois[0], dummyPois[1]) // Park, Gallery
+        val preferences = dummyPois
         val dislikedPoiIds = setOf(2L) // Dislike Gallery
         val graph = GraphBuilder().buildGraph(dummyPois)
 
-        val multiLabelAStar = MultiLabelAStar()
-        val path = multiLabelAStar.findPath(graph, preferences, dislikedPoiIds = dislikedPoiIds)
+        val chainedDijkstra = ChainedDijkstra()
+        val path = chainedDijkstra.findPath(graph, preferences, dislikedPoiIds = dislikedPoiIds)
 
-        println("MultiLabelAStar (dislikedPoiIds=$dislikedPoiIds) produced path = $path")
+        println("chainedDijkstra (dislikedPoiIds=$dislikedPoiIds) produced path = $path")
 
         // Ensure disliked POI is not present
         assertFalse(path.any { it.poiId == 2L })
 
-        // Path should contain Park first (from preferences), then Theater
+        // Path should contain only allowed preferences
         assertEquals(2, path.size)
-        assertEquals(dummyPois[0], path[0]) // Park first
+        assertTrue(path.contains(dummyPois[0])) // Park
         assertTrue(path.contains(dummyPois[2])) // Theater
-    }
-
-    @Test
-    fun testFindPathPreferencesOrder() {
-        val dummyPois = listOf(
-            PoiEntity(
-                poiId = 1L, 
-                name = "A", 
-                description = "", 
-                category = listOf("Nature"), 
-                latitude = 40.748817, 
-                longitude = -73.985428
-            ),
-            PoiEntity(
-                poiId = 2L, 
-                name = "B", 
-                description = "", 
-                category = listOf("Art"), 
-                latitude = 40.761431, 
-                longitude = -73.977621
-            ),
-            PoiEntity(
-                poiId = 3L, 
-                name = "C", 
-                description = "", 
-                category = listOf("Entertainment"), 
-                latitude = 40.759776, 
-                longitude = -73.984018
-            ),
-            PoiEntity(
-                poiId = 4L, 
-                name = "D", 
-                description = "", 
-                category = listOf("Education"), 
-                latitude = 40.730610, 
-                longitude = -73.935242
-            )
-        )
-
-        val preferences = listOf(dummyPois[2], dummyPois[0], dummyPois[3]) // C, A, D
-        val graph = GraphBuilder().buildGraph(dummyPois)
-
-        val multiLabelAStar = MultiLabelAStar()
-        val path = multiLabelAStar.findPath(graph, preferences)
-
-        println("MultiLabelAStar preferences order test produced path = $path")
-
-        // Should maintain preference order at the beginning
-        assertEquals(4, path.size)
-        assertEquals(dummyPois[2], path[0]) // C first
-        assertEquals(dummyPois[0], path[1]) // A second  
-        assertEquals(dummyPois[3], path[2]) // D third
-        assertEquals(dummyPois[1], path[3]) // B last (not in preferences)
     }
 }

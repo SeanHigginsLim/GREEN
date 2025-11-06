@@ -5,11 +5,11 @@ import com.thsst2.greenapp.graph.PoiGraph
 import com.thsst2.greenapp.graph.FilteredAdjacencyList
 import java.util.*
 
-class ChainedAStar {
+class ChainedDijkstra {
     /**
      * Find path through ordered POIs in the exact sequence provided.
      * Returns the complete path including all intermediate POIs along the shortest routes.
-     * Computes shortest paths between consecutive POIs to ensure optimal routing.
+     * Computes shortest paths between consecutive POIs using Dijkstra's algorithm.
      * 
      * @param startPoint Optional starting location (e.g., user's current location or preferred start)
      */

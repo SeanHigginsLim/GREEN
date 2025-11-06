@@ -32,14 +32,14 @@ class TourPathPlanner {
                 RandomBFS().findPath(graph, dislikedPoiIds, disinterests, startPoint)
             }
 
-            // Preferences provided, no strict order -> multi-label approach
+            // Preferences provided, no strict order -> multi-goal Dijkstra
             !ordered -> {
-                MultiLabelAStar().findPath(graph, preferences, dislikedPoiIds, disinterests, startPoint)
+                MultiGoalDijkstra().findPath(graph, preferences, dislikedPoiIds, disinterests, startPoint)
             }
 
-            // Ordered preferences -> chained approach
+            // Ordered preferences -> chained Dijkstra
             else -> {
-                ChainedAStar().findPath(graph, preferences, dislikedPoiIds, disinterests, startPoint)
+                ChainedDijkstra().findPath(graph, preferences, dislikedPoiIds, disinterests, startPoint)
             }
         }
     }

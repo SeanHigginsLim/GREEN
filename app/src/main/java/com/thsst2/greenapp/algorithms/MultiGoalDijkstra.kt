@@ -5,11 +5,12 @@ import com.thsst2.greenapp.graph.PoiGraph
 import com.thsst2.greenapp.graph.FilteredAdjacencyList
 import java.util.*
 
-class MultiLabelAStar {
+class MultiGoalDijkstra {
 
     /**
      * Find the fastest tour path through unordered POIs using weighted edges.
      * Returns the path with optimal visiting sequence that minimizes total travel cost.
+     * Uses bitmask dynamic programming with Dijkstra for pairwise distances.
      * 
      * @param startPoint Optional starting location (e.g., user's current location or preferred start)
      */
