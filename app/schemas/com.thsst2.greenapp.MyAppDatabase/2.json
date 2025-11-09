@@ -917,7 +917,7 @@
           {
             "fieldPath": "poiId",
             "columnName": "poiId",
-            "affinity": "INTEGER",
+            "affinity": "INTE GER",
             "notNull": true
           },
           {

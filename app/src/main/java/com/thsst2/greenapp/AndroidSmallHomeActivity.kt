@@ -8,6 +8,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.GeofencingClient
+import com.google.android.gms.location.LocationCallback
 import com.google.firebase.FirebaseApp
 import com.thsst2.greenapp.data.*
 import com.thsst2.greenapp.data.repositories.SessionRepository
@@ -20,6 +23,22 @@ import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.*
 import java.util.concurrent.TimeUnit
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.PendingIntent
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.*
+import com.google.android.gms.maps.model.LatLngBounds
+import com.thsst2.greenapp.TourCoordinator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -29,6 +48,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var auth: FirebaseAuth
 	private lateinit var sessionManager: SessionManager
 	private lateinit var tourCoordinator: TourCoordinator
+	private lateinit var dialogueManager: DialogueManager
 
 	// DAOs
 	private lateinit var db: MyAppDatabase
@@ -54,6 +74,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private var sessionId: Long = 0
 	private var userId: Long = 0
 
+	// Geofencing
+	private lateinit var fusedLocationClient: FusedLocationProviderClient
+	private lateinit var locationCallback: LocationCallback
+	private lateinit var geofencingClient: GeofencingClient
+
+	private val GEOFENCE_RADIUS = 50f // modify later
+	private val LOCATION_PERMISSION_CODE = 2001
+
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -64,6 +93,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
 		tourCoordinator = TourCoordinator(this)
+		dialogueManager = DialogueManager(this)
 
 		// Initialize DB & DAOs
 		db = MyAppDatabase.getInstance(this)
@@ -81,6 +111,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		userRoleDao = db.userRoleDao()
 		userLocationDao = db.userLocationDao()
 		userInteractionTimeDao = db.userInteractionTimeDao()
+
+		// Initialize map top fragment
+		val mapFragment = supportFragmentManager.findFragmentById(R.id.home_map_fragment)
+				as? SupportMapFragment ?: SupportMapFragment.newInstance()
+
+		supportFragmentManager.beginTransaction()
+			.replace(R.id.home_map_fragment, mapFragment)
+			.commitAllowingStateLoss()
+
 
 		// Authenticate User
 		val currentUser = auth.currentUser
@@ -114,6 +153,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			try {
 				// You can replace `userDao()` and `UserProfileDao` depending on your schema
 				val existingProfile = db.userPreferencesDao().getPreferencesByUser(userId)
+		// TODO
+			// problem: keeps redirectly user to profile creation even though user already did
+				// uncomment when solved
 
 				if (existingProfile == null) {
 					// If profile is missing or incomplete → redirect to profile creation
@@ -153,8 +195,53 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Setup message input
 		setupMessageInput()
 
-		// TODO: Setup geofence listener
-		setupGeofenceListener()
+		// Setup location and geofencing
+		setupLocationAndGeofence()
+
+		mapFragment.getMapAsync @androidx.annotation.RequiresPermission(allOf = [android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION]) { googleMap ->
+			// Center map around DLSU
+			val dlsu = LatLng(14.5649, 120.9930)
+			googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(dlsu, 17f))
+
+			// Enable basic map controls
+			googleMap.uiSettings.isZoomControlsEnabled = true
+			googleMap.uiSettings.isScrollGesturesEnabled = true
+			googleMap.uiSettings.isZoomGesturesEnabled = true
+			googleMap.uiSettings.isRotateGesturesEnabled = true
+
+			// TODO: Check for permission
+			// enable user Location (blue dot)
+//            googleMap.isMyLocationEnabled = true
+
+			lifecycleScope.launch(Dispatchers.IO) {
+				val db = MyAppDatabase.getInstance(this@AndroidSmallHomeActivity)
+				val poiList = db.poiDao().getAll()
+
+				if (poiList.isEmpty()) {
+					Log.w("HomeActivity", "No POIs found in Room.")
+					return@launch
+				}
+
+				withContext(Dispatchers.Main) {
+					val builder = LatLngBounds.Builder()
+
+					poiList.forEach {poi ->
+						val position = LatLng(poi.latitude, poi.longitude)
+						googleMap.addMarker( // red
+							MarkerOptions()
+								.position(position)
+								.title(poi.name)
+						)
+						builder.include(position)
+					}
+
+					//all markers fit in view
+					val bounds = builder.build()
+					val cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100)
+					googleMap.moveCamera(cameraUpdate)
+				}
+			}
+		}
 	}
 
 	private fun loadImages() {
@@ -197,6 +284,69 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			} else false
 		}
 	}
+
+//    private suspend fun handleUserMessage(userMessage: String, userId: Long) {
+//		val prefs = db.userPreferencesDao().getPreferencesByUser(userId) ?: return
+//
+//		// Display typed user message
+//		messages.add("You: $userMessage")
+//		adapter.notifyItemInserted(messages.size - 1)
+//		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+//
+//		// Let DialogueManager detect intent + phase
+//		val dialogueResult = dialogueManager.processUserIntent(userId, userMessage, prefs)
+//
+//		// Display bot reply
+//		messages.add("Bot: ${dialogueResult.reply}")
+//		adapter.notifyItemInserted(messages.size - 1)
+//		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+//
+//		// Handle info/recommend requests using your LLM backend
+//		if (dialogueResult.phase == "IDLE" &&
+//			(userMessage.contains("info", ignoreCase = true) || userMessage.contains(
+//				"recommend",
+//				ignoreCase = true
+//			))
+//		) {
+//			val contextPrompt = buildString {
+//				append("User role: ${userRoleDao.getUserRoleById(userId)}. Interests: ${prefs.interests.joinToString()}. ")
+//				append("User message: $userMessage")
+//			}
+//
+//			chatApi.generate(ChatRequest(contextPrompt)).enqueue(object : Callback<ChatResponse> {
+//				override fun onResponse(
+//					call: Call<ChatResponse>,
+//					response: Response<ChatResponse>
+//				) {
+//					if (response.isSuccessful && response.body() != null) {
+//						val botReply = response.body()!!.response
+//						messages.add("Bot: $botReply")
+//						adapter.notifyItemInserted(messages.size - 1)
+//						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+//					}
+//				}
+//
+//				override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+//					messages.add("Bot: Failed to load info: ${t.localizedMessage}")
+//					adapter.notifyItemInserted(messages.size - 1)
+//				}
+//			})
+//		}
+//
+//		// Dialogue flow has reached tour generation
+//		if (dialogueResult.phase == "GENERATING_TOUR") {
+//			messages.add("Bot: Alright! Generating your personalized tour now...")
+//			adapter.notifyItemInserted(messages.size - 1)
+//
+//			lifecycleScope.launch {
+//				val tourSummary = dialogueManager.handleAction(userId)
+//
+//				messages.add("Bot: $tourSummary")
+//				adapter.notifyItemInserted(messages.size - 1)
+//				homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+//			}
+//		}
+//	}
 
 	// USER MESSAGE HANDLER
 	private suspend fun handleUserMessage(userMessage: String, userId: Long) {
@@ -352,18 +502,121 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		clearLocalSession()
 	}
 
-	// GEOFENCE HANDLER
-	private fun setupGeofenceListener() {
-		// TODO: Replace with actual geofence listener integration
-		// (LOGIC IDEA ONLY)
-		// onEnterPoi(poiId: Long)
-		//     insert UserVisitedLocationEntity
-		//     update UserLocationEntity
-		//     display POI info based on floor/preferences
-		//
-		// onExitPoi(poiId: Long)
-		//     insert UserInteractionTimeEntity
-		//     track skipped/disliked POIs
-		//     check path deviation -> PathDeviationAlertEntity
+	// LOCATION AND GEOFENCING
+	private fun setupLocationAndGeofence() {
+		fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+		geofencingClient = LocationServices.getGeofencingClient(this)
+
+		// Request permission if needed
+		if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+			!= PackageManager.PERMISSION_GRANTED
+		) {
+			ActivityCompat.requestPermissions(
+				this,
+				arrayOf(
+					Manifest.permission.ACCESS_FINE_LOCATION,
+					Manifest.permission.ACCESS_COARSE_LOCATION,
+					Manifest.permission.ACCESS_BACKGROUND_LOCATION
+				),
+				LOCATION_PERMISSION_CODE
+			)
+			return
+		}
+
+		startLocationTracking()
+		setupGeofences()
+	}
+
+	// LOCATION PERMISSIONS
+	@SuppressLint("MissingPermission")
+	private fun startLocationTracking() {
+		val locationRequest = LocationRequest.Builder(
+			Priority.PRIORITY_HIGH_ACCURACY,
+			7000L
+		).build()
+
+		locationCallback = object : LocationCallback() {
+			override fun onLocationResult(locationResult: LocationResult) {
+				super.onLocationResult(locationResult)
+				val location = locationResult.lastLocation
+				if (location != null) {
+					Log.d("HomeActivity", "Current location: ${location.latitude}, ${location.longitude}")
+				}
+			}
+		}
+
+		fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, mainLooper)
+	}
+
+	// ADDING GEOFENCES
+	@SuppressLint("MissingPermission")
+	private fun setupGeofences() {
+		lifecycleScope.launch {
+			try {
+				val pois = db.poiDao().getAll()
+				if (pois.isEmpty()) {
+					Toast.makeText(this@AndroidSmallHomeActivity, "No POIs found.", Toast.LENGTH_SHORT).show()
+					return@launch
+				}
+
+				val geofences = pois.map { poi ->
+					Geofence.Builder()
+						.setRequestId(poi.name)
+						.setCircularRegion(poi.latitude, poi.longitude, GEOFENCE_RADIUS)
+						.setTransitionTypes(
+							Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
+						)
+						.setExpirationDuration(Geofence.NEVER_EXPIRE)
+						.build()
+				}
+
+				val geofencingRequest = GeofencingRequest.Builder()
+					.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+					.addGeofences(geofences)
+					.build()
+
+				val intent = Intent("com.thsst2.greenapp.GEOFENCE_TRANSITION_ACTION")
+				intent.setClass(this@AndroidSmallHomeActivity, GeofenceReceiver::class.java)
+
+				val pendingIntent = PendingIntent.getBroadcast(
+					this@AndroidSmallHomeActivity,
+					0,
+					intent,
+					PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+				)
+
+				geofencingClient.addGeofences(geofencingRequest, pendingIntent)
+					.addOnSuccessListener {
+						Log.d("HomeActivity", "Geofences added: ${pois.size}")
+					}
+					.addOnFailureListener { e ->
+						Log.e("HomeActivity", "Failed: ${e.localizedMessage}")
+					}
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "Error setting up geofences: ${e.localizedMessage}")
+			}
+		}
+	}
+
+	override fun onRequestPermissionsResult(
+		requestCode: Int,
+		permissions: Array<out String>,
+		grantResults: IntArray
+	) {
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+		if (requestCode == LOCATION_PERMISSION_CODE &&
+			grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+		) {
+			setupLocationAndGeofence()
+		} else {
+			Toast.makeText(this, "Location permission is required for geofencing.", Toast.LENGTH_LONG).show()
+		}
+	}
+
+	override fun onDestroy() {
+		super.onDestroy()
+		if (::fusedLocationClient.isInitialized) {
+			fusedLocationClient.removeLocationUpdates(locationCallback)
+		}
 	}
 }

@@ -153,19 +153,17 @@
 								android:layout_height="wrap_content"
 								android:scaleType="fitXY"
 								/>
-							<LinearLayout
-								android:paddingTop="45dp"
-								android:paddingBottom="115dp"
+							<!--map-->
+							<FrameLayout
+								android:id="@+id/home_map_fragment"
 								android:layout_width="match_parent"
-								android:layout_height="match_parent"
-								android:orientation="vertical">
-								<LinearLayout
-									android:id="@+id/rs9aseav0p9"
-									android:layout_width="match_parent"
-									android:layout_height="wrap_content"
-									android:gravity="end"
-									android:orientation="vertical"/>
-							</LinearLayout>
+								android:layout_height="250dp"
+								android:layout_marginTop="8dp"
+								android:layout_marginBottom="12dp"
+								android:layout_gravity="center"
+								android:elevation="4dp"
+								android:clipToOutline="true"
+								android:background="@drawable/cr10bffffff" />
 						</RelativeLayout>
 					</LinearLayout>
 				</RelativeLayout>
