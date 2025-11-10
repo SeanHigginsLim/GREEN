@@ -1,14 +1,14 @@
 {
   "project_info": {
-    "project_number": "253013413937",
-    "firebase_url": "https://test-bbedd-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "test-bbedd",
-    "storage_bucket": "test-bbedd.firebasestorage.app"
+    "project_number": "621757073194",
+    "firebase_url": "https://green-45704-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "green-45704",
+    "storage_bucket": "green-45704.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:253013413937:android:fefd5fa4f73fe717f9c510",
+        "mobilesdk_app_id": "1:621757073194:android:e804378b1db7aa065c8053",
         "android_client_info": {
           "package_name": "com.thsst2.greenapp"
         }
@@ -16,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBIvl6VEmQwnIUcvmNmFk9JoYWEKRk66KU"
+          "current_key": "AIzaSyDE2LnnV_-orQGV6-5mBnyvIl4T-yYe8vw"
         }
       ],
       "services": {
