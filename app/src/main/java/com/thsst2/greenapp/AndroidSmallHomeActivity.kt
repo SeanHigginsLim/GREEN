@@ -51,6 +51,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import androidx.room.withTransaction
+import com.google.android.gms.maps.GoogleMap
+import com.thsst2.greenapp.data.PoiEntity
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -59,8 +62,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var chatApi: ChatApi
 	private lateinit var auth: FirebaseAuth
 	private lateinit var sessionManager: SessionManager
-	private lateinit var tourCoordinator: TourCoordinator
+	//private lateinit var tourCoordinator: TourCoordinator
 //	private lateinit var dialogueManager: DialogueManager
+
+	private lateinit var ragEngine: RAGEngine
 
 	// DAOs
 	private lateinit var db: MyAppDatabase
@@ -104,8 +109,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		FirebaseApp.initializeApp(this)
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
-		tourCoordinator = TourCoordinator(this)
+		//tourCoordinator = TourCoordinator(this)
 //		dialogueManager = DialogueManager(this)
+		ragEngine = RAGEngine()
 
 		// Initialize DB & DAOs
 		db = MyAppDatabase.getInstance(this)
@@ -218,36 +224,54 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			googleMap.uiSettings.isZoomGesturesEnabled = true
 			googleMap.uiSettings.isRotateGesturesEnabled = true
 
-			// TODO: Check for permission
-			// enable user Location (blue dot)
-//            googleMap.isMyLocationEnabled = true
+			if (ContextCompat.checkSelfPermission(
+					this,
+					Manifest.permission.ACCESS_FINE_LOCATION
+				) == PackageManager.PERMISSION_GRANTED
+			) {
+				try {
+					googleMap.isMyLocationEnabled = true // Enable user Location (blue dot)
+				} catch (e: SecurityException) {
+					Log.w("HomeActivity", "Cannot enableu ser location: ${e.localizedMessage}")
+				}
+			}
 
 			lifecycleScope.launch(Dispatchers.IO) {
 				val db = MyAppDatabase.getInstance(this@AndroidSmallHomeActivity)
-				val poiList = db.poiDao().getAll()
-
-				if (poiList.isEmpty()) {
-					Log.w("HomeActivity", "No POIs found in Room.")
-					return@launch
-				}
 
 				withContext(Dispatchers.Main) {
-					val builder = LatLngBounds.Builder()
 
-					poiList.forEach {poi ->
-						val position = LatLng(poi.latitude, poi.longitude)
-						googleMap.addMarker( // red
-							MarkerOptions()
-								.position(position)
-								.title(poi.name)
-						)
-						builder.include(position)
+					// Fetch all POIs from Firebase via RAG
+					val fetchedPois = try {
+						ragEngine.getRelevantPOINames(null) // null = fetch all POIs
+					} catch (e: Exception) {
+						Log.e("HomeActivity", "Failed to fetch POIs: ${e.localizedMessage}")
+						emptyList()
 					}
 
-					//all markers fit in view
-					val bounds = builder.build()
-					val cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100)
-					googleMap.moveCamera(cameraUpdate)
+					// Save/update POIs in Room
+					withContext(Dispatchers.IO) {
+						try {
+							db.withTransaction {
+								db.poiDao().deleteAll() // clear old data
+								fetchedPois.forEach { db.poiDao().insert(it) }
+							}
+							Log.d("HomeActivity", "Saved ${fetchedPois.size} POIs to Room DB.")
+						} catch (e: Exception) {
+							Log.e("HomeActivity", "Error saving POIs: ${e.localizedMessage}")
+						}
+					}
+
+					// Display POIs on map
+					drawMarkers(googleMap, fetchedPois)
+
+					// Setup geofences
+					try {
+						setupGeofences()
+						Log.d("HomeActivity", "Registered geofences for ${fetchedPois.size} POIs.")
+					} catch (e: Exception) {
+						Log.e("HomeActivity", "Failed to register geofences: ${e.localizedMessage}")
+					}
 				}
 			}
 
@@ -411,8 +435,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// If user wants a tour, call TourCoordinator
 		if (userMessage.contains("tour", ignoreCase = true)) {
 			lifecycleScope.launch {
-				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
-				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
+//				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
+//				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
 				val poiData = db.localDataDao().getLocalData(userId)
 				val startingPoint = null
 				val aiPrompt = """
@@ -424,7 +448,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Preferences: $allPreferences
 					Starting Location: $startingPoint
 		
-					POI Sequence: $poiJson
+					POI Sequence: 
 					POI Data: $poiData
 		
 					INSTRUCTIONS:
@@ -707,6 +731,34 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			Toast.makeText(this, "Location permission is required for geofencing.", Toast.LENGTH_LONG).show()
 		}
 	}
+
+	private suspend fun drawMarkers(googleMap: GoogleMap, pois: List<PoiEntity>) = withContext(Dispatchers.Main) {
+		if (pois.isEmpty()) {
+			Toast.makeText(this@AndroidSmallHomeActivity, "No POIs available.", Toast.LENGTH_SHORT).show()
+			return@withContext
+		}
+
+		googleMap.clear()
+		val boundsBuilder = LatLngBounds.Builder()
+
+		pois.forEach { poi ->
+			val position = LatLng(poi.latitude, poi.longitude)
+			googleMap.addMarker( // red
+				MarkerOptions()
+					.position(position)
+					.title(poi.name)
+			)
+			boundsBuilder.include(position)
+		}
+
+		//all markers fit in view
+		val bounds = boundsBuilder.build()
+		val cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100)
+		googleMap.moveCamera(cameraUpdate)
+
+		Log.d("HomeActivity", "Plotted ${pois.size} POIs on map.")
+	}
+
 
 	override fun onDestroy() {
 		super.onDestroy()
