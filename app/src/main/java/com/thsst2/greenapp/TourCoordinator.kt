@@ -37,6 +37,8 @@ class TourCoordinator(private val context: Context) {
                 return@withContext null
             }
 
+            val knowledgeGraph = RAGEngine.getKnowledgeGraph()
+
             // Identify user's disliked POIs/disinterests
             val dislikedIds = db.userSkippedOrDislikedLocationDao()
                 .getAll()
@@ -48,13 +50,16 @@ class TourCoordinator(private val context: Context) {
             //Determine ordered flag
             val ordered = prefs.tourPace?.contains("ordered", ignoreCase = true) ?: false
 
+            // TODO: Use relevant poi names, plus knowledge graph weights and edges to create tour.
+            // TODO: Remove dislikedPoiIds and disinterests and preferences, not needed in path generation.
             // Generate path using the algos
             val path = tourPathPlanner.planTour(
                 allPois = relevantPOIs,
                 preferences = relevantPOIs.take(3), // top few as “preferred”
                 ordered = ordered,
                 dislikedPoiIds = dislikedIds,
-                disinterests = disinterests
+                disinterests = disinterests,
+                knowledgeGraph = knowledgeGraph
             )
 
             if (path.isEmpty()) {
