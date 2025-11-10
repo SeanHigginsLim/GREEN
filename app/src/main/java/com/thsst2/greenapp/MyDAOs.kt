@@ -168,7 +168,7 @@ interface PerformanceMetricsDao: BaseDao<PerformanceMetricsEntity> {
 @Dao
 interface PoiDao: BaseDao<PoiEntity> {
     @Query("SELECT * FROM poi WHERE poiId = :id")
-    suspend fun getPoiById(id: Long): PoiEntity?
+    suspend fun getPoiById(id: String): PoiEntity?
 
     @Query("SELECT * FROM poi")
     suspend fun getAllPois(): List<PoiEntity>
@@ -251,7 +251,7 @@ interface UserPreferencesDao: BaseDao<UserPreferencesEntity> {
     suspend fun getUserPreferencesById(id: Long): UserPreferencesEntity?
 
     @Query("SELECT * FROM user_preferences WHERE userId = :userId")
-    suspend fun getPreferencesByUser(userId: Long): UserPreferencesEntity
+    suspend fun getPreferencesByUser(userId: Long): UserPreferencesEntity?
 
     @Query("SELECT * FROM user_preferences")
     suspend fun getAll(): List<UserPreferencesEntity>

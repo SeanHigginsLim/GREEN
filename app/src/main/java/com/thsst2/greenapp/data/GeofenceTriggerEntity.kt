@@ -25,7 +25,7 @@ data class GeofenceTriggerEntity(
     @PrimaryKey(autoGenerate = true)
     val geofenceTriggerId: Long = 0,
     val userId: Long,
-    val poiId: Long,
+    val poiId: String,
     val entryTime: String,
     val exitTime: String,
     val triggerType: String

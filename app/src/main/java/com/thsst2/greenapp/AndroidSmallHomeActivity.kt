@@ -60,7 +60,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var auth: FirebaseAuth
 	private lateinit var sessionManager: SessionManager
 	private lateinit var tourCoordinator: TourCoordinator
-	private lateinit var dialogueManager: DialogueManager
+//	private lateinit var dialogueManager: DialogueManager
 
 	// DAOs
 	private lateinit var db: MyAppDatabase
@@ -105,7 +105,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
 		tourCoordinator = TourCoordinator(this)
-		dialogueManager = DialogueManager(this)
+//		dialogueManager = DialogueManager(this)
 
 		// Initialize DB & DAOs
 		db = MyAppDatabase.getInstance(this)
@@ -394,15 +394,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			db.poiDao().getPoiById(visited.poiId)?.let { listOf(it) }
 		} ?: emptyList()
 
-		val allPreferences = activePreferences.interests + tempAdditionalPreferences
+		val allPreferences = activePreferences?.interests?.plus(tempAdditionalPreferences)
 
-		var contextString = buildString {
-			append("I am a $userRoleName. ")
-			append("I like ${allPreferences.joinToString(", ")}. ")
-			append("I have visited ${visitedPOIs.joinToString(", ") { it.name }}. ")
-		}
+//		var contextString = buildString {
+//			append("I am a $userRoleName. ")
+//			append("I like ${allPreferences?.joinToString(", ")}. ")
+//			append("I have visited ${visitedPOIs.joinToString(", ") { it.name }}. ")
+//		}
 
-		val aiPrompt = "$contextString $userMessage"
+//		val aiPrompt = "$contextString $userMessage"
 
 		messages.add("You: $userMessage")
 		adapter.notifyItemInserted(messages.size - 1)
@@ -523,7 +523,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 									userId = userId,
 									userText = userMessage,
 									systemResponse = botReply,
-									contextSnapshot = contextString,
+									contextSnapshot = aiPrompt,
 									turnNumber = messages.size
 								)
 							)

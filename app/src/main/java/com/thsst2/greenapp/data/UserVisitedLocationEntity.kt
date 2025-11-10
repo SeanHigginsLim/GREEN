@@ -24,7 +24,7 @@ import androidx.room.PrimaryKey
 data class UserVisitedLocationEntity(
     @PrimaryKey(autoGenerate = true)
     val userVisitedLocationId: Long = 0,
-    val poiId: Long,
+    val poiId: String,
     val sessionId: Long,
     val timestamp: Long,
     val duration: Long

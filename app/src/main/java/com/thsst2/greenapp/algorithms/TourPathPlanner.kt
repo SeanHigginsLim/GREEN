@@ -2,7 +2,6 @@ package com.thsst2.greenapp.algorithms
 
 import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.graph.GraphBuilder
-import com.thsst2.greenapp.graph.FilteredAdjacencyList
 
 class TourPathPlanner {
 
@@ -16,7 +15,7 @@ class TourPathPlanner {
         startPoint: PoiEntity? = null,
         preferences: List<PoiEntity>? = null,
         ordered: Boolean = false,
-        dislikedPoiIds: Set<Long> = emptySet(),
+        dislikedPoiIds: Set<String> = emptySet(),
         disinterests: Collection<String> = emptyList(),
         maxDistance: Double = Double.MAX_VALUE
     ): List<PoiEntity> {

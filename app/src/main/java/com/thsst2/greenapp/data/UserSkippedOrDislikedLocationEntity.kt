@@ -24,7 +24,7 @@ import androidx.room.PrimaryKey
 data class UserSkippedOrDislikedLocationEntity(
     @PrimaryKey(autoGenerate = true)
     val userSkippedOrDislikedLocationId: Long = 0,
-    val poiId: Long,
+    val poiId: String,
     val sessionId: Long,
     val reason: String?,
     val timestamp: Long

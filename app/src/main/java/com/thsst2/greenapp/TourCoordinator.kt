@@ -11,13 +11,13 @@ import kotlin.String
 class TourCoordinator(private val context: Context) {
 
     private val db = MyAppDatabase.getInstance(context)
-    private val DialogueManager = DialogueManager(context)
+//    private val DialogueManager = DialogueManager(context)
     private val RAGEngine = RAGEngine()
     private val tourPathPlanner = TourPathPlanner()
     private val FirebaseSync = FirebaseSync()
     private val tempPreferences = mutableListOf<String>()
 
-    suspend fun startTourForUser(userId: Long, preferences: List<String>): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
+    suspend fun startTourForUser(userId: Long, preferences: List<String>?): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
         try {
             // Fetch User + Preferences
             val user = db.userDao().getUserById(userId)
@@ -93,7 +93,7 @@ class TourCoordinator(private val context: Context) {
                 db.poiDao().insert(poiEntity)
             }
 
-            val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId })
+            val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId }, preferences)
 
             // Simulate sync to Firebase
 //            FirebaseSync.syncEntity("generated_paths", generatedPathEntity)

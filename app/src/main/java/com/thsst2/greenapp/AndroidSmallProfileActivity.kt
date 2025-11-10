@@ -109,10 +109,10 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 	private fun loadPreferencesTextView() {
 		CoroutineScope(Dispatchers.IO).launch {
 			val prefsEntity = db.userPreferencesDao().getPreferencesByUser(userId)
-			val selectedPrefs = prefsEntity.interests
+			val selectedPrefs = prefsEntity?.interests
 
 			withContext(Dispatchers.Main) {
-				profileBinding.rdq3i5lpyvv4.text = selectedPrefs.joinToString(", ")
+				profileBinding.rdq3i5lpyvv4.text = selectedPrefs?.joinToString(", ")
 			}
 		}
 	}
@@ -164,24 +164,24 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 	private fun openPreferencesDialog() {
 		CoroutineScope(Dispatchers.IO).launch {
 			val prefsEntity = db.userPreferencesDao().getPreferencesByUser(userId)
-			val selectedPrefs = prefsEntity.interests.toMutableSet()
+			val selectedPrefs = prefsEntity?.interests?.toMutableSet()
 			val allPrefsArray = allPreferences.toTypedArray()
-			val checkedItems = allPrefsArray.map { selectedPrefs.contains(it) }.toBooleanArray()
+			val checkedItems = allPrefsArray.map { selectedPrefs?.contains(it) ?: false }.toBooleanArray()
 			Log.d("In User Preferences", "Im here")
 
 			withContext(Dispatchers.Main) {
 				AlertDialog.Builder(this@AndroidSmallProfileActivity)
 					.setTitle("Select Preferences")
 					.setMultiChoiceItems(allPrefsArray, checkedItems) { _, which, isChecked ->
-						if (isChecked) selectedPrefs.add(allPrefsArray[which])
-						else selectedPrefs.remove(allPrefsArray[which])
+						if (isChecked) selectedPrefs?.add(allPrefsArray[which]) ?: false
+						else selectedPrefs?.remove(allPrefsArray[which]) ?: false
 					}
 					.setPositiveButton("Save") { _, _ ->
 						CoroutineScope(Dispatchers.IO).launch {
 							db.userPreferencesDao().deleteAll()
 							val userPreferencesEntity = UserPreferencesEntity(
 								userId = userId,
-								interests = selectedPrefs.toList(),
+								interests = selectedPrefs?.toList() ?: emptyList(),
 								disinterests = null,
 								tourPace = null
 							)

@@ -24,7 +24,7 @@ import androidx.room.PrimaryKey
 data class UserInteractionTimeEntity(
     @PrimaryKey(autoGenerate = true)
     val userInteractionTimeId: Long = 0,
-    val poiId: Long,
+    val poiId: String,
     val userId: Long,
     val duration: Long, // Duration in seconds or milliseconds
     val timestamp: Long

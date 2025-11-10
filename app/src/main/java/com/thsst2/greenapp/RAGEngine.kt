@@ -1,53 +1,168 @@
 package com.thsst2.greenapp
 
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseReference
 import com.thsst2.greenapp.data.PoiEntity
 
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
 import kotlinx.coroutines.tasks.await
 
 class RAGEngine {
-    private val db = FirebaseFirestore.getInstance()
+    private val db = FirebaseDatabase.getInstance().reference
     private val gson = Gson()
-    suspend fun getRelevantPOINames(preferences: List<String>): List<PoiEntity> {
-        // TODO: replace with actual collection name
-        val poiCollection = db.collection("pois").get().await()
 
-        // Filter and map documents to PoiEntity objects based on preference tags
-        val poiList = poiCollection.documents.mapNotNull { doc ->
+    /**
+     * Fetches POIs from the Realtime Database that match the user’s preferences.
+     */
+    suspend fun getRelevantPOINames(preferences: List<String>?): List<PoiEntity> {
+        val buildingsSnapshot = db
+            .child("server_side")
+            .child("pre_collected_data")
+            .child("buildings")
+            .get()
+            .await()
+
+        return buildingsSnapshot.children.mapNotNull { building ->
             try {
-                val categories = (doc.get("category") as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
-                // Only include POIs that match any of the preferences
-                if (preferences.any { pref -> categories.contains(pref) }) {
-                    PoiEntity(
-                        poiId = doc.getLong("poiId") ?: 0, // map
-                        generatedPathId = null,
-                        name = doc.getString("name") ?: "", // map
-                        description = doc.getString("description"), // map
-                        category = categories, // map
-                        latitude = doc.getDouble("latitude") ?: 0.0, // map
-                        longitude = doc.getDouble("longitude") ?: 0.0 // map
-                    )
-                } else null
+                val poiId = building.child("poiId").getValue(String::class.java) ?: return@mapNotNull null
+                val name = building.child("name").getValue(String::class.java) ?: ""
+                val description = building.child("description").getValue(String::class.java) ?: return@mapNotNull null
+
+                // Extract tags
+                val functionTags = building.child("function_tags").children.mapNotNull { it.value as? String }
+                val locationTags = building.child("location_tags").children.mapNotNull { it.value as? String }
+                val typeTags = building.child("type_tags").children.mapNotNull { it.value as? String }
+
+                val category = building.child("function_tags").children.mapNotNull { it.value as? String } +
+                    building.child("location_tags").children.mapNotNull { it.value as? String } +
+                    building.child("type_tags").children.mapNotNull { it.value as? String }
+
+                // Match user preference
+                val matchesPreference = preferences?.any { pref ->
+                    functionTags.contains(pref) || locationTags.contains(pref) || typeTags.contains(pref)
+                }
+
+                matchesPreference?.let { if (!it) return@mapNotNull null }
+
+                // Extract coordinates
+                val geo = building.child("coordinates")
+                val lat = geo.child("lat").getValue(Double::class.java) ?: 0.0
+                val lng = geo.child("lng").getValue(Double::class.java) ?: 0.0
+
+                PoiEntity(
+                    poiId = poiId,
+                    generatedPathId = null,
+                    name = name,
+                    description = description,
+                    category = category,
+                    latitude = lat,
+                    longitude = lng
+                )
             } catch (e: Exception) {
                 null
             }
-        }.distinctBy { it.poiId } // remove duplicates by POI ID
-
-        return poiList
+        }
     }
 
-    // Returns JSON string of all relevant data about the POIs in the given list
-    suspend fun getData(poiIds: List<Long>): String {
-        val dataMap = mutableMapOf<Long, Map<String, Any?>>()
+    /**
+     * Returns JSON data for all POIs with the given IDs.
+     */
+    suspend fun getData(poiIds: List<String>, preferences: List<String>?): String {
+        val matchedData = fetchMatchingNodesWithBacktrack(
+            ref = db.child("server_side"),
+            preferences = preferences,
+            poiIds = poiIds
+        )
 
-        poiIds.forEach { id ->
-            val doc = db.collection("poi_data").document(id.toString()).get().await()
-            if (doc.exists()) {
-                dataMap[id] = doc.data ?: emptyMap()
+        val jsonResult = gson.toJson(matchedData)
+        return jsonResult
+    }
+
+    suspend fun fetchMatchingNodesWithBacktrack(
+        ref: DatabaseReference,
+        preferences: List<String>?,
+        poiIds: List<String>,
+        parent: DataSnapshot? = null,
+        grandParent: DataSnapshot? = null,
+        matched: MutableList<Map<String, Any?>> = mutableListOf()
+    ): List<Map<String, Any?>> {
+        val snapshot = ref.get().await()
+        if (!snapshot.exists()) return matched
+
+        for (child in snapshot.children) {
+            // Extract tags
+            val tags = child.child("function_tags").children.mapNotNull { it.value as? String } +
+                    child.child("location_tags").children.mapNotNull { it.value as? String } +
+                    child.child("type_tags").children.mapNotNull { it.value as? String }
+
+            // Extract building_id
+            val buildingId = child.child("building_id").getValue(String::class.java)
+
+            // Tag match -> store grandparent
+            if (tags.any { preferences?.contains(it) ?: false } && grandParent != null) {
+                val grandParentData: Map<String, Any?> = grandParent.children.associate {
+                    val key = child.key ?: ""
+                    val value: Any? = child.value  // cast explicitly
+                    key to value
+                }
+                matched.add(grandParentData)
+            }
+
+            // Building ID match -> store parent
+            if (buildingId != null && poiIds.contains(buildingId) && parent != null) {
+                val parentData: Map<String, Any?> = parent.children.associate {
+                    val key = child.key ?: ""
+                    val value: Any? = child.value  // cast explicitly
+                    key to value
+                }
+                matched.add(parentData)
+            }
+
+            // Recursive, updating parent references
+            fetchMatchingNodesWithBacktrack(
+                ref = child.ref,
+                preferences = preferences,
+                poiIds = poiIds,
+                parent = child,
+                grandParent = parent,
+                matched = matched
+            )
+        }
+
+        return matched
+    }
+
+    data class Edge(
+        val edgeId: String,
+        val to: String,
+        val weight: Double
+    )
+
+    suspend fun getKnowledgeGraph(): Map<String, List<Edge>> {
+        val poiSnapshot = db.child("poi_nodes").get().await()
+
+        // Adjacency list: POI ID -> list of edges
+        val adjacencyList = mutableMapOf<String, MutableList<Edge>>()
+
+        for (poi in poiSnapshot.children) {
+            val poiId = poi.key ?: continue
+
+            // Initialize adjacency list for this POI
+            adjacencyList[poiId] = mutableListOf()
+
+            // Traverse "adj" children
+            val adjSnapshot = poi.child("adj")
+            for (adjChild in adjSnapshot.children) {
+                val edgeId = adjChild.child("edge_id").getValue(String::class.java) ?: continue
+                val to = adjChild.child("to").getValue(String::class.java) ?: continue
+                val weight = adjChild.child("w").getValue(Double::class.java) ?: 0.0
+
+                val edge = Edge(edgeId = edgeId, to = to, weight = weight)
+                adjacencyList[poiId]?.add(edge)
             }
         }
 
-        return gson.toJson(dataMap) // JSON map: poiId -> all relevant info
+        return adjacencyList
     }
 }

@@ -24,7 +24,7 @@ import androidx.room.PrimaryKey
 data class UserFeedbackEntity(
     @PrimaryKey(autoGenerate = true)
     val userFeedbackId: Long = 0,
-    val poiId: Long,
+    val poiId: String,
     val userId: Long,
     val rating: Int?,                   // e.g., 1-5 stars
     val comments: String?,
