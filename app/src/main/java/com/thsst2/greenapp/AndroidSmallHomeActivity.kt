@@ -1,44 +1,56 @@
 package com.thsst2.greenapp
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.inputmethod.EditorInfo
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
+import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationCallback
-import com.google.firebase.FirebaseApp
-import com.thsst2.greenapp.data.*
-import com.thsst2.greenapp.data.repositories.SessionRepository
-import com.thsst2.greenapp.databinding.ActivityAndroidSmallHomeBinding
-import com.google.firebase.auth.FirebaseAuth
-import com.thsst2.greenapp.data.repositories.UserRepository
-import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
-import retrofit2.*
-import retrofit2.converter.gson.GsonConverterFactory
-import java.util.*
-import java.util.concurrent.TimeUnit
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-import android.Manifest
-import android.annotation.SuppressLint
-import android.app.PendingIntent
-import android.content.pm.PackageManager
-import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
 import com.google.android.gms.maps.model.LatLngBounds
-import com.thsst2.greenapp.TourCoordinator
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
+import com.thsst2.greenapp.data.DialogueHistoryEntity
+import com.thsst2.greenapp.data.IntentLogEntity
+import com.thsst2.greenapp.data.SessionEntity
+import com.thsst2.greenapp.data.UserEntity
+import com.thsst2.greenapp.data.UserQueryEntity
+import com.thsst2.greenapp.data.repositories.SessionRepository
+import com.thsst2.greenapp.data.repositories.UserRepository
+import com.thsst2.greenapp.databinding.ActivityAndroidSmallHomeBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -192,13 +204,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Setup Retrofit
 		setupRetrofit()
 
-		// Setup message input
-		setupMessageInput()
-
 		// Setup location and geofencing
 		setupLocationAndGeofence()
 
-		mapFragment.getMapAsync @androidx.annotation.RequiresPermission(allOf = [android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION]) { googleMap ->
+		mapFragment.getMapAsync @androidx.annotation.RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION]) { googleMap ->
 			// Center map around DLSU
 			val dlsu = LatLng(14.5649, 120.9930)
 			googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(dlsu, 17f))
@@ -241,6 +250,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					googleMap.moveCamera(cameraUpdate)
 				}
 			}
+
+			// TODO: start the dialogue manager looping here, before anything else is done in order to update preferences
+			// temporarily if needed tempAdditionalPreferences, or permanently with db.userPreferencesDao().update(prefs)
 		}
 	}
 
@@ -269,6 +281,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			.addConverterFactory(GsonConverterFactory.create())
 			.build()
 		chatApi = retrofit.create(ChatApi::class.java)
+
+		// Setup message input
+		setupMessageInput()
 	}
 
 	private fun setupMessageInput() {
@@ -381,7 +396,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		val allPreferences = activePreferences.interests + tempAdditionalPreferences
 
-		val contextString = buildString {
+		var contextString = buildString {
 			append("I am a $userRoleName. ")
 			append("I like ${allPreferences.joinToString(", ")}. ")
 			append("I have visited ${visitedPOIs.joinToString(", ") { it.name }}. ")
@@ -393,11 +408,111 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		adapter.notifyItemInserted(messages.size - 1)
 		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
-		chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
-			override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
-				runOnUiThread {
-					if (response.isSuccessful && response.body() != null) {
-						val botReply = response.body()!!.response
+		// If user wants a tour, call TourCoordinator
+		if (userMessage.contains("tour", ignoreCase = true)) {
+			lifecycleScope.launch {
+				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
+				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
+				val poiData = db.localDataDao().getLocalData(userId)
+				val startingPoint = null
+				val aiPrompt = """
+					You are an AI tour guide for De La Salle University.
+		
+					TASK: Generate a personalized tour overview for the user based on the following POIs and data.
+		
+					User Role: $userRoleName
+					Preferences: $allPreferences
+					Starting Location: $startingPoint
+		
+					POI Sequence: $poiJson
+					POI Data: $poiData
+		
+					INSTRUCTIONS:
+					1. Analyze the POIs and their sequence to form a coherent tour route.
+					2. Write a short, friendly summary introducing the tour, then describe the route in order.
+					3. Include relevant context or facts about each stop when available.
+					4. Maintain a warm, informative tone.
+					5. Use only the data provided above for generating the overview text.
+		
+					OUTPUT FORMAT:
+					{
+					  "tour_title": "string",
+					  "overview_text": "string"
+					}
+					
+					EXAMPLE:
+					Input:
+					User Role: Guest
+					Preferences: History, Architecture
+					POI Data: [ ... ]
+					Output:
+					{
+					  "tour_title": "DLSU Heritage Trail",
+					  "overview_text": "Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall..."
+					}
+				
+					Follow the tour overview instructions.
+				""".trimIndent()
+
+				chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+						if (response.isSuccessful) {
+							val botReply = response.body()?.response ?: "Tour overview ready."
+							messages.add("Bot: $botReply")
+							adapter.notifyItemInserted(messages.size - 1)
+							homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+
+							lifecycleScope.launch {
+								dialogueHistoryDao.insert(
+									DialogueHistoryEntity(
+										userId = userId,
+										userText = userMessage,
+										systemResponse = botReply,
+										contextSnapshot = aiPrompt,
+										turnNumber = messages.size
+									)
+								)
+							}
+						} else {
+							Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+						}
+					}
+
+					override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+						Log.e("ChatApi", "Error: ${t.message}", t)
+					}
+				})
+			}
+		} else {
+			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
+			val poiData = db.localDataDao().getLocalData(userId)
+			val startingPoint = null
+			val aiPrompt = """
+				You are an AI tour guide for De La Salle University.
+	
+				TASK: Answer the user query as accurate as you can
+				
+				User Role: $userRoleName
+				Preferences: $allPreferences
+				Starting Location: $startingPoint
+	
+				POI Sequence: $poiJson
+				POI Data: $poiData
+	
+				INSTRUCTIONS:
+				1. Write a short, accurate response to the user query
+				2. Use only the needed data provided above for generating the answer.
+	
+				OUTPUT FORMAT:
+				{
+				  "answer": "string"
+				}
+			""".trimIndent()
+
+			chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+				override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+					if (response.isSuccessful) {
+						val botReply = response.body()?.response ?: "Tour overview ready."
 						messages.add("Bot: $botReply")
 						adapter.notifyItemInserted(messages.size - 1)
 						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
@@ -413,36 +528,16 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 								)
 							)
 						}
-
-						// TODO: Ask for additional preferences & optionally update UserPreferencesEntity
-						// TODO: Trigger RAG + path generation
-						// If user wants a tour, call TourCoordinator
-						if (userMessage.contains("tour", ignoreCase = true)) {
-							lifecycleScope.launch {
-								val generatedPath = tourCoordinator.startTourForUser(userId)
-								if (generatedPath != null) {
-									messages.add("Bot: Tour generated successfully!")
-									adapter.notifyItemInserted(messages.size - 1)
-									homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-								} else {
-									messages.add("Bot: Could not generate tour.")
-									adapter.notifyItemInserted(messages.size - 1)
-									homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-								}
-							}
-						}
+					} else {
+						Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
 					}
 				}
-			}
 
-			override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-				runOnUiThread {
-					messages.add("Bot: Network connection failed - ${t.localizedMessage}")
-					adapter.notifyItemInserted(messages.size - 1)
-					homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+				override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+					Log.e("ChatApi", "Error: ${t.message}", t)
 				}
-			}
-		})
+			})
+		}
 	}
 
 	// NAVIGATION BAR

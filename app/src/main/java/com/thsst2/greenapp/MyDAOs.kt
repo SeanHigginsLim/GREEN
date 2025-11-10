@@ -407,3 +407,15 @@ interface UserVisitedLocationDao: BaseDao<UserVisitedLocationEntity> {
     @Query("DELETE FROM user_visited_location")
     suspend fun deleteAll()
 }
+
+@Dao
+interface LocalDataDao: BaseDao<LocalDataEntity> {
+    @Query("SELECT * FROM local_data WHERE userId = :id")
+    suspend fun getLocalData(id: Long): LocalDataEntity?
+
+    @Query("SELECT * FROM local_data")
+    suspend fun getAll(): List<LocalDataEntity>
+
+    @Query("DELETE FROM local_data")
+    suspend fun deleteAll()
+}

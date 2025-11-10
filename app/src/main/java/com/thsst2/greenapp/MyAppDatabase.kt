@@ -5,27 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.thsst2.greenapp.data.DialogueHistoryEntity
-import com.thsst2.greenapp.data.GeneratedPathEntity
-import com.thsst2.greenapp.data.GeofenceTriggerEntity
-import com.thsst2.greenapp.data.IntentLogEntity
-import com.thsst2.greenapp.data.PathDeviationAlertEntity
-import com.thsst2.greenapp.data.PerformanceMetricsEntity
-import com.thsst2.greenapp.data.PoiEntity
-import com.thsst2.greenapp.data.ResponseJustificationEntity
-import com.thsst2.greenapp.data.SessionEntity
-import com.thsst2.greenapp.data.UserEntity
-import com.thsst2.greenapp.data.UserFeedbackEntity
-import com.thsst2.greenapp.data.UserInteractionTimeEntity
-import com.thsst2.greenapp.data.UserLocationEntity
-import com.thsst2.greenapp.data.UserLogEntity
-import com.thsst2.greenapp.data.UserPreferencesEntity
-import com.thsst2.greenapp.data.UserQueryEntity
-import com.thsst2.greenapp.data.UserRoleEntity
-import com.thsst2.greenapp.data.UserSkippedOrDislikedLocationEntity
-import com.thsst2.greenapp.data.UserTourPathHistoryEntity
-import com.thsst2.greenapp.data.UserVisitedLocationEntity
-
+import com.thsst2.greenapp.data.*
 @Database(
     entities = [
         // Entities
@@ -37,6 +17,7 @@ import com.thsst2.greenapp.data.UserVisitedLocationEntity
         GeneratedPathEntity::class,
         GeofenceTriggerEntity::class,
         IntentLogEntity::class,
+        LocalDataEntity::class,
         PathDeviationAlertEntity::class,
         PerformanceMetricsEntity::class,
         PoiEntity::class,
@@ -50,7 +31,7 @@ import com.thsst2.greenapp.data.UserVisitedLocationEntity
         UserVisitedLocationEntity::class,
         UserSkippedOrDislikedLocationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(TypeConverter::class)
@@ -64,6 +45,7 @@ abstract class MyAppDatabase : RoomDatabase() {
     abstract fun generatedPathDao(): GeneratedPathDao
     abstract fun geofenceTriggerDao(): GeofenceTriggerDao
     abstract fun intentLogDao(): IntentLogDao
+    abstract fun localDataDao(): LocalDataDao
     abstract fun pathDeviationAlertDao(): PathDeviationAlertDao
     abstract fun performanceMetricsDao(): PerformanceMetricsDao
     abstract fun poiDao(): PoiDao
