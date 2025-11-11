@@ -63,7 +63,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var auth: FirebaseAuth
 	private lateinit var sessionManager: SessionManager
 	//private lateinit var tourCoordinator: TourCoordinator
-//	private lateinit var dialogueManager: DialogueManager
+	private lateinit var dialogueManager: DialogueManager
 
 	private lateinit var ragEngine: RAGEngine
 
@@ -110,7 +110,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
 		//tourCoordinator = TourCoordinator(this)
-//		dialogueManager = DialogueManager(this)
+		dialogueManager = DialogueManager(this)
 		ragEngine = RAGEngine()
 
 		// Initialize DB & DAOs
@@ -275,8 +275,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				}
 			}
 
-			// TODO: start the dialogue manager looping here, before anything else is done in order to update preferences
-			// temporarily if needed tempAdditionalPreferences, or permanently with db.userPreferencesDao().update(prefs)
+			// start the dialogue manager looping
+			lifecycleScope.launch {
+				val result = dialogueManager.processMessage(userId, "hi")  // start greeting phase
+				messages.add("Bot: ${result.message}")
+				adapter.notifyItemInserted(messages.size - 1)
+			}
 		}
 	}
 
@@ -324,69 +328,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
-//    private suspend fun handleUserMessage(userMessage: String, userId: Long) {
-//		val prefs = db.userPreferencesDao().getPreferencesByUser(userId) ?: return
-//
-//		// Display typed user message
-//		messages.add("You: $userMessage")
-//		adapter.notifyItemInserted(messages.size - 1)
-//		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-//
-//		// Let DialogueManager detect intent + phase
-//		val dialogueResult = dialogueManager.processUserIntent(userId, userMessage, prefs)
-//
-//		// Display bot reply
-//		messages.add("Bot: ${dialogueResult.reply}")
-//		adapter.notifyItemInserted(messages.size - 1)
-//		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-//
-//		// Handle info/recommend requests using your LLM backend
-//		if (dialogueResult.phase == "IDLE" &&
-//			(userMessage.contains("info", ignoreCase = true) || userMessage.contains(
-//				"recommend",
-//				ignoreCase = true
-//			))
-//		) {
-//			val contextPrompt = buildString {
-//				append("User role: ${userRoleDao.getUserRoleById(userId)}. Interests: ${prefs.interests.joinToString()}. ")
-//				append("User message: $userMessage")
-//			}
-//
-//			chatApi.generate(ChatRequest(contextPrompt)).enqueue(object : Callback<ChatResponse> {
-//				override fun onResponse(
-//					call: Call<ChatResponse>,
-//					response: Response<ChatResponse>
-//				) {
-//					if (response.isSuccessful && response.body() != null) {
-//						val botReply = response.body()!!.response
-//						messages.add("Bot: $botReply")
-//						adapter.notifyItemInserted(messages.size - 1)
-//						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-//					}
-//				}
-//
-//				override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-//					messages.add("Bot: Failed to load info: ${t.localizedMessage}")
-//					adapter.notifyItemInserted(messages.size - 1)
-//				}
-//			})
-//		}
-//
-//		// Dialogue flow has reached tour generation
-//		if (dialogueResult.phase == "GENERATING_TOUR") {
-//			messages.add("Bot: Alright! Generating your personalized tour now...")
-//			adapter.notifyItemInserted(messages.size - 1)
-//
-//			lifecycleScope.launch {
-//				val tourSummary = dialogueManager.handleAction(userId)
-//
-//				messages.add("Bot: $tourSummary")
-//				adapter.notifyItemInserted(messages.size - 1)
-//				homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-//			}
-//		}
-//	}
-
 	// USER MESSAGE HANDLER
 	private suspend fun handleUserMessage(userMessage: String, userId: Long) {
 		// Save UserQuery + IntentLog
@@ -432,8 +373,17 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		adapter.notifyItemInserted(messages.size - 1)
 		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
+		// Let DialogueManager process the input
+		val dmResult = dialogueManager.processMessage(userId, userMessage)
+
+		if (dmResult.message.isNotBlank()) {
+			messages.add("Bot: ${dmResult.message}")
+			adapter.notifyItemInserted(messages.size - 1)
+			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+		}
+
 		// If user wants a tour, call TourCoordinator
-		if (userMessage.contains("tour", ignoreCase = true)) {
+		if (dmResult.intent == IntentType.START_TOUR) {
 			lifecycleScope.launch {
 //				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
 //				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
