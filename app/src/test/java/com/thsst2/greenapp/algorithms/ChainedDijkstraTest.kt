@@ -251,5 +251,176 @@ class ChainedDijkstraTest {
         assertEquals("Second should be B (intermediate)", "poi_b", path[1].poiId)
         assertEquals("Third should be C", "poi_c", path[2].poiId)
     }
+
+    @Test
+    fun testStrictOrderModeWithoutStartPoint() {
+        // Test strict order: should return only the exact POIs requested, no intermediates
+        val dummyPois = listOf(
+            PoiEntity(
+                poiId = "poi_a",
+                generatedPathId = 0L,
+                name = "Point A",
+                description = "",
+                category = listOf("Start"),
+                latitude = 40.748817,
+                longitude = -73.985428
+            ),
+            PoiEntity(
+                poiId = "poi_b",
+                generatedPathId = 0L,
+                name = "Point B",
+                description = "Intermediate",
+                category = listOf("Mid"),
+                latitude = 40.761431,
+                longitude = -73.977621
+            ),
+            PoiEntity(
+                poiId = "poi_c",
+                generatedPathId = 0L,
+                name = "Point C",
+                description = "Destination",
+                category = listOf("End"),
+                latitude = 40.767778,
+                longitude = -73.971834
+            )
+        )
+
+        // Even though A->C must go through B, strict mode ignores this
+        val knowledgeGraph = PoiGraph(
+            nodes = dummyPois.associateBy { it.poiId },
+            adjacencyList = mapOf(
+                "poi_a" to listOf(Edge("e1", "poi_b", 0.5)),
+                "poi_b" to listOf(
+                    Edge("e2", "poi_a", 0.5),
+                    Edge("e3", "poi_c", 0.5)
+                ),
+                "poi_c" to listOf(Edge("e4", "poi_b", 0.5))
+            )
+        )
+
+        val preferences = listOf(dummyPois[0], dummyPois[2]) // A to C
+        
+        val chainedDijkstra = ChainedDijkstra()
+        val path = chainedDijkstra.findPath(knowledgeGraph, preferences, strictOrder = true)
+
+        println("chainedDijkstra strict order = $path")
+
+        // Should have exactly 2 POIs (A and C), no B
+        assertEquals("Path should have exactly 2 POIs", 2, path.size)
+        assertEquals("First should be A", "poi_a", path[0].poiId)
+        assertEquals("Second should be C", "poi_c", path[1].poiId)
+    }
+
+    @Test
+    fun testStrictOrderModeWithStartPoint() {
+        // Test strict order with start point
+        val dummyPois = listOf(
+            PoiEntity(
+                poiId = "poi_start",
+                generatedPathId = 0L,
+                name = "Start Location",
+                description = "User's current location",
+                category = listOf("Start"),
+                latitude = 40.748817,
+                longitude = -73.985428
+            ),
+            PoiEntity(
+                poiId = "poi_museum",
+                generatedPathId = 0L,
+                name = "Museum",
+                description = "Art museum",
+                category = listOf("Art"),
+                latitude = 40.761431,
+                longitude = -73.977621
+            ),
+            PoiEntity(
+                poiId = "poi_park",
+                generatedPathId = 0L,
+                name = "Park",
+                description = "Central park",
+                category = listOf("Nature"),
+                latitude = 40.767778,
+                longitude = -73.971834
+            )
+        )
+
+        val knowledgeGraph = PoiGraph(
+            nodes = dummyPois.associateBy { it.poiId },
+            adjacencyList = mapOf(
+                "poi_start" to listOf(
+                    Edge("e1", "poi_museum", 0.5),
+                    Edge("e2", "poi_park", 1.0)
+                ),
+                "poi_museum" to listOf(
+                    Edge("e3", "poi_start", 0.5),
+                    Edge("e4", "poi_park", 0.7)
+                ),
+                "poi_park" to listOf(
+                    Edge("e5", "poi_start", 1.0),
+                    Edge("e6", "poi_museum", 0.7)
+                )
+            )
+        )
+
+        val preferences = listOf(dummyPois[1], dummyPois[2]) // Museum, Park
+        val startPoint = dummyPois[0] // Start location
+        
+        val chainedDijkstra = ChainedDijkstra()
+        val path = chainedDijkstra.findPath(knowledgeGraph, preferences, startPoint, strictOrder = true)
+
+        println("chainedDijkstra strict order with start point = $path")
+
+        // Should have exactly 3 POIs: Start, Museum, Park
+        assertEquals("Path should have exactly 3 POIs", 3, path.size)
+        assertEquals("First should be start", "poi_start", path[0].poiId)
+        assertEquals("Second should be museum", "poi_museum", path[1].poiId)
+        assertEquals("Third should be park", "poi_park", path[2].poiId)
+    }
+
+    @Test
+    fun testStrictOrderModeWhenStartPointIsFirstPreference() {
+        // Test that start point is not duplicated when it matches first preference
+        val dummyPois = listOf(
+            PoiEntity(
+                poiId = "poi_a",
+                generatedPathId = 0L,
+                name = "Point A",
+                description = "",
+                category = listOf("Start"),
+                latitude = 40.748817,
+                longitude = -73.985428
+            ),
+            PoiEntity(
+                poiId = "poi_b",
+                generatedPathId = 0L,
+                name = "Point B",
+                description = "",
+                category = listOf("Mid"),
+                latitude = 40.761431,
+                longitude = -73.977621
+            )
+        )
+
+        val knowledgeGraph = PoiGraph(
+            nodes = dummyPois.associateBy { it.poiId },
+            adjacencyList = mapOf(
+                "poi_a" to listOf(Edge("e1", "poi_b", 0.5)),
+                "poi_b" to listOf(Edge("e2", "poi_a", 0.5))
+            )
+        )
+
+        val preferences = listOf(dummyPois[0], dummyPois[1]) // A, B
+        val startPoint = dummyPois[0] // Start at A (same as first preference)
+        
+        val chainedDijkstra = ChainedDijkstra()
+        val path = chainedDijkstra.findPath(knowledgeGraph, preferences, startPoint, strictOrder = true)
+
+        println("chainedDijkstra strict order with start=first preference = $path")
+
+        // Should have exactly 2 POIs (no duplicate A)
+        assertEquals("Path should have exactly 2 POIs", 2, path.size)
+        assertEquals("First should be A", "poi_a", path[0].poiId)
+        assertEquals("Second should be B", "poi_b", path[1].poiId)
+    }
 }
 

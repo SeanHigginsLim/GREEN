@@ -13,16 +13,30 @@ class ChainedDijkstra {
      * @param graph Knowledge graph with weighted edges from Firebase
      * @param preferences Ordered list of POIs to visit in sequence
      * @param startPoint Optional starting location (e.g., user's current location or preferred start)
+     * @param strictOrder If true, visits ONLY the specified POIs in order (A -> B -> C).
+     *                    If false, allows intermediate POIs along shortest paths (A -> X -> B -> Y -> C).
+     *                    Default is false (allows intermediate POIs for shortest route).
      */
     fun findPath(
         graph: PoiGraph,
         preferences: List<PoiEntity>,
-        startPoint: PoiEntity? = null
+        startPoint: PoiEntity? = null,
+        strictOrder: Boolean = false
     ): List<PoiEntity> {
         
         if (preferences.isEmpty()) return emptyList()
         
-        // Build complete path starting from startPoint (if provided) or first preference
+        // Strict order mode: only return the specified POIs in exact order
+        if (strictOrder) {
+            val strictPath = mutableListOf<PoiEntity>()
+            if (startPoint != null && startPoint.poiId != preferences[0].poiId) {
+                strictPath.add(startPoint)
+            }
+            strictPath.addAll(preferences)
+            return strictPath
+        }
+        
+        // Non-strict mode: find shortest paths including intermediate POIs
         val completePath = mutableListOf<PoiEntity>()
         
         // If start point provided and different from first preference, route to first preference
