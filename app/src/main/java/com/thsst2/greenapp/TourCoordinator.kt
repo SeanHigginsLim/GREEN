@@ -22,7 +22,7 @@ class TourCoordinator(private val context: Context) {
             // Fetch User + Preferences
             val user = db.userDao().getUserById(userId)
             val prefs = db.userPreferencesDao().getPreferencesByUser(userId)
-
+            val databaseMappedPreferences = RAGEngine.mapPreferencesToTagNames(preferences)
             if (prefs == null) {
                 Log.e("TourCoordinator", "User or preferences not found for userId=$userId")
                 return@withContext null
@@ -31,7 +31,7 @@ class TourCoordinator(private val context: Context) {
             Log.d("TourCoordinator", "Starting tour with prefs: ${prefs.interests}")
 
             // Retrieve relevant POIs using RAGEngine
-            val relevantPOIs = RAGEngine.getRelevantPOINames(preferences)
+            val relevantPOIs = RAGEngine.getRelevantPOINames(databaseMappedPreferences)
             if (relevantPOIs.isEmpty()) {
                 Log.w("TourCoordinator", "No POIs found for preferences: ${prefs.interests}")
                 return@withContext null
@@ -98,7 +98,7 @@ class TourCoordinator(private val context: Context) {
                 db.poiDao().insert(poiEntity)
             }
 
-            val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId }, preferences)
+            val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId }, databaseMappedPreferences)
 
             // Simulate sync to Firebase
 //            FirebaseSync.syncEntity("generated_paths", generatedPathEntity)
@@ -118,7 +118,6 @@ class TourCoordinator(private val context: Context) {
                     status = "Generated"
                 )
                 db.userTourPathHistoryDao().insert(userTourPathHistory)
-
 
                 val localDataEntity = LocalDataEntity(
                     userId = userId,

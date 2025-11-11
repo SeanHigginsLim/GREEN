@@ -33,7 +33,7 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 		"Relaxing", "Science", "Mathematics", "Engineering", "Labs", "Library",
 		"Recreational", "Accessibility", "Parking", "Drinking Fountain", "Historical",
 		"Food", "Warp zones", "Museum", "SDFO", "Merchandise", "Supplies", "Clinic", "Chapel",
-		"Auditorium Entrances", "CCS Building", "CE Building", "COB Building",
+		"Auditorium", "Entrances", "CCS Building", "CE Building", "COB Building",
 		"COS Building", "CLA Building", "COE Building", "School of Economics Building"
 	)
 	private val allRoles = listOf("Student", "Faculty", "Guest")

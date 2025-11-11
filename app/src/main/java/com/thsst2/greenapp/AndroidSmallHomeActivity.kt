@@ -418,6 +418,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Input:
 					User Role: Guest
 					Preferences: History, Architecture
+					POI Sequence: [ ... ]
 					POI Data: [ ... ]
 					Output:
 					{
@@ -480,6 +481,16 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				OUTPUT FORMAT:
 				{
 				  "answer": "string"
+				}
+				
+				EXAMPLE:
+				User Query: "Where is the Henry Sy Sr. Hall located?"
+				POI Data: [
+				  {"name": "Henry Sy Sr. Hall", "description": "Located along Taft Avenue, this 14-storey building serves as DLSU’s modern academic tower."}
+				]
+				Output:
+				{
+				  "answer": "The Henry Sy Sr. Hall is located along Taft Avenue and serves as DLSU’s modern academic tower."
 				}
 			""".trimIndent()
 

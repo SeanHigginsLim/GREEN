@@ -11,6 +11,76 @@ import kotlinx.coroutines.tasks.await
 class RAGEngine {
     private val db = FirebaseDatabase.getInstance().reference
     private val gson = Gson()
+    fun mapPreferencesToTagNames(preferences: List<String>?): List<String> {
+        val mapping = mapOf(
+            // CATEGORY preferences
+            "Functional Info" to listOf("campus_tags", "function_tags"),
+            "Operational Info" to listOf("campus_tags", "function_tags"),
+
+            // BUILDINGS
+            "Henry Sy Sr. Hall" to listOf("B_HSSH"),
+            "Brother Bloemen Hall" to listOf("B_BLOEMEN"),
+            "Saint La Salle Hall" to listOf("B_LASALLE"),
+            "Velasco Hall" to listOf("B_VELASCO"),
+            "Enrique Razon Sports Center" to listOf("B_RAZON"),
+            "Brother Andrew Gonzalez Hall" to listOf("B_ANDREW"),
+            "Gokongwei Hall" to listOf("B_GOKO"),
+//            "Saint Mutien Marie Hall" to listOf(""),
+            "Science and Technology Research Center" to listOf("B_STRC"),
+//            "Marian Quadrangle" to listOf(""),
+//            "Brother John Hall" to listOf(""),
+            "Saint Joseph Hall" to listOf("B_SJH"),
+            "Don Enrique Yuchengco Hall" to listOf("B_YUCHENGCO"),
+            "Brother Connon Hall" to listOf("B_CONNON"),
+            "Faculty Center" to listOf("B_FC"),
+            "Brother William Hall" to listOf("B_WH"),
+            "Saint Miguel Hall" to listOf("B_SMIG"),
+
+            // FUNCTIONS AND SERVICES
+//            "Amphitheater" to listOf(""),
+//            "Open spaces" to listOf(""),
+//            "Relaxing" to listOf(""),
+            "science" to listOf("campus_science"),
+//            "Mathematics" to listOf(""),
+            "Engineering" to listOf("campus_engineering"),
+            "Labs" to listOf("campus_labs"),
+//            "Library" to listOf(""),
+//            "Recreational" to listOf(""),
+            "Accessibility" to listOf("acc_elevator", "acc_ramp"),
+//            "Parking" to listOf(""),
+//            "Drinking Fountain" to listOf(""),
+            "Historical" to listOf("type_historic"),
+            "Food" to listOf("Food and Dining"),
+//            "Warp Zones" to listOf(""),
+//            "Museum" to listOf(""),
+//            "Merchandise" to listOf(""),
+//            "Supplies" to listOf(""),
+//            "SDFO" to listOf(""),
+            "Clinic" to listOf("health_services", "ERSC Clinic"),
+            "Chapel" to listOf("B_LASALLE", "2F"),
+            "Auditorium" to listOf("campus_auditorium"),
+//            "Entrances" to listOf(""),
+            "CCS Building" to listOf("B_GOKO"),
+            "CE Building" to listOf("B_VELASCO"),
+            "COB Building" to listOf("B_YUCHENGCO"),
+            "COS Building" to listOf("B_WH"),
+            "CLA Building" to listOf("B_FC"),
+//            "COE Building" to listOf(""),
+//            "School of Economics Building" to listOf(""),
+        )
+
+        val result = mutableListOf<String>()
+
+        preferences?.forEach { pref ->
+            val key = pref.lowercase().trim()
+            val tags = mapping[key]
+            if (tags != null) {
+                result.addAll(tags)  // add each tag name
+            }
+        }
+
+        return result
+    }
 
     /**
      * Fetches POIs from the Realtime Database that match the user’s preferences.
