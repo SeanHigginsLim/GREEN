@@ -2,62 +2,53 @@ package com.thsst2.greenapp.algorithms
 
 import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.graph.PoiGraph
-import com.thsst2.greenapp.graph.FilteredAdjacencyList
 import java.util.*
 
 class ChainedDijkstra {
     /**
      * Find path through ordered POIs in the exact sequence provided.
      * Returns the complete path including all intermediate POIs along the shortest routes.
-     * Computes shortest paths between consecutive POIs using Dijkstra's algorithm.
+     * Uses knowledge graph edges from Firebase with pre-calculated weights.
      * 
+     * @param graph Knowledge graph with weighted edges from Firebase
+     * @param preferences Ordered list of POIs to visit in sequence
      * @param startPoint Optional starting location (e.g., user's current location or preferred start)
      */
     fun findPath(
         graph: PoiGraph,
         preferences: List<PoiEntity>,
-        dislikedPoiIds: Set<Long> = emptySet(),
-        disinterests: Collection<String> = emptyList(),
         startPoint: PoiEntity? = null
     ): List<PoiEntity> {
         
-        // Apply filters to get allowed POIs
-        val filteredGraph = FilteredAdjacencyList(graph)
-        filteredGraph.applyFilters(dislikedPoiIds, disinterests)
-        val allowedPoiIds = filteredGraph.getAllowedPois().map { it.poiId }.toSet()
-        
-        // Filter preferences to only allowed ones
-        val orderedPrefs = preferences.filter { it.poiId in allowedPoiIds }
-        
-        if (orderedPrefs.isEmpty()) return emptyList()
+        if (preferences.isEmpty()) return emptyList()
         
         // Build complete path starting from startPoint (if provided) or first preference
         val completePath = mutableListOf<PoiEntity>()
         
         // If start point provided and different from first preference, route to first preference
-        if (startPoint != null && (orderedPrefs.isEmpty() || startPoint.poiId != orderedPrefs[0].poiId)) {
-            val segmentToFirst = findShortestPath(startPoint.poiId, orderedPrefs[0].poiId, filteredGraph, graph)
+        if (startPoint != null && (preferences.isEmpty() || startPoint.poiId != preferences[0].poiId)) {
+            val segmentToFirst = findShortestPath(startPoint.poiId, preferences[0].poiId, graph)
             if (segmentToFirst.isNotEmpty()) {
                 completePath.addAll(segmentToFirst)
             } else {
                 // Can't reach first preference from start point
                 completePath.add(startPoint)
-                completePath.add(orderedPrefs[0])
+                completePath.add(preferences[0])
             }
         } else {
             // Start directly from first preference
-            completePath.add(orderedPrefs[0])
+            completePath.add(preferences[0])
         }
         
-        if (orderedPrefs.size == 1) return completePath
+        if (preferences.size == 1) return completePath
         
         // Chain shortest paths between consecutive preferences
-        for (i in 0 until orderedPrefs.size - 1) {
-            val current = orderedPrefs[i]
-            val next = orderedPrefs[i + 1]
+        for (i in 0 until preferences.size - 1) {
+            val current = preferences[i]
+            val next = preferences[i + 1]
             
             // Find shortest path between consecutive POIs
-            val segment = findShortestPath(current.poiId, next.poiId, filteredGraph, graph)
+            val segment = findShortestPath(current.poiId, next.poiId, graph)
             
             if (segment.isNotEmpty()) {
                 // Add segment excluding first POI (already in path)
@@ -76,19 +67,18 @@ class ChainedDijkstra {
      * Returns the complete path including intermediate POIs
      */
     private fun findShortestPath(
-        fromId: Long, 
-        toId: Long, 
-        filteredGraph: FilteredAdjacencyList,
+        fromId: String, 
+        toId: String, 
         graph: PoiGraph
     ): List<PoiEntity> {
         if (fromId == toId) return listOf(graph.getNode(fromId) ?: return emptyList())
         
-        // Dijkstra's algorithm
+        // Dijkstra's algorithm using knowledge graph edges
         val distances = mutableMapOf(fromId to 0.0)
-        val previous = mutableMapOf<Long, Long>()
-        val queue = PriorityQueue<Pair<Double, Long>>(compareBy { it.first })
+        val previous = mutableMapOf<String, String>()
+        val queue = PriorityQueue<Pair<Double, String>>(compareBy { it.first })
         queue.add(0.0 to fromId)
-        val visited = mutableSetOf<Long>()
+        val visited = mutableSetOf<String>()
         
         while (queue.isNotEmpty()) {
             val (dist, nodeId) = queue.poll() ?: continue
@@ -101,8 +91,8 @@ class ChainedDijkstra {
                 return reconstructPath(fromId, toId, previous, graph)
             }
             
-            // Explore neighbors
-            filteredGraph.getNeighbors(nodeId).forEach { edge ->
+            // Explore neighbors from knowledge graph
+            graph.getEdges(nodeId).forEach { edge ->
                 if (edge.to !in visited) {
                     val newDist = dist + edge.weight
                     if (newDist < (distances[edge.to] ?: Double.MAX_VALUE)) {
@@ -122,12 +112,12 @@ class ChainedDijkstra {
      * Reconstruct path from Dijkstra's previous map
      */
     private fun reconstructPath(
-        fromId: Long,
-        toId: Long,
-        previous: Map<Long, Long>,
+        fromId: String,
+        toId: String,
+        previous: Map<String, String>,
         graph: PoiGraph
     ): List<PoiEntity> {
-        val path = mutableListOf<Long>()
+        val path = mutableListOf<String>()
         var current = toId
         
         while (current != fromId) {

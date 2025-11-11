@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.thsst2.greenapp.algorithms.TourPathPlanner
 import com.thsst2.greenapp.data.*
+import com.thsst2.greenapp.graph.PoiGraph
+import com.thsst2.greenapp.graph.Edge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.String
@@ -50,16 +52,20 @@ class TourCoordinator(private val context: Context) {
             //Determine ordered flag
             val ordered = prefs.tourPace?.contains("ordered", ignoreCase = true) ?: false
 
-            // TODO: Use relevant poi names, plus knowledge graph weights and edges to create tour.
-            // TODO: Remove dislikedPoiIds and disinterests and preferences, not needed in path generation.
+            // Convert Firebase knowledge graph format to PoiGraph
+            val knowledgeGraphPoi = PoiGraph(
+                nodes = relevantPOIs.associateBy { it.poiId },
+                adjacencyList = knowledgeGraph.mapValues { (_, edges) ->
+                    edges.map { Edge(edgeId = it.edgeId, to = it.to, weight = it.weight) }
+                }
+            )
+
             // Generate path using the algos
             val path = tourPathPlanner.planTour(
-                allPois = relevantPOIs,
-                preferences = relevantPOIs.take(3), // top few as “preferred”
-                ordered = ordered,
-                dislikedPoiIds = dislikedIds,
-                disinterests = disinterests,
-                knowledgeGraph = knowledgeGraph
+                knowledgeGraph = knowledgeGraphPoi,
+                startPoint = null,
+                preferences = relevantPOIs.take(3), // top few as "preferred"
+                ordered = ordered
             )
 
             if (path.isEmpty()) {

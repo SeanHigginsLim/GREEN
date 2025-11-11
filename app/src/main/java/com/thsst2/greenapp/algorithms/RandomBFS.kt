@@ -2,44 +2,38 @@ package com.thsst2.greenapp.algorithms
 
 import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.graph.PoiGraph
-import com.thsst2.greenapp.graph.FilteredAdjacencyList
 import kotlin.random.Random
 
 class RandomBFS {
 
     /**
-     * Find a random BFS-like ordering over POIs using graph structure while excluding POIs whose
-     * categories match any of the user's disinterests (case-insensitive).
+     * Find a random BFS-like ordering over POIs using knowledge graph structure.
+     * Explores the graph randomly for variety while respecting connectivity.
      * 
+     * @param graph Knowledge graph with weighted edges from Firebase
      * @param startPoint Optional starting location (e.g., user's current location or preferred start)
      */
     fun findPath(
         graph: PoiGraph,
-        dislikedPoiIds: Set<Long> = emptySet(),
-        disinterests: Collection<String> = emptyList(),
         startPoint: PoiEntity? = null
     ): List<PoiEntity> {
         
-        // Apply filters to the graph
-        val filteredGraph = FilteredAdjacencyList(graph)
-        filteredGraph.applyFilters(dislikedPoiIds, disinterests)
-        
-        val allowedPois = filteredGraph.getAllowedPois()
-        if (allowedPois.isEmpty()) return emptyList()
+        val allPois = graph.getAllNodes().toList()
+        if (allPois.isEmpty()) return emptyList()
 
         val visited = mutableSetOf<PoiEntity>()
         val path = mutableListOf<PoiEntity>()
         val queue = ArrayDeque<PoiEntity>()
 
-        // Pick start: user-provided startPoint or random from allowed POIs
-        val start: PoiEntity = if (startPoint != null && allowedPois.contains(startPoint)) {
+        // Pick start: user-provided startPoint or random from all POIs
+        val start: PoiEntity = if (startPoint != null && allPois.contains(startPoint)) {
             startPoint
         } else if (startPoint != null) {
-            // Start point provided but not in allowed list - use it anyway as starting position
+            // Start point provided but not in graph - use it anyway as starting position
             startPoint
         } else {
             // No start point - pick random
-            allowedPois.shuffled(Random.Default).first()
+            allPois.shuffled(Random.Default).first()
         }
         
         queue.add(start)
@@ -49,8 +43,8 @@ class RandomBFS {
             val current = queue.removeFirst()
             path.add(current)
 
-            // Get actual graph neighbors, then randomize the order
-            val graphNeighbors = filteredGraph.getNeighbors(current.poiId)
+            // Get neighbors from knowledge graph, then randomize the order for variety
+            val graphNeighbors = graph.getEdges(current.poiId)
                 .mapNotNull { edge -> graph.getNode(edge.to) }
                 .filter { it !in visited }
                 .shuffled(Random.Default)
