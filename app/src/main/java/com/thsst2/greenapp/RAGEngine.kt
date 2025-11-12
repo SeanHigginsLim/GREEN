@@ -286,6 +286,15 @@
                     val lat = geo.child("lat").getValue(Double::class.java) ?: 0.0
                     val lng = geo.child("lng").getValue(Double::class.java) ?: 0.0
 
+                    // Extract radius for geofence
+                    val rad = building.child("radius").getValue(Double::class.java) ?: 0.0
+
+                    // Extract floors
+                    val floors = building.child("floors").getValue(Int::class.java) ?: 0
+
+                    // Create POI entity and add to list
+
+
                     val poi = PoiEntity(
                         poiId = poiId,
                         generatedPathId = null,
@@ -293,7 +302,9 @@
                         description = description,
                         category = category,
                         latitude = lat,
-                        longitude = lng
+                        longitude = lng,
+                        radius = rad,
+                        floors = floors
                     )
                     pois.add(poi)
 

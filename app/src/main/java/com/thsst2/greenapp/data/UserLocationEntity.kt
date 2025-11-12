@@ -29,5 +29,6 @@ data class UserLocationEntity(
     val latitude: Double,
     val longitude: Double,
     val timestamp: Long,
-    val accuracyRadius: Float
+    val accuracyRadius: Float,
+    val floor: Int? = null
 )

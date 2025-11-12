@@ -25,5 +25,7 @@ data class PoiEntity(
 //    Not sure if will use
 //    val referenceId: Long = 0,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val radius: Double = 20.0,
+    val floors: Int? = null
 )
