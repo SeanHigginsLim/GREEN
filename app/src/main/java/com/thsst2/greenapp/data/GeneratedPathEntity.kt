@@ -19,7 +19,6 @@ data class GeneratedPathEntity(
     @PrimaryKey(autoGenerate = true)
     val generatedPathId: Long = 0,
     val userId: Long,
-    val poiId: String,
     val pathType: String,
     val estimatedDuration: String,
     val routeAlgorithm: String

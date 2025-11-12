@@ -20,6 +20,7 @@ class TourCoordinator(private val context: Context) {
     private val tempPreferences = mutableListOf<String>()
 
     suspend fun startTourForUser(userId: Long, preferences: List<String>?): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
+        Log.d("TourCoordinator", "In Tour Coordinator")
         try {
             // Fetch User + Preferences
             val user = db.userDao().getUserById(userId)
@@ -31,6 +32,7 @@ class TourCoordinator(private val context: Context) {
             }
 
             Log.d("TourCoordinator", "Starting tour with prefs: ${prefs.interests}")
+            Log.d("TourCoordinator", "Mapped Preferences ${databaseMappedPreferences}")
 
             // Retrieve relevant POIs using RAGEngine
             val relevantPOIs = RAGEngine.getRelevantPOINames(databaseMappedPreferences)
@@ -67,6 +69,7 @@ class TourCoordinator(private val context: Context) {
                 preferences = relevantPOIs.take(3), // top few as "preferred"
                 ordered = ordered
             )
+            Log.d("TourCoordinator", "Path: $path")
 
             if (path.isEmpty()) {
                 Log.w("TourCoordinator", "Path generation returned empty.")
@@ -77,24 +80,27 @@ class TourCoordinator(private val context: Context) {
             var poiEntity: PoiEntity? = null
             var pathId: Long = 0
 
+            Log.d("TourCoordinator", "Saving Generated Path")
+
+            generatedPathEntity = GeneratedPathEntity(
+                userId = userId,
+                pathType = "Generated",
+                estimatedDuration = "${path.size * 10} min",
+                routeAlgorithm = when {
+                    ordered -> "ChainedAStar"
+                    prefs.interests.isNotEmpty() -> "MultiLabelAStar"
+                    else -> "RandomBFS"
+                }
+            )
+            pathId = db.generatedPathDao().insert(generatedPathEntity)
+
             // Save POIs to Room
             for (poi in relevantPOIs) {
-                generatedPathEntity = GeneratedPathEntity(
-                    userId = userId,
-                    poiId = poi.poiId,
-                    pathType = "Generated",
-                    estimatedDuration = "${path.size * 10} min",
-                    routeAlgorithm = when {
-                        ordered -> "ChainedAStar"
-                        prefs.interests.isNotEmpty() -> "MultiLabelAStar"
-                        else -> "RandomBFS"
-                    }
-                )
-                pathId = db.generatedPathDao().insert(generatedPathEntity)
+                Log.d("TourCoordinator", "Saving POI")
 
                 poiEntity = PoiEntity(
                     poiId = poi.poiId,
-                    generatedPathId = generatedPathEntity.generatedPathId,
+                    generatedPathId = pathId,
                     name = poi.name,
                     description = poi.description,
                     category = poi.category,
@@ -105,7 +111,7 @@ class TourCoordinator(private val context: Context) {
             }
 
             val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId }, databaseMappedPreferences)
-
+            Log.d("TourCoordinator", "POI Data: $poiData")
             // Simulate sync to Firebase
 //            FirebaseSync.syncEntity("generated_paths", generatedPathEntity)
 //            for (poi in relevantPOIs) {
@@ -113,18 +119,13 @@ class TourCoordinator(private val context: Context) {
 //            }
 
             var userTourPathHistory: UserTourPathHistoryEntity? = null
+            var pathSequence = emptyList<String>()
+
             //Save each POI in path order
             path.forEachIndexed { index, poi ->
-                val pathSequence = path.map { it.name }  //simple sequence of POI names
+                pathSequence = path.map { it.name }  //simple sequence of POI names
 
-                userTourPathHistory = UserTourPathHistoryEntity(
-                    sessionId = System.currentTimeMillis(),
-                    pathSequence = pathSequence,
-                    algorithmUsed = db.generatedPathDao().getGeneratedPathsByUser(userId).firstOrNull()?.routeAlgorithm ?: "Unknown",
-                    status = "Generated"
-                )
-                db.userTourPathHistoryDao().insert(userTourPathHistory)
-
+                Log.d("TourCoordinator", "Saving Local Data Entity")
                 val localDataEntity = LocalDataEntity(
                     userId = userId,
                     tourName = null,
@@ -133,6 +134,15 @@ class TourCoordinator(private val context: Context) {
                 )
                 db.localDataDao().insert(localDataEntity)
             }
+
+            Log.d("TourCoordinator", "Saving User Tour Path History")
+            userTourPathHistory = UserTourPathHistoryEntity(
+                sessionId = db.sessionDao().getSessionsByUser(userId).firstOrNull()?.sessionId ?: 0,
+                pathSequence = pathSequence,
+                algorithmUsed = db.generatedPathDao().getGeneratedPathsByUser(userId).firstOrNull()?.routeAlgorithm ?: "Unknown",
+                status = "Generated"
+            )
+            db.userTourPathHistoryDao().insert(userTourPathHistory)
 
             Log.d("TourCoordinator", "Tour successfully generated with ${path.size} stops.")
             return@withContext userTourPathHistory

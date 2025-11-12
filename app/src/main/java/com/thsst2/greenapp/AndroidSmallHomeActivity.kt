@@ -62,7 +62,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var chatApi: ChatApi
 	private lateinit var auth: FirebaseAuth
 	private lateinit var sessionManager: SessionManager
-	//private lateinit var tourCoordinator: TourCoordinator
+	private lateinit var tourCoordinator: TourCoordinator
 	private lateinit var dialogueManager: DialogueManager
 
 	private lateinit var ragEngine: RAGEngine
@@ -109,7 +109,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		FirebaseApp.initializeApp(this)
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
-		//tourCoordinator = TourCoordinator(this)
+		tourCoordinator = TourCoordinator(this)
 		dialogueManager = DialogueManager(this)
 		ragEngine = RAGEngine()
 
@@ -232,35 +232,21 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				try {
 					googleMap.isMyLocationEnabled = true // Enable user Location (blue dot)
 				} catch (e: SecurityException) {
-					Log.w("HomeActivity", "Cannot enableu ser location: ${e.localizedMessage}")
+					Log.w("HomeActivity", "Cannot enable user location: ${e.localizedMessage}")
 				}
 			}
 
 			lifecycleScope.launch(Dispatchers.IO) {
-				val db = MyAppDatabase.getInstance(this@AndroidSmallHomeActivity)
-
 				withContext(Dispatchers.Main) {
 
 					// Fetch all POIs from Firebase via RAG
 					val fetchedPois = try {
-						ragEngine.getRelevantPOINames(null) // null = fetch all POIs
+						ragEngine.getBuildings() // null = fetch all POIs
 					} catch (e: Exception) {
 						Log.e("HomeActivity", "Failed to fetch POIs: ${e.localizedMessage}")
 						emptyList()
 					}
-
-					// Save/update POIs in Room
-					withContext(Dispatchers.IO) {
-						try {
-							db.withTransaction {
-								db.poiDao().deleteAll() // clear old data
-								fetchedPois.forEach { db.poiDao().insert(it) }
-							}
-							Log.d("HomeActivity", "Saved ${fetchedPois.size} POIs to Room DB.")
-						} catch (e: Exception) {
-							Log.e("HomeActivity", "Error saving POIs: ${e.localizedMessage}")
-						}
-					}
+					Log.d("HomeActivity", "Retrieved ${fetchedPois.size} POIs to Geofence.")
 
 					// Display POIs on map
 					drawMarkers(googleMap, fetchedPois)
@@ -385,8 +371,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// If user wants a tour, call TourCoordinator
 		if (dmResult.intent == IntentType.START_TOUR) {
 			lifecycleScope.launch {
-//				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
-//				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
+				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
+				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
 				val poiData = db.localDataDao().getLocalData(userId)
 				val startingPoint = null
 				val aiPrompt = """
@@ -398,7 +384,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Preferences: $allPreferences
 					Starting Location: $startingPoint
 		
-					POI Sequence: 
+					POI Sequence: $poiJson
 					POI Data: $poiData
 		
 					INSTRUCTIONS:
