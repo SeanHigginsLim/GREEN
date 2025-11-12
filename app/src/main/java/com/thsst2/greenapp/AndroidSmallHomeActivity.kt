@@ -5,6 +5,9 @@ import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.inputmethod.EditorInfo
@@ -53,7 +56,14 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import androidx.room.withTransaction
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CircleOptions
 import com.thsst2.greenapp.data.PoiEntity
+import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.PatternItem
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -372,6 +382,20 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		if (dmResult.intent == IntentType.START_TOUR) {
 			lifecycleScope.launch {
 				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
+
+				// draw path
+				if (userTourPathHistory?.pathSequence.isNullOrEmpty()) {
+					Log.w("HomeActivity", "TourCoordinator returned empty path.")
+					return@launch
+				}
+
+				val mapFragment = supportFragmentManager.findFragmentById(R.id.home_map_fragment) as? SupportMapFragment
+				mapFragment?.getMapAsync { googleMap ->
+					lifecycleScope.launch {
+						drawTourPath(googleMap, userTourPathHistory!!.pathSequence)
+					}
+				}
+
 				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
 				val poiData = db.localDataDao().getLocalData(userId)
 				val startingPoint = null
@@ -690,10 +714,27 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		pois.forEach { poi ->
 			val position = LatLng(poi.latitude, poi.longitude)
-			googleMap.addMarker( // red
-				MarkerOptions()
-					.position(position)
-					.title(poi.name)
+			ContextCompat.getDrawable(this@AndroidSmallHomeActivity, R.drawable.ic_marker)?.let { d ->
+				val bmp = Bitmap.createBitmap(50, 50, Bitmap.Config.ARGB_8888)
+				val c = Canvas(bmp)
+				d.setBounds(0, 0, c.width, c.height)
+				d.draw(c)
+				googleMap.addMarker(
+					MarkerOptions()
+						.position(position)
+						.title(poi.name)
+						.icon(BitmapDescriptorFactory.fromBitmap(bmp))
+						.anchor(0.5f, 1f)
+				)
+			}
+			// Draw geofence circle
+			googleMap.addCircle(
+				CircleOptions()
+					.center(position)
+					.radius(GEOFENCE_RADIUS.toDouble())  // meters
+					.strokeColor(Color.argb(100, 0, 150, 136))
+					.fillColor(Color.argb(40, 0, 150, 136))
+					.strokeWidth(2f)
 			)
 			boundsBuilder.include(position)
 		}
@@ -705,6 +746,37 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		Log.d("HomeActivity", "Plotted ${pois.size} POIs on map.")
 	}
+	private suspend fun drawTourPath(googleMap: GoogleMap, pathSequence: List<String>) = withContext(Dispatchers.Main) {
+		if (pathSequence.isEmpty()) {
+			Log.w("HomeActivity", "No tour path to draw.")
+			return@withContext
+		}
+
+		val pois = db.poiDao().getAll()
+		val orderedPois = pathSequence.mapNotNull { poiName ->
+			pois.find { it.name == poiName }
+		}
+
+		if (orderedPois.size < 2) {
+			Log.w("HomeActivity", "Not enough POIs to draw a path.")
+			return@withContext
+		}
+
+		val polylineOptions = PolylineOptions()
+			.color(Color.BLUE)
+			.width(6f)
+			.geodesic(true)
+			.pattern(listOf(Dot(), Gap(10f), Dash(20f)))
+
+		orderedPois.forEach { poi ->
+			polylineOptions.add(LatLng(poi.latitude, poi.longitude))
+		}
+
+		googleMap.addPolyline(polylineOptions)
+		Log.d("HomeActivity", "Tour path drawn with ${orderedPois.size} points.")
+	}
+
+
 
 
 	override fun onDestroy() {

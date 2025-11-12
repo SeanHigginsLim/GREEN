@@ -295,6 +295,8 @@
                         latitude = lat,
                         longitude = lng
                     )
+                    pois.add(poi)
+
                 } catch (e: Exception) {
                     Log.e("RAGEngine", "Error parsing building: ${e.message}")
                 }
