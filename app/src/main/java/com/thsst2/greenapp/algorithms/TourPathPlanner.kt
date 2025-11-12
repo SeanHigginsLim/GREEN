@@ -16,12 +16,15 @@ class TourPathPlanner {
      * @param startPoint Optional starting location (e.g., user's current GPS location or preferred start POI)
      * @param preferences Optional list of POIs user wants to visit (already filtered by knowledge graph)
      * @param ordered Whether preferences must be visited in the exact order provided
+     * @param strictOrder If true (and ordered=true), visits ONLY specified POIs with no intermediates.
+     *                    If false, allows intermediate POIs along shortest paths. Default is false.
      */
     fun planTour(
         knowledgeGraph: PoiGraph,
         startPoint: PoiEntity? = null,
         preferences: List<PoiEntity>? = null,
-        ordered: Boolean = false
+        ordered: Boolean = false,
+        strictOrder: Boolean = false
     ): List<PoiEntity> {
         
         return when {
@@ -37,7 +40,7 @@ class TourPathPlanner {
 
             // Ordered preferences -> chained Dijkstra
             else -> {
-                ChainedDijkstra().findPath(knowledgeGraph, preferences, startPoint)
+                ChainedDijkstra().findPath(knowledgeGraph, preferences, startPoint, strictOrder)
             }
         }
     }
