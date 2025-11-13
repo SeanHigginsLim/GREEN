@@ -426,12 +426,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val mapFragment = supportFragmentManager.findFragmentById(R.id.home_map_fragment) as? SupportMapFragment
 				mapFragment?.getMapAsync { googleMap ->
 					lifecycleScope.launch {
-						drawTourPath(googleMap, userTourPathHistory!!.pathSequence)
+						drawTourPath(googleMap, userTourPathHistory.pathSequence)
 						homeBinding.mapLoadingIndicator.visibility = View.GONE
 					}
 				}
 
-				val poiJson = Gson().toJson(userTourPathHistory?.pathSequence)
+				val poiJson = Gson().toJson(userTourPathHistory.pathSequence)
 				val poiData = db.localDataDao().getLocalData(userId)
 				val startingPoint = null
 				val aiPrompt = """
@@ -512,6 +512,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	
 				TASK: Answer the user query as accurate as you can
 				
+				User Query: $userMessage
 				User Role: $userRoleName
 				Preferences: $allPreferences
 				Starting Location: $startingPoint
