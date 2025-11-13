@@ -117,12 +117,80 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private val buildingReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
 			val name = intent?.getStringExtra("buildingName") ?: return
+			val poiId = intent.getStringExtra("poiId") ?: return
+
+			messages.add("Bot: You entered $name")
+			val building = List<String>(1) { poiId }
+
 			lifecycleScope.launch {
 				onBuildingEntered(name)
+				lifecycleScope.launch {
+					val buildingData = ragEngine.getData(building, building)
+					val poiData = db.localDataDao().getLocalData(userId)
+					val aiPrompt = """
+					You are an AI tour guide for De La Salle University.
+
+					TASK:
+					When a user enters a geofenced building, display a short and informative introduction based only on the building’s data.
+					
+					INPUT:
+					Building Data: $buildingData
+					Poi Data: $poiData
+					
+					INSTRUCTIONS:
+					1. Read and understand the building data.
+					2. Use poi data to get more relevant building information. Only use the data that is related to the current building ${name} or ${poiId}.
+					3. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
+					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
+					5. Do not invent information that isn’t provided.
+					6. Output strictly in the following JSON format:
+					
+					OUTPUT FORMAT:
+					{
+					  "building_name": "string",
+					  "building_description": "string"
+					}
+					
+					EXAMPLE OUTPUT:
+					{
+					  "building_name": "Henry Sy Sr. Hall",
+					  "building_description": "Welcome to Henry Sy Sr. Hall — a 14-story academic complex that houses modern classrooms, research facilities, and student spaces overlooking the DLSU campus."
+					}
+
+				""".trimIndent()
+
+					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+							if (response.isSuccessful) {
+								val botReply = response.body()?.response ?: "Tour overview ready."
+								messages.add("Bot: $botReply")
+								adapter.notifyItemInserted(messages.size - 1)
+								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+
+								lifecycleScope.launch {
+									dialogueHistoryDao.insert(
+										DialogueHistoryEntity(
+											userId = userId,
+											userText = "geofence trigger",
+											systemResponse = botReply,
+											contextSnapshot = aiPrompt,
+											turnNumber = messages.size
+										)
+									)
+								}
+							} else {
+								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+							}
+						}
+
+						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+							Log.e("ChatApi", "Error: ${t.message}", t)
+						}
+					})
+				}
 			}
 		}
 	}
-
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
