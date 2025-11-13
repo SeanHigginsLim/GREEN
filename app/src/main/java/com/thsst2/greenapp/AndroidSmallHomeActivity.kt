@@ -409,8 +409,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// If user wants a tour, call TourCoordinator
 		if (dmResult.intent == IntentType.START_TOUR) {
 			lifecycleScope.launch {
-				homeBinding.mapLoadingIndicator.visibility = View.VISIBLE // show loading
-				delay(100)
+//				homeBinding.mapLoadingIndicator.visibility = View.VISIBLE // show loading
+//				delay(100)
 
 				val userTourPathHistory = withContext(Dispatchers.IO) {
 					tourCoordinator.startTourForUser(userId, allPreferences)
@@ -428,10 +428,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					lifecycleScope.launch {
 						drawTourPath(googleMap, userTourPathHistory!!.pathSequence)
 						homeBinding.mapLoadingIndicator.visibility = View.GONE
-
-						Handler(Looper.getMainLooper()).postDelayed({
-							enableFollowUserMode(googleMap)
-						}, 5000)
 					}
 				}
 
@@ -823,24 +819,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		MapState.pathLatLngs = orderedPois.map { LatLng(it.latitude, it.longitude) }
 
 		Log.d("HomeActivity", "Tour path drawn with ${orderedPois.size} points.")
-	}
-
-	@SuppressLint("MissingPermission")
-	private fun enableFollowUserMode(map: GoogleMap) {
-		fusedLocationClient.requestLocationUpdates(
-			LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build(),
-			object : LocationCallback() {
-				override fun onLocationResult(result: LocationResult) {
-					val loc = result.lastLocation ?: return
-					val userLatLng = LatLng(loc.latitude, loc.longitude)
-					MapState.currentUserLatLng = userLatLng
-
-					// pan camera to follow the user
-					map.animateCamera(CameraUpdateFactory.newLatLng(userLatLng))
-				}
-			},
-			mainLooper
-		)
 	}
 
 	private fun showFloorSelectionDialog(poi: PoiEntity) {
