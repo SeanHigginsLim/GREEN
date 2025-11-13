@@ -12,6 +12,7 @@ import com.google.android.gms.location.GeofencingEvent
 import com.google.firebase.auth.FirebaseAuth
 import com.thsst2.greenapp.data.GeofenceTriggerEntity
 import com.thsst2.greenapp.data.PathDeviationAlertEntity
+import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.data.UserInteractionTimeEntity
 import com.thsst2.greenapp.data.UserLocationEntity
 import com.thsst2.greenapp.data.UserVisitedLocationEntity
@@ -23,6 +24,11 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 
 class GeofenceReceiver : BroadcastReceiver() {
+    companion object {
+        @Volatile
+        var currentPoiInside: PoiEntity? = null
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("GeofenceReceiver", "onReceive triggered with intent: ${intent.action}")
 
@@ -104,7 +110,7 @@ class GeofenceReceiver : BroadcastReceiver() {
                             latitude = matchedPoi.latitude,
                             longitude = matchedPoi.longitude,
                             timestamp = now,
-                            accuracyRadius = 5f
+                            accuracyRadius = matchedPoi.radius.toFloat()
                         )
                     )
 
@@ -112,8 +118,14 @@ class GeofenceReceiver : BroadcastReceiver() {
                         Toast.makeText(context, "Entered ${matchedPoi.name}", Toast.LENGTH_SHORT).show()
                     }
 
-                    // TODO: display POI info based on floor/preferences
+                    currentPoiInside = matchedPoi
+                    MapState.currentPoiInside = matchedPoi
 
+                    // Notify HomeActivity
+                    val infoIntent = Intent("BUILDING_ENTERED")
+                    infoIntent.putExtra("buildingName", matchedPoi.name)
+                    infoIntent.putExtra("poiId", matchedPoi.poiId)
+                    context.sendBroadcast(infoIntent)
 
                 }
 
@@ -154,6 +166,14 @@ class GeofenceReceiver : BroadcastReceiver() {
                                 noticeSent = false
                             )
                         )
+
+                        if (currentPoiInside?.poiId == matchedPoi.poiId) {
+                            currentPoiInside = null
+                        }
+                        if (MapState.currentPoiInside?.poiId == matchedPoi.poiId) {
+                            MapState.currentPoiInside = null
+                        }
+
 
                         launch(Dispatchers.Main) {
                             val readableDuration = String.format(Locale.getDefault(), "%.1f min", duration / 60000.0)

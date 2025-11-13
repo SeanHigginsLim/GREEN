@@ -163,7 +163,19 @@
 								android:layout_gravity="center"
 								android:elevation="4dp"
 								android:clipToOutline="true"
-								android:background="@drawable/cr10bffffff" />
+								android:background="@drawable/cr10bffffff">
+
+								<ProgressBar
+									android:id="@+id/mapLoadingIndicator"
+									style="?android:attr/progressBarStyleLarge"
+									android:layout_width="60dp"
+									android:layout_height="60dp"
+									android:layout_gravity="center"
+									android:elevation="10dp"
+									android:translationZ="10dp"
+									android:visibility="gone" />
+
+							</FrameLayout>
 						</RelativeLayout>
 					</LinearLayout>
 				</RelativeLayout>

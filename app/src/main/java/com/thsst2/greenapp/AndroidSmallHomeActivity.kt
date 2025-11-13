@@ -2,20 +2,28 @@ package com.thsst2.greenapp
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -54,16 +62,15 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import androidx.room.withTransaction
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CircleOptions
 import com.thsst2.greenapp.data.PoiEntity
 import com.google.android.gms.maps.model.PolylineOptions
-import com.google.android.gms.maps.model.PatternItem
 import com.google.android.gms.maps.model.Dot
 import com.google.android.gms.maps.model.Dash
 import com.google.android.gms.maps.model.Gap
+import com.thsst2.greenapp.data.UserLocationEntity
+import kotlinx.coroutines.delay
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -105,9 +112,16 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var fusedLocationClient: FusedLocationProviderClient
 	private lateinit var locationCallback: LocationCallback
 	private lateinit var geofencingClient: GeofencingClient
-
-	private val GEOFENCE_RADIUS = 50f // modify later
 	private val LOCATION_PERMISSION_CODE = 2001
+
+	private val buildingReceiver = object : BroadcastReceiver() {
+		override fun onReceive(context: Context?, intent: Intent?) {
+			val name = intent?.getStringExtra("buildingName") ?: return
+			lifecycleScope.launch {
+				onBuildingEntered(name)
+			}
+		}
+	}
 
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -222,6 +236,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		// Setup location and geofencing
 		setupLocationAndGeofence()
+		LocalBroadcastManager.getInstance(this)
+			.registerReceiver(buildingReceiver, IntentFilter("BUILDING_ENTERED"))
+
 
 		mapFragment.getMapAsync @androidx.annotation.RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION]) { googleMap ->
 			// Center map around DLSU
@@ -269,6 +286,17 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 						Log.e("HomeActivity", "Failed to register geofences: ${e.localizedMessage}")
 					}
 				}
+			}
+
+			// floor selection
+			googleMap.setOnMarkerClickListener { marker ->
+				val currentPoi = GeofenceReceiver.currentPoiInside
+
+				// user must be inside THAT POI
+				if (currentPoi != null && marker.title == currentPoi.name) {
+					showFloorSelectionDialog(currentPoi)
+				}
+				false
 			}
 
 			// start the dialogue manager looping
@@ -381,10 +409,16 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// If user wants a tour, call TourCoordinator
 		if (dmResult.intent == IntentType.START_TOUR) {
 			lifecycleScope.launch {
-				val userTourPathHistory = tourCoordinator.startTourForUser(userId, allPreferences)
+//				homeBinding.mapLoadingIndicator.visibility = View.VISIBLE // show loading
+//				delay(100)
+
+				val userTourPathHistory = withContext(Dispatchers.IO) {
+					tourCoordinator.startTourForUser(userId, allPreferences)
+				}
 
 				// draw path
 				if (userTourPathHistory?.pathSequence.isNullOrEmpty()) {
+					homeBinding.mapLoadingIndicator.visibility = View.GONE
 					Log.w("HomeActivity", "TourCoordinator returned empty path.")
 					return@launch
 				}
@@ -393,6 +427,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				mapFragment?.getMapAsync { googleMap ->
 					lifecycleScope.launch {
 						drawTourPath(googleMap, userTourPathHistory!!.pathSequence)
+						homeBinding.mapLoadingIndicator.visibility = View.GONE
 					}
 				}
 
@@ -415,7 +450,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					1. Analyze the POIs and their sequence to form a coherent tour route.
 					2. Write a short, friendly summary introducing the tour, then describe the route in order.
 					3. Include relevant context or facts about each stop when available.
-					4. Maintain a warm, informative tone.
+					4. Maintain a warm, toueinformative tone.
 					5. Use only the data provided above for generating the overview text.
 		
 					OUTPUT FORMAT:
@@ -652,7 +687,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val geofences = pois.map { poi ->
 					Geofence.Builder()
 						.setRequestId(poi.name)
-						.setCircularRegion(poi.latitude, poi.longitude, GEOFENCE_RADIUS)
+						.setCircularRegion(poi.latitude, poi.longitude, poi.radius.toFloat())
 						.setTransitionTypes(
 							Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
 						)
@@ -703,6 +738,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
+	private suspend fun onBuildingEntered(name: String) {
+		messages.add("Bot: You entered $name")
+		adapter.notifyItemInserted(messages.size - 1)
+		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+	}
+
+
 	private suspend fun drawMarkers(googleMap: GoogleMap, pois: List<PoiEntity>) = withContext(Dispatchers.Main) {
 		if (pois.isEmpty()) {
 			Toast.makeText(this@AndroidSmallHomeActivity, "No POIs available.", Toast.LENGTH_SHORT).show()
@@ -728,16 +770,17 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				)
 			}
 			// Draw geofence circle
-			googleMap.addCircle(
-				CircleOptions()
-					.center(position)
-					.radius(GEOFENCE_RADIUS.toDouble())  // meters
-					.strokeColor(Color.argb(100, 0, 150, 136))
-					.fillColor(Color.argb(40, 0, 150, 136))
-					.strokeWidth(2f)
-			)
+//			googleMap.addCircle(
+//				CircleOptions()
+//					.center(position)
+//					.radius(poi.radius)  // meters
+//					.strokeColor(Color.argb(100, 0, 150, 136))
+//					.fillColor(Color.argb(40, 0, 150, 136))
+//					.strokeWidth(2f)
+//			)
 			boundsBuilder.include(position)
 		}
+		MapState.pois = pois
 
 		//all markers fit in view
 		val bounds = boundsBuilder.build()
@@ -773,16 +816,58 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 
 		googleMap.addPolyline(polylineOptions)
+		MapState.pathLatLngs = orderedPois.map { LatLng(it.latitude, it.longitude) }
+
 		Log.d("HomeActivity", "Tour path drawn with ${orderedPois.size} points.")
 	}
 
+	private fun showFloorSelectionDialog(poi: PoiEntity) {
+		val maxFloor = poi.floors ?: 1
+		val floors = (1..maxFloor).map { "Floor $it" }.toTypedArray()
 
+		AlertDialog.Builder(this)
+			.setTitle("Select floor in ${poi.name}")
+			.setItems(floors) { _, which ->
+				val selectedFloor = which + 1
+				saveFloorSelection(poi, selectedFloor)
+				MapState.selectedFloor = selectedFloor
+			}
+			.setNegativeButton("Cancel", null)
+			.show()
+	}
 
+	private fun saveFloorSelection(poi: PoiEntity, floor: Int) {
+		lifecycleScope.launch(Dispatchers.IO) {
+			val sessionId = db.sessionDao().getAll().lastOrNull()?.sessionId ?: return@launch
+			val userId = this@AndroidSmallHomeActivity.userId
+
+			val entity = UserLocationEntity(
+				userId = userId,
+				sessionId = sessionId,
+				latitude = poi.latitude,
+				longitude = poi.longitude,
+				timestamp = System.currentTimeMillis(),
+				accuracyRadius = poi.radius.toFloat(),
+				floor = floor
+			)
+
+			db.userLocationDao().insert(entity)
+
+			withContext(Dispatchers.Main) {
+				Toast.makeText(
+					this@AndroidSmallHomeActivity,
+					"Floor $floor selected for ${poi.name}",
+					Toast.LENGTH_SHORT
+				).show()
+			}
+		}
+	}
 
 	override fun onDestroy() {
 		super.onDestroy()
 		if (::fusedLocationClient.isInitialized) {
 			fusedLocationClient.removeLocationUpdates(locationCallback)
 		}
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(buildingReceiver)
 	}
 }

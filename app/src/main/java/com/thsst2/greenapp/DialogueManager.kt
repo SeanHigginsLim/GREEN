@@ -110,7 +110,7 @@ class DialogueManager(private val context: Context) {
             ConversationContext.TOUR_READY -> {
                 return@withContext DialogueResult(
                     intent, currentContext,
-                    "Generating your personalized tour now!"
+                    "Generating your personalized tour now! Please wait."
                 )
             }
 
