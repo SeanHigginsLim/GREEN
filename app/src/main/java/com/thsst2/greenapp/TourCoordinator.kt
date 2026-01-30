@@ -13,15 +13,17 @@ import kotlin.String
 class TourCoordinator(private val context: Context) {
 
     private val db = MyAppDatabase.getInstance(context)
-//    private val DialogueManager = DialogueManager(context)
     private val RAGEngine = RAGEngine()
     private val tourPathPlanner = TourPathPlanner()
     private val FirebaseSync = FirebaseSync()
     private val tempPreferences = mutableListOf<String>()
+    private val metricsCollector = MetricsCollector(db)
 
     suspend fun startTourForUser(userId: Long, preferences: List<String>?): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
         Log.d("TourCoordinator", "In Tour Coordinator")
         try {
+            val startTime = System.currentTimeMillis()
+
             // Fetch User + Preferences
             val user = db.userDao().getUserById(userId)
             val prefs = db.userPreferencesDao().getPreferencesByUser(userId)
@@ -143,6 +145,23 @@ class TourCoordinator(private val context: Context) {
                 status = "Generated"
             )
             db.userTourPathHistoryDao().insert(userTourPathHistory)
+
+            // Track preference matching
+            val sessionId = db.sessionDao().getSessionsByUser(userId).firstOrNull()?.sessionId ?: 0
+            metricsCollector.recordPreferenceMatching(
+                sessionId = sessionId,
+                totalPreferences = databaseMappedPreferences.size,
+                matchedPreferences = relevantPOIs.size.coerceAtMost(databaseMappedPreferences.size)
+            )
+
+            // Record path generation metrics
+            val processingTime = System.currentTimeMillis() - startTime
+            metricsCollector.recordPathGeneration(
+                sessionId = sessionId,
+                pathLength = path.size,
+                processingTimeMs = processingTime,
+                preferredPoisCount = relevantPOIs.take(3).size
+            )
 
             Log.d("TourCoordinator", "Tour successfully generated with ${path.size} stops.")
             return@withContext userTourPathHistory

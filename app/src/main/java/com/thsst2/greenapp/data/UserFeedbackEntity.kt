@@ -26,7 +26,13 @@ data class UserFeedbackEntity(
     val userFeedbackId: Long = 0,
     val poiId: String,
     val userId: Long,
-    val rating: Int?,                   // e.g., 1-5 stars
+    
+    // Overall ratings (1-5 scale)
+    val rating: Int?,                               // POI rating
+    val experienceRating: Int? = null,              // Overall tour experience
+    val personalizationRating: Int? = null,         // How well personalized
+    val navigationEaseRating: Int? = null,          // Ease of navigation
+    
     val comments: String?,
-    val timestamp: Long
+    val timestamp: Long = System.currentTimeMillis()
 )

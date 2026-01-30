@@ -31,7 +31,7 @@ import com.thsst2.greenapp.data.*
         UserVisitedLocationEntity::class,
         UserSkippedOrDislikedLocationEntity::class
     ],
-    version = 9,
+    version = 6,  // ← Just increment by 1 from last version
     exportSchema = true
 )
 @TypeConverters(TypeConverter::class)
