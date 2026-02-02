@@ -13,6 +13,7 @@ import com.thsst2.greenapp.data.*
         UserRoleEntity::class,
         UserPreferencesEntity::class,
         SessionEntity::class,
+        SessionLogEntity::class,
         DialogueHistoryEntity::class,
         GeneratedPathEntity::class,
         GeofenceTriggerEntity::class,
@@ -31,7 +32,7 @@ import com.thsst2.greenapp.data.*
         UserVisitedLocationEntity::class,
         UserSkippedOrDislikedLocationEntity::class
     ],
-    version = 6,  // ← Just increment by 1 from last version
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(TypeConverter::class)
@@ -41,6 +42,7 @@ abstract class MyAppDatabase : RoomDatabase() {
     abstract fun userRoleDao(): UserRoleDao
     abstract fun userPreferencesDao(): UserPreferencesDao
     abstract fun sessionDao(): SessionDao
+    abstract fun sessionLogDao(): SessionLogDao
     abstract fun dialogueHistoryDao(): DialogueHistoryDao
     abstract fun generatedPathDao(): GeneratedPathDao
     abstract fun geofenceTriggerDao(): GeofenceTriggerDao

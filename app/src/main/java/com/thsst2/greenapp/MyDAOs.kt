@@ -212,6 +212,22 @@ interface SessionDao: BaseDao<SessionEntity> {
     suspend fun deleteAll()
 }
 
+// Session Log DAO
+@Dao
+interface SessionLogDao: BaseDao<SessionLogEntity> {
+    @Query("SELECT * FROM session_log WHERE sessionLogId = :id")
+    suspend fun getSessionLogById(id: Long): SessionLogEntity?
+
+    @Query("SELECT * FROM session_log WHERE userId = :userId")
+    suspend fun getSessionLogsByUser(userId: Long): List<SessionLogEntity>
+
+    @Query("SELECT * FROM session_log")
+    suspend fun getAll(): List<SessionLogEntity>
+
+    @Query("DELETE FROM session_log")
+    suspend fun deleteAll()
+}
+
 // User DAO
 @Dao
 interface UserDao: BaseDao<UserEntity> {

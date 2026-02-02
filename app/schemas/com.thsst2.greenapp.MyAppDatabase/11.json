@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 9,
-    "identityHash": "704b958d1dced180dc3127e3743eb065",
+    "version": 11,
+    "identityHash": "fdd277d791f3f9abd8c338d2e83402ff",
     "entities": [
       {
         "tableName": "user",
@@ -155,6 +155,85 @@
           "autoGenerate": true,
           "columnNames": [
             "sessionId"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "user",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "userId"
+            ],
+            "referencedColumns": [
+              "userId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "session_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionLogId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `performanceMetrics` TEXT NOT NULL, `sessions` TEXT NOT NULL, `userLocations` TEXT NOT NULL, `userLogs` TEXT NOT NULL, `userSkippedOrDislikedLocations` TEXT NOT NULL, `userTourPathHistories` TEXT NOT NULL, `userVisitedLocations` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "sessionLogId",
+            "columnName": "sessionLogId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "performanceMetrics",
+            "columnName": "performanceMetrics",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessions",
+            "columnName": "sessions",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userLocations",
+            "columnName": "userLocations",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userLogs",
+            "columnName": "userLogs",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userSkippedOrDislikedLocations",
+            "columnName": "userSkippedOrDislikedLocations",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userTourPathHistories",
+            "columnName": "userTourPathHistories",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userVisitedLocations",
+            "columnName": "userVisitedLocations",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "sessionLogId"
           ]
         },
         "foreignKeys": [
@@ -765,7 +844,7 @@
       },
       {
         "tableName": "user_log",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userLogId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `generatedPathId` INTEGER NOT NULL, `geofenceTriggerId` INTEGER NOT NULL, `pathDeviationAlertId` INTEGER NOT NULL, `dialogueHistoryId` INTEGER NOT NULL, `intentLogId` INTEGER NOT NULL, `sessionId` INTEGER NOT NULL, `userQueryId` INTEGER NOT NULL, `userFeedbackId` INTEGER NOT NULL, `userInteractionTimeId` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`generatedPathId`) REFERENCES `generated_path`(`generatedPathId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`geofenceTriggerId`) REFERENCES `geofence_trigger`(`geofenceTriggerId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`pathDeviationAlertId`) REFERENCES `path_deviation_alert`(`pathDeviationAlertId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userFeedbackId`) REFERENCES `user_feedback`(`userFeedbackId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`userInteractionTimeId`) REFERENCES `user_interaction_time`(`userInteractionTimeId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userLogId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `generatedPaths` TEXT NOT NULL, `geofenceTriggers` TEXT NOT NULL, `pathDeviationAlerts` TEXT NOT NULL, `dialogueHistories` TEXT NOT NULL, `intentLogs` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `userQueries` TEXT NOT NULL, `userFeedback` TEXT NOT NULL, `userInteractionTimes` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "userLogId",
@@ -780,33 +859,33 @@
             "notNull": true
           },
           {
-            "fieldPath": "generatedPathId",
-            "columnName": "generatedPathId",
-            "affinity": "INTEGER",
+            "fieldPath": "generatedPaths",
+            "columnName": "generatedPaths",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "geofenceTriggerId",
-            "columnName": "geofenceTriggerId",
-            "affinity": "INTEGER",
+            "fieldPath": "geofenceTriggers",
+            "columnName": "geofenceTriggers",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "pathDeviationAlertId",
-            "columnName": "pathDeviationAlertId",
-            "affinity": "INTEGER",
+            "fieldPath": "pathDeviationAlerts",
+            "columnName": "pathDeviationAlerts",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "dialogueHistoryId",
-            "columnName": "dialogueHistoryId",
-            "affinity": "INTEGER",
+            "fieldPath": "dialogueHistories",
+            "columnName": "dialogueHistories",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "intentLogId",
-            "columnName": "intentLogId",
-            "affinity": "INTEGER",
+            "fieldPath": "intentLogs",
+            "columnName": "intentLogs",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -816,21 +895,21 @@
             "notNull": true
           },
           {
-            "fieldPath": "userQueryId",
-            "columnName": "userQueryId",
-            "affinity": "INTEGER",
+            "fieldPath": "userQueries",
+            "columnName": "userQueries",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "userFeedbackId",
-            "columnName": "userFeedbackId",
-            "affinity": "INTEGER",
+            "fieldPath": "userFeedback",
+            "columnName": "userFeedback",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "userInteractionTimeId",
-            "columnName": "userInteractionTimeId",
-            "affinity": "INTEGER",
+            "fieldPath": "userInteractionTimes",
+            "columnName": "userInteractionTimes",
+            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -850,61 +929,6 @@
             ],
             "referencedColumns": [
               "userId"
-            ]
-          },
-          {
-            "table": "generated_path",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "generatedPathId"
-            ],
-            "referencedColumns": [
-              "generatedPathId"
-            ]
-          },
-          {
-            "table": "geofence_trigger",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "geofenceTriggerId"
-            ],
-            "referencedColumns": [
-              "geofenceTriggerId"
-            ]
-          },
-          {
-            "table": "path_deviation_alert",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "pathDeviationAlertId"
-            ],
-            "referencedColumns": [
-              "pathDeviationAlertId"
-            ]
-          },
-          {
-            "table": "user_feedback",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "userFeedbackId"
-            ],
-            "referencedColumns": [
-              "userFeedbackId"
-            ]
-          },
-          {
-            "table": "user_interaction_time",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "userInteractionTimeId"
-            ],
-            "referencedColumns": [
-              "userInteractionTimeId"
             ]
           }
         ]
@@ -1315,7 +1339,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '704b958d1dced180dc3127e3743eb065')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fdd277d791f3f9abd8c338d2e83402ff')"
     ]
   }
 }

@@ -19,6 +19,7 @@ import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -69,8 +70,14 @@ import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.gms.maps.model.Dot
 import com.google.android.gms.maps.model.Dash
 import com.google.android.gms.maps.model.Gap
+import com.google.firebase.database.FirebaseDatabase
+import com.thsst2.greenapp.MyAppDatabase
+import com.thsst2.greenapp.data.SessionLogEntity
 import com.thsst2.greenapp.data.UserLocationEntity
+import com.thsst2.greenapp.data.UserLogEntity
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.tasks.await
+import kotlin.Long
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -83,6 +90,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var dialogueManager: DialogueManager
 
 	private lateinit var ragEngine: RAGEngine
+	private var sessionEnded = false
 
 	// DAOs
 	private lateinit var db: MyAppDatabase
@@ -100,6 +108,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var userRoleDao: UserRoleDao
 	private lateinit var userLocationDao: UserLocationDao
 	private lateinit var userInteractionTimeDao: UserInteractionTimeDao
+	private lateinit var userLogDao: UserLogDao
+	private lateinit var sessionLogDao: SessionLogDao
 
 	// Temporary additional preferences during session
 	private val tempAdditionalPreferences = mutableListOf<String>()
@@ -110,9 +120,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	// Geofencing
 	private lateinit var fusedLocationClient: FusedLocationProviderClient
-	private lateinit var locationCallback: LocationCallback
+	private var locationCallback: LocationCallback? = null
 	private lateinit var geofencingClient: GeofencingClient
 	private val LOCATION_PERMISSION_CODE = 2001
+	private var tourStarted = false
 
 	private val buildingReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
@@ -143,20 +154,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					3. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
 					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
 					5. Do not invent information that isn’t provided.
-					6. Output strictly in the following JSON format:
-					
-					OUTPUT FORMAT:
-					{
-					  "building_name": "string",
-					  "building_description": "string"
-					}
+					6. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
+					7. Start with the description immediately, don't add any other reply and be engaging.
 					
 					EXAMPLE OUTPUT:
-					{
-					  "building_name": "Henry Sy Sr. Hall",
-					  "building_description": "Welcome to Henry Sy Sr. Hall — a 14-story academic complex that houses modern classrooms, research facilities, and student spaces overlooking the DLSU campus."
-					}
-
+						  Henry Sy Sr. Hall,
+						  Welcome to Henry Sy Sr. Hall — a 14-story academic complex that houses modern classrooms, research facilities, and student spaces overlooking the DLSU campus.
 				""".trimIndent()
 
 					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
@@ -206,7 +209,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		ragEngine = RAGEngine()
 
 		// Initialize DB & DAOs
-		db = MyAppDatabase.getInstance(this)
+		db = MyAppDatabase.getInstance(applicationContext)
 		userPreferencesDao = db.userPreferencesDao()
 		userVisitedLocationDao = db.userVisitedLocationDao()
 		generatedPathDao = db.generatedPathDao()
@@ -221,6 +224,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		userRoleDao = db.userRoleDao()
 		userLocationDao = db.userLocationDao()
 		userInteractionTimeDao = db.userInteractionTimeDao()
+		userLogDao = db.userLogDao()
+		sessionLogDao = db.sessionLogDao()
+
 
 		// Initialize map top fragment
 		val mapFragment = supportFragmentManager.findFragmentById(R.id.home_map_fragment)
@@ -308,7 +314,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			.registerReceiver(buildingReceiver, IntentFilter("BUILDING_ENTERED"))
 
 
-		mapFragment.getMapAsync @androidx.annotation.RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION]) { googleMap ->
+		mapFragment.getMapAsync @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION]) { googleMap ->
 			// Center map around DLSU
 			val dlsu = LatLng(14.5649, 120.9930)
 			googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(dlsu, 17f))
@@ -468,14 +474,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Let DialogueManager process the input
 		val dmResult = dialogueManager.processMessage(userId, userMessage)
 
-		if (dmResult.message.isNotBlank()) {
+		if (dmResult.message.isNotBlank() && dmResult.intent != IntentType.START_TOUR) {
 			messages.add("Bot: ${dmResult.message}")
 			adapter.notifyItemInserted(messages.size - 1)
 			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 		}
 
 		// If user wants a tour, call TourCoordinator
-		if (dmResult.intent == IntentType.START_TOUR) {
+		if (dmResult.intent == IntentType.START_TOUR && !tourStarted) {
+			tourStarted = true
 			lifecycleScope.launch {
 //				homeBinding.mapLoadingIndicator.visibility = View.VISIBLE // show loading
 //				delay(100)
@@ -515,31 +522,18 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					POI Data: $poiData
 		
 					INSTRUCTIONS:
-					1. Analyze the POIs and their sequence to form a coherent tour route.
-					2. Write a short, friendly summary introducing the tour, then describe the route in order.
-					3. Include relevant context or facts about each stop when available.
-					4. Maintain a warm, toueinformative tone.
-					5. Use only the data provided above for generating the overview text.
-		
-					OUTPUT FORMAT:
-					{
-					  "tour_title": "string",
-					  "overview_text": "string"
-					}
+					1. Write ONE continuous paragraph.
+					2. Start from the beginning of the tour.
+					3. Do NOT include headings, labels, greetings, or conclusions.
+					4. Do NOT repeat or restart the text.
+					5. Do NOT use ellipses (...).
+					6. Use only the data provided.
+					7. Output ONLY the tour narration text.
+					8. Don't tell me at the start of the sentence if this tour overview prompt template is used, just respond in natural language. 
+					9. Start with the tour overview immediately, don't add any other reply and be engaging.
 					
 					EXAMPLE:
-					Input:
-					User Role: Guest
-					Preferences: History, Architecture
-					POI Sequence: [ ... ]
-					POI Data: [ ... ]
-					Output:
-					{
-					  "tour_title": "DLSU Heritage Trail",
-					  "overview_text": "Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall..."
-					}
-				
-					Follow the tour overview instructions.
+					  	Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall...
 				""".trimIndent()
 
 				chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
@@ -571,7 +565,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					}
 				})
 			}
-		} else {
+		} else if (dmResult.intent == IntentType.ASK_INFO) {
 			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
 			val poiData = db.localDataDao().getLocalData(userId)
 			val startingPoint = null
@@ -591,21 +585,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				INSTRUCTIONS:
 				1. Write a short, accurate response to the user query
 				2. Use only the needed data provided above for generating the answer.
-	
-				OUTPUT FORMAT:
-				{
-				  "answer": "string"
-				}
+				3. Don't tell me at the start of the sentence if this query prompt template is used, just respond in natural language. 
+				4. Start with the answer immediately, don't add any other reply and be engaging.
 				
 				EXAMPLE:
-				User Query: "Where is the Henry Sy Sr. Hall located?"
-				POI Data: [
-				  {"name": "Henry Sy Sr. Hall", "description": "Located along Taft Avenue, this 14-storey building serves as DLSU’s modern academic tower."}
-				]
-				Output:
-				{
-				  "answer": "The Henry Sy Sr. Hall is located along Taft Avenue and serves as DLSU’s modern academic tower."
-				}
+				  	The Henry Sy Sr. Hall is located along Taft Avenue and serves as DLSU’s modern academic tower.
 			""".trimIndent()
 
 			chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
@@ -688,12 +672,55 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	}
 
 	// TOUR END
-	private fun endTour(sessionProfile: SessionEntity) {
-		val endedSession = sessionProfile.copy(sessionEndedAt = System.currentTimeMillis().toString())
-		uploadSessionToFirestore(endedSession)
-
+	private fun endTour(userId: Long, sessionId: Long) {
 		// TODO: Save performance metrics
+		lifecycleScope.launch {
+			userLogDao.insert(
+				UserLogEntity(
+					userId = userId,
+                    generatedPaths = db.generatedPathDao().getGeneratedPathsByUser(userId),
+                    geofenceTriggers = db.geofenceTriggerDao().getGeofenceTriggersByUser(userId),
+                    pathDeviationAlerts = db.pathDeviationAlertDao().getPathDeviationAlertsByUser(userId),
+                    dialogueHistories = db.dialogueHistoryDao().getDialogueHistoryByUser(userId),
+                    intentLogs = db.intentLogDao().getIntentLogsByUser(userId),
+					sessionId = sessionId,
+                    userQueries = db.userQueryDao().getUserQueriesByUser(userId),
+                    userFeedback = db.userFeedbackDao().getFeedbackByUserLog(userId),
+                    userInteractionTimes = db.userInteractionTimeDao().getInteractionTimesByUserLog(userId),
+                )
+			)
+
+			val sessionLog = SessionLogEntity(
+				userId = userId,
+				performanceMetrics = db.performanceMetricsDao().getMetricsBySession(sessionId),
+				sessions = db.sessionDao().getSessionsByUser(userId),
+				userLocations = db.userLocationDao().getLocationsBySession(sessionId),
+				userLogs = db.userLogDao().getUserLogsByUser(userId),
+				userSkippedOrDislikedLocations = db.userSkippedOrDislikedLocationDao().getBySession(sessionId),
+				userTourPathHistories = db.userTourPathHistoryDao().getBySession(sessionId),
+				userVisitedLocations = db.userVisitedLocationDao().getBySession(sessionId),
+			)
+
+			sessionLogDao.insert(sessionLog)
+
+			lifecycleScope.launch(Dispatchers.IO) {
+				saveSessionLogToFirebase(sessionLog)
+			}
+		}
 		clearLocalSession()
+	}
+
+	// SAVE FIREBASE SESSION LOGS
+	suspend fun saveSessionLogToFirebase(
+		sessionLog: SessionLogEntity
+	) {
+		val ref =  FirebaseDatabase.getInstance()
+			.reference
+			.child("client_side")
+			.child("log")
+			.push()
+
+		ref.setValue(sessionLog).await()
 	}
 
 	// LOCATION AND GEOFENCING
@@ -739,7 +766,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			}
 		}
 
-		fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, mainLooper)
+		fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback!!, mainLooper)
 	}
 
 	// ADDING GEOFENCES
@@ -932,11 +959,26 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
+	override fun onStop() {
+		super.onStop()
+
+		if (sessionEnded) return
+		sessionEnded = true
+
+		Log.d("SESSION", "App backgrounded → ending session $sessionId")
+
+		endTour(userId, sessionId)
+	}
+
+
 	override fun onDestroy() {
-		super.onDestroy()
 		if (::fusedLocationClient.isInitialized) {
-			fusedLocationClient.removeLocationUpdates(locationCallback)
+			locationCallback?.let {
+				fusedLocationClient.removeLocationUpdates(it)
+			}
 		}
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(buildingReceiver)
+
+		super.onDestroy()
 	}
 }
