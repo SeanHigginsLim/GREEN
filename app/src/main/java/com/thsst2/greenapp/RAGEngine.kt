@@ -1,92 +1,130 @@
     package com.thsst2.greenapp
 
+    import android.R
     import android.util.Log
+    import com.google.firebase.auth.FirebaseAuth
     import com.google.firebase.database.DataSnapshot
     import com.google.firebase.database.DatabaseReference
     import com.thsst2.greenapp.data.PoiEntity
 
     import com.google.firebase.database.FirebaseDatabase
     import com.google.gson.Gson
+    import com.thsst2.greenapp.data.TransitionEntity
+    import com.thsst2.greenapp.data.UserPreferencesEntity
+    import com.thsst2.greenapp.data.UserRoleEntity
     import kotlinx.coroutines.tasks.await
+    import kotlin.Long
 
     class RAGEngine {
         private val db = FirebaseDatabase.getInstance().reference
         private val gson = Gson()
-        fun mapPreferencesToTagNames(preferences: List<String>?): List<String> {
-            val rawMapping = mapOf(
-                // CATEGORY preferences
-                "Functional Info" to listOf("campus_tags", "function_tags"),
-                "Operational Info" to listOf("campus_tags", "function_tags"),
 
-                // BUILDINGS
-                "Henry Sy Sr. Hall" to listOf("B_HSSH"),
-                "Brother Bloemen Hall" to listOf("B_BLOEMEN"),
-                "Saint La Salle Hall" to listOf("B_LASALLE"),
-                "Velasco Hall" to listOf("B_VELASCO"),
-                "Enrique Razon Sports Center" to listOf("B_RAZON"),
-                "Brother Andrew Gonzalez Hall" to listOf("B_ANDREW"),
-                "Gokongwei Hall" to listOf("B_GOKO"),
-    //            "Saint Mutien Marie Hall" to listOf(""),
-                "Science and Technology Research Center" to listOf("B_STRC"),
-    //            "Marian Quadrangle" to listOf(""),
-    //            "Brother John Hall" to listOf(""),
-                "Saint Joseph Hall" to listOf("B_SJH"),
-                "Don Enrique Yuchengco Hall" to listOf("B_YUCHENGCO"),
-                "Brother Connon Hall" to listOf("B_CONNON"),
-                "Faculty Center" to listOf("B_FC"),
-                "Brother William Hall" to listOf("B_WH"),
-                "Saint Miguel Hall" to listOf("B_SMIG"),
+        // TODO: Change. Will use mapping of names, but return tags.
+        suspend fun mapPreferencesToTagNames(preferences: List<String>?): List<String> {
+            if (preferences.isNullOrEmpty()) return emptyList()
 
-                // FUNCTIONS AND SERVICES
-    //            "Amphitheater" to listOf(""),
-    //            "Open spaces" to listOf(""),
-    //            "Relaxing" to listOf(""),
-                "science" to listOf("campus_science"),
-    //            "Mathematics" to listOf(""),
-                "Engineering" to listOf("campus_engineering"),
-                "Labs" to listOf("campus_labs"),
-    //            "Library" to listOf(""),
-    //            "Recreational" to listOf(""),
-                "Accessibility" to listOf("acc_elevator", "acc_ramp"),
-    //            "Parking" to listOf(""),
-    //            "Drinking Fountain" to listOf(""),
-                "Historical" to listOf("type_historic"),
-                "Food" to listOf("Food and Dining"),
-    //            "Warp Zones" to listOf(""),
-    //            "Museum" to listOf(""),
-    //            "Merchandise" to listOf(""),
-    //            "Supplies" to listOf(""),
-    //            "SDFO" to listOf(""),
-                "Clinic" to listOf("health_services", "ERSC Clinic"),
-                "Chapel" to listOf("B_LASALLE", "2F"),
-                "Auditorium" to listOf("campus_auditorium"),
-    //            "Entrances" to listOf(""),
-                "CCS Building" to listOf("B_GOKO"),
-                "CE Building" to listOf("B_VELASCO"),
-                "COB Building" to listOf("B_YUCHENGCO"),
-                "COS Building" to listOf("B_WH"),
-                "CLA Building" to listOf("B_FC"),
-    //            "COE Building" to listOf(""),
-    //            "School of Economics Building" to listOf(""),
-            )
+            val annotationTagsSnapshot = db
+                .child("server_side")
+                .child("annotation_tags")
+                .get()
+                .await()
 
-            val mapping = rawMapping.mapKeys { it.key.lowercase().trim() }
+            val matchedTagIds = mutableListOf<String>()
 
-            val result = mutableListOf<String>()
+            for (tagTypeSnapshot in annotationTagsSnapshot.children) {
+                for(preferencesChoiceSnapshot in tagTypeSnapshot.children){
+                    try {
+                        Log.d("RAGEngine", preferencesChoiceSnapshot.value.toString())
+                        val label = preferencesChoiceSnapshot.child("label").getValue(String::class.java)
 
-            preferences?.forEach { pref ->
-                val key = pref.lowercase().trim()
-                mapping[key]?.let { result.addAll(it) }
+                        var tagId: String? = null
+
+                        // Find key ending with "tag_id"
+                        for (child in preferencesChoiceSnapshot.children) {
+                            if (child.key?.endsWith("tag_id") == true) {
+                                tagId = child.getValue(String::class.java)
+                                break
+                            }
+                        }
+
+                        if (!label.isNullOrEmpty() &&
+                            !tagId.isNullOrEmpty() &&
+                            preferences.contains(label)
+                        ) {
+                            matchedTagIds.add(tagId)
+                            Log.d("RAGEngine", "Matched '$label' -> tag_id: $tagId")
+                        }
+                    } catch (e: Exception) {
+                        Log.d("RAGEngine", "Error parsing preferencesChoices: ${e.message}")
+                    }
+                }
             }
 
-            return result
+            return matchedTagIds
+        }
+
+        suspend fun getPreferencesListForProfilePage(): List<String> {
+            val annotationTagsSnapshot = db
+                .child("server_side")
+                .child("annotation_tags")
+                .get()
+                .await()
+
+            val preferencesChoices = mutableListOf<String>()
+
+            for (tagTypeSnapshot in annotationTagsSnapshot.children) {
+                for(preferencesChoiceSnapshot in tagTypeSnapshot.children){
+                    try {
+                        Log.d("RAGEngine", preferencesChoiceSnapshot.value.toString())
+                        val label = preferencesChoiceSnapshot
+                            .child("label")
+                            .getValue(String::class.java)
+
+                        if (label != null) {
+                            preferencesChoices.add(label)
+                        }
+
+                        Log.d("RAGEngine", "Added preference: $label for roles $preferencesChoices")
+                    } catch (e: Exception) {
+                        Log.d("RAGEngine", "Error parsing preferencesChoices: ${e.message}")
+                    }
+                }
+            }
+
+            return preferencesChoices
+        }
+
+        suspend fun getRoleList(): List<String> {
+            val rolesSnapshot = db
+                .child("server_side")
+                .child("annotation_tags")
+                .child("user_role_tags")
+                .get()
+                .await()
+
+            val roles = mutableListOf<String>()
+
+            for (role in rolesSnapshot.children) {
+                try {
+                    Log.d("RAGEngine", "${role.child("user_role_tag_id").getValue(String::class.java)}")
+                    // Extract roles
+                    val label = role.child("label").getValue(String::class.java) ?: continue
+
+                    roles.add(label)
+                    Log.d("RAGEngine", "Added role: $label for roles $roles")
+                } catch (e: Exception) {
+                    Log.e("RAGEngine", "Error parsing roles: ${e.message}")
+                }
+            }
+
+            return roles
         }
 
         /**
          * Fetches POIs from the Realtime Database that match the user’s preferences.
          */
         suspend fun getRelevantPOINames(preferences: List<String>?): List<PoiEntity> {
-//            if (preferences.isNullOrEmpty()) return emptyList()
+            if (preferences.isNullOrEmpty()) return emptyList()
 
             val buildingsSnapshot = db
                 .child("server_side")
@@ -99,12 +137,12 @@
 
             val pois = mutableListOf<PoiEntity>()
 
-
             Log.d("DEBUG", "All preferences: $preferences")
             // Loop through all buildings
             for (building in buildingsSnapshot.children) {
                 try {
                     Log.d("RAGEngine", "${building.child("building_id").getValue(String::class.java)}")
+                    val accessibility = building.child("accessibility").children.mapNotNull { it.value as? String }
                     val poiId = building.child("building_id").getValue(String::class.java) ?: continue
                     val name = building.child("name").getValue(String::class.java) ?: ""
                     val description = building.child("description").getValue(String::class.java) ?: ""
@@ -114,12 +152,12 @@
                     val locationTags = building.child("location_tags").children.mapNotNull { it.value as? String }
                     val typeTags = building.child("type_tags").children.mapNotNull { it.value as? String }
 
-                    val allTags = functionTags + locationTags + typeTags
+                    val allTags = accessibility + functionTags + locationTags + typeTags
 
                     // Check if any tag matches the user's preferences
-                    val matches = preferences?.any { pref ->
+                    val matches = preferences.any { pref ->
                         poiId.contains(pref, ignoreCase = true) ||
-                        allTags.any { tag -> tag.equals(pref, ignoreCase = true) }
+                                allTags.any { tag -> tag.equals(pref, ignoreCase = true) }
                     }
 
                     matches?.let { if (!it) continue }  // Skip if no match found
@@ -150,74 +188,203 @@
             return pois
         }
 
-        /**
-         * Returns JSON data for all POIs with the given IDs.
-         */
+        // Get matching points of interest
         suspend fun getData(poiIds: List<String>, preferences: List<String>?): String {
             Log.d("RAGEngine", "Fetching data for POIs: $poiIds")
-            Log.d("RAGEngine", "Fetching data for POIs: $preferences")
-            val matchedData = fetchMatchingNodesWithBacktrack(
-                ref = db.child("server_side"),
+            Log.d("RAGEngine", "Fetching data for Preferences: $preferences")
+            val matchedData = recursiveFetchMatchingNodes(
+                ref = db.child("server_side").child("pre_collected_data").child("buildings"),
                 preferences = preferences,
                 poiIds = poiIds
             )
+
+            // Number of matched nodes
+            Log.d("RAGEngine", "Matched nodes count: ${matchedData.size}")
 
             val jsonResult = gson.toJson(matchedData)
             return jsonResult
         }
 
-        suspend fun fetchMatchingNodesWithBacktrack(
+        suspend fun recursiveFetchMatchingNodes(
             ref: DatabaseReference,
             preferences: List<String>?,
             poiIds: List<String>,
-            parent: DataSnapshot? = null,
-            grandParent: DataSnapshot? = null,
-            matched: MutableList<Map<String, Any?>> = mutableListOf()
+            matched: MutableList<Map<String, Any?>> = mutableListOf(),
+            seenIds: MutableSet<String> = mutableSetOf()
         ): List<Map<String, Any?>> {
             val snapshot = ref.get().await()
             if (!snapshot.exists()) return matched
 
-            for (child in snapshot.children) {
-                // Extract tags
-                val tags = child.child("function_tags").children.mapNotNull { it.value as? String } +
-                        child.child("location_tags").children.mapNotNull { it.value as? String } +
-                        child.child("type_tags").children.mapNotNull { it.value as? String }
-
-                // Extract building_id
-                val buildingId = child.child("building_id").getValue(String::class.java)
-
-                // Tag match -> store grandparent
-                if (tags.any { preferences?.contains(it) ?: false } && grandParent != null) {
-                    val grandParentData: Map<String, Any?> = grandParent.children.associate {
-                        val key = child.key ?: ""
-                        val value: Any? = child.value  // cast explicitly
-                        key to value
-                    }
-                    matched.add(grandParentData)
+            for (childSnapshot in snapshot.children) {
+                // If this snapshot has children, recurse
+                if (childSnapshot.hasChildren()) {
+                    recursiveFetchMatchingNodes(
+                        ref = childSnapshot.ref,
+                        preferences = preferences,
+                        poiIds = poiIds,
+                        matched = matched,
+                        seenIds = seenIds
+                    )
                 }
 
-                // Building ID match -> store parent
-                if (buildingId != null && poiIds.contains(buildingId) && parent != null) {
-                    val parentData: Map<String, Any?> = parent.children.associate {
-                        val key = child.key ?: ""
-                        val value: Any? = child.value  // cast explicitly
-                        key to value
-                    }
-                    matched.add(parentData)
-                }
+                // Check current snapshot for matching data
+                for (data in childSnapshot.children) {
+                    val dataValue = data.getValue(String::class.java) ?: continue
 
-                // Recursive, updating parent references
-                fetchMatchingNodesWithBacktrack(
-                    ref = child.ref,
-                    preferences = preferences,
-                    poiIds = poiIds,
-                    parent = child,
-                    grandParent = parent,
-                    matched = matched
-                )
+                    // Check if this data matches any user preference
+                    val preferenceMatch = preferences?.any { it.equals(dataValue, ignoreCase = true) } == true
+
+                    // Check if this data matches any POI ID
+                    val poiMatch = poiIds.any { it.equals(dataValue, ignoreCase = true) }
+
+                    if (preferenceMatch || poiMatch) {
+                        val buildingId = childSnapshot.child("building_id").getValue(String::class.java)
+                        if (buildingId != null && !seenIds.contains(buildingId)) {
+                            // This building/data matches — add to your matched list
+                            val parentData: Map<String, Any?> = childSnapshot.children.associate {
+                                val key = it.key ?: ""
+                                val value = it.value
+                                key to value
+                            }
+                            matched.add(parentData)
+                            seenIds.add(buildingId)
+                        }
+                    }
+                }
             }
 
             return matched
+        }
+
+        // Get data for relevant POIs
+        suspend fun filterPoiData(relevantTags: List<String>?): String {
+            Log.d("RAGEngine", "Fetching data for Relevant Tags: $relevantTags")
+            val matchedData = recursiveFilterPoiData(
+                ref = db.child("server_side").child("pre_collected_data"),
+                relevantTags = relevantTags
+            )
+
+            // Number of matched nodes
+            Log.d("RAGEngine", "Matched nodes count: ${matchedData.size}")
+
+            val jsonResult = gson.toJson(matchedData)
+            return jsonResult
+        }
+
+        suspend fun recursiveFilterPoiData(
+            ref: DatabaseReference,
+            relevantTags: List<String>?,
+            matched: MutableList<Map<String, Any?>> = mutableListOf(),
+            seenIds: MutableSet<String> = mutableSetOf()
+        ): List<Map<String, Any?>> {
+            val snapshot = ref.get().await()
+            if (!snapshot.exists()) return matched
+
+            for (childSnapshot in snapshot.children) {
+                // If this snapshot has children, recurse
+                if (childSnapshot.hasChildren()) {
+                    recursiveFilterPoiData(
+                        ref = childSnapshot.ref,
+                        relevantTags = relevantTags,
+                        matched = matched,
+                        seenIds = seenIds
+                    )
+                }
+
+                // Check current snapshot for matching data
+                for (data in childSnapshot.children) {
+                    val dataValue = data.getValue(String::class.java) ?: continue
+
+                    // Check if this data matches any user preference
+                    val relevantTagMatch = relevantTags?.any { it.equals(dataValue, ignoreCase = true) } == true
+
+                    if (relevantTagMatch) {
+                        val parentData: Map<String, Any?> = childSnapshot.children.associate {
+                            val key = it.key ?: ""
+                            val value = it.value
+                            key to value
+                        }
+
+                        // Create a hash using JSON string
+                        val parentHash = Gson().toJson(parentData)
+
+                        if (!seenIds.contains(parentHash)) {
+                            matched.add(parentData)
+                            seenIds.add(parentHash)
+                        }
+                    }
+                }
+            }
+
+            return matched
+        }
+
+        // Get associated floor data upon selecting floor
+        suspend fun getFloorData(floor: Number, poiId: String): String {
+            Log.d("RAGEngine", "Fetching data for Floor: $floor")
+            Log.d("RAGEngine", "Fetching data for Point of Interest: $poiId")
+            val matchedData = recursiveGetFloorData(
+                ref = db.child("server_side").child("pre_collected_data").child("floor_functions"),
+                floor = floor,
+                poiId = poiId
+            )
+
+            // Number of matched nodes
+            Log.d("RAGEngine", "Matched nodes count: ${matchedData?.size}")
+
+            val jsonResult = gson.toJson(matchedData)
+            return jsonResult
+        }
+
+        suspend fun recursiveGetFloorData(
+            ref: DatabaseReference,
+            floor: Number,
+            poiId: String,
+        ): Map<String, Any?>? {
+            val snapshot = ref.get().await()
+            if (!snapshot.exists()) return null
+
+            // Iterate over children
+            for (childSnapshot in snapshot.children) {
+                val poiIdMatch = childSnapshot.children.any { data ->
+                    val dataValue = data.getValue(String::class.java)
+                    data.key == "poiId" && dataValue == poiId
+                }
+
+                // Check for poiId match
+                if (poiIdMatch) {
+                    // Now loop through the children to match the floor number
+                    for (data in childSnapshot.children) {
+                        val dataValue = data.getValue(String::class.java) ?: continue
+
+                        val floorNumberMatch = try {
+                            dataValue.toInt() == floor.toInt() - 1
+                        } catch (e: Exception) {
+                            false
+                        }
+
+                        // Check for floor number match if poiId matches
+                        if (floorNumberMatch) {
+                            // Return the snapshot's data as a map
+                            return childSnapshot.children.associate {
+                                val key = it.key ?: ""
+                                val value = it.value
+                                key to value
+                            }
+                        }
+                    }
+                    return null
+                }
+
+                val result = recursiveGetFloorData(
+                    ref = childSnapshot.ref,
+                    floor = floor,
+                    poiId = poiId
+                )
+                if (result != null) return result
+            }
+
+            return null
         }
 
         data class Edge(
@@ -314,5 +481,77 @@
             }
 
             return pois
+        }
+
+        suspend fun getTransitions(): List<TransitionEntity> {
+            val transitionsSnapshot = db
+                .child("server_side")
+                .child("pre_collected_data")
+                .child("transition_areas")
+                .get()
+                .await()
+            val transitions = mutableListOf<TransitionEntity>()
+
+            // Loop through all buildings
+            for (transition in transitionsSnapshot.children) {
+                try {
+                    Log.d("RAGEngine", "${transition.child("building_id").getValue(String::class.java)}")
+
+                    // Extract coordinates
+                    val lat = transition.child("latitude").getValue(Double::class.java) ?: 0.0
+                    val lng = transition.child("longitude").getValue(Double::class.java) ?: 0.0
+
+                    // Extract radius for geofence
+                    val rad = transition.child("radius").getValue(Double::class.java) ?: 0.0
+
+
+                    // Create Transition entity and add to list
+                    val transition = TransitionEntity(
+                        latitude = lat,
+                        longitude = lng,
+                        radius = rad,
+                    )
+                    transitions.add(transition)
+
+                } catch (e: Exception) {
+                    Log.e("RAGEngine", "Error parsing building: ${e.message}")
+                }
+            }
+
+            return transitions
+        }
+
+        suspend fun getFloorFunctions(floor: String): List<String> {
+            val floorFunctionsSnapshot = db
+                .child("server_side")
+                .child("pre_collected_data")
+                .child("floor_functions")
+                .get()
+                .await()
+            val floorFunctions = mutableListOf<String>()
+
+            // Loop through all buildings
+            for (buildingSnapshot in floorFunctionsSnapshot.children) {
+                for(buildingFunctionSnapshot in buildingSnapshot.children) {
+                    try {
+                        Log.d("RAGEngine", buildingFunctionSnapshot.value.toString())
+                        val name = buildingFunctionSnapshot
+                            .child("name")
+                            .getValue(String::class.java)
+
+                        if (name != null) {
+                            if(floor.equals(name, ignoreCase = true)) {
+                                floorFunctions.add(name)
+                            }
+                        }
+
+                        Log.d("RAGEngine", "Added floor: $name for floor fumctions $buildingFunctionSnapshot")
+                    } catch (e: Exception) {
+                        Log.d("RAGEngine", "Error parsing floorFunctions: ${e.message}")
+                    }
+                }
+            }
+
+            return floorFunctions
         }
     }

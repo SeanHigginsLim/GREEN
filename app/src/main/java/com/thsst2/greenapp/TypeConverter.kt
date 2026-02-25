@@ -69,6 +69,16 @@ class TypeConverter {
         return gson.fromJson(value, listType)
     }
 
+    // TransitionEntity
+    @TypeConverter
+    fun fromTransitionList(value: List<TransitionEntity>): String = gson.toJson(value)
+
+    @TypeConverter
+    fun toTransitionList(value: String): List<TransitionEntity> {
+        val listType = object : TypeToken<List<TransitionEntity>>() {}.type
+        return gson.fromJson(value, listType)
+    }
+
     // UserQueryEntity
     @TypeConverter
     fun fromUserQueryList(value: List<UserQueryEntity>): String = gson.toJson(value)

@@ -55,7 +55,7 @@ class DialogueManager(private val context: Context) {
                         tempPreferences = currentPrefs.toMutableList()
                         val prefText = if (currentPrefs.isEmpty()) "none yet" else currentPrefs.joinToString(", ")
                         DialogueResult(
-                            IntentType.START_TOUR, currentContext,
+                            intent, currentContext,
                             "Great! Your current preferences are: $prefText.\nWould you like to add or delete any? (yes/no)"
                         )
                     }
@@ -109,7 +109,7 @@ class DialogueManager(private val context: Context) {
             }
             ConversationContext.TOUR_READY -> {
                 return@withContext DialogueResult(
-                    intent, currentContext,
+                    IntentType.FINALIZE_PREFS, currentContext,
                     "Generating your personalized tour now! Please wait."
                 )
             }
@@ -125,7 +125,7 @@ class DialogueManager(private val context: Context) {
     private fun detectIntent(msg: String): IntentType {
         return when {
             msg.contains("hi") || msg.contains("hello") -> IntentType.GREETING
-            msg == "yes" || msg.contains("start") -> IntentType.START_TOUR
+            msg.contains("start") -> IntentType.START_TOUR
             msg.contains("add") -> IntentType.ADD_PREFERENCE
             msg.contains("delete") || msg.contains("remove") -> IntentType.DELETE_PREFERENCE
             msg.contains("done") || msg.contains("final") -> IntentType.FINALIZE_PREFS

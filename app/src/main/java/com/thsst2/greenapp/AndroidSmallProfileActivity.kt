@@ -7,6 +7,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.room.withTransaction
 import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
@@ -22,21 +23,16 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 	private lateinit var profileBinding: ActivityAndroidSmallProfileBinding
 	private lateinit var db: MyAppDatabase
 	private var userId: Long = 0
-	private val allPreferences = listOf(
-		"Functional Info", "Operational Info",
-		"Henry Sy Sr. Hall", "Brother Bloemen Hall", "Saint La Salle Hall",
-		"Velasco Hall", "Enrique Razon Sports Center", "Brother Andrew Gonzalez Hall",
-		"Gokongwei Hall", "Saint Mutien Marie Hall", "Science and Technology Research Center",
-		"Marian Quadrangle", "Brother John Hall", "Saint Joseph Hall",
-		"Don Enrique Yuchengco Hall", "Brother Connon Hall", "Faculty Center",
-		"Brother William Hall", "Saint Miguel Hall", "Amphitheater", "Open spaces",
-		"Relaxing", "Science", "Mathematics", "Engineering", "Labs", "Library",
-		"Recreational", "Accessibility", "Parking", "Drinking Fountain", "Historical",
-		"Food", "Warp zones", "Museum", "SDFO", "Merchandise", "Supplies", "Clinic", "Chapel",
-		"Auditorium", "Entrances", "CCS Building", "CE Building", "COB Building",
-		"COS Building", "CLA Building", "COE Building", "School of Economics Building"
-	)
-	private val allRoles = listOf("Student", "Faculty", "Guest")
+
+	// Get list from db.
+	private var allPreferences: List<String> = emptyList()
+
+	// Get list from db.
+	private var allRoles: List<String> = emptyList()
+
+	private lateinit var ragEngine: RAGEngine
+
+//	private val allRoles = listOf("Student", "Faculty", "Guest")
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -47,6 +43,9 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 
 		db = MyAppDatabase.getInstance(this)
 		userId = FirebaseAuth.getInstance().currentUser?.uid.hashCode().toLong()
+
+		// Rag Engine
+		ragEngine = RAGEngine()
 
 		// Initial load
 		loadPreferencesTextView()
@@ -60,6 +59,10 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/erdezrmi_expires_30_days.png").into(findViewById(R.id.r6k6upscihau))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/gp023gk0_expires_30_days.png").into(findViewById(R.id.r5i26bda9wnh))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/3tidlk1m_expires_30_days.png").into(findViewById(R.id.rxvihqambbch))
+
+		lifecycleScope.launch {
+			allRoles = ragEngine.getRoleList()
+		}
 
 		profileBinding.actionBarSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
 			override fun onItemSelected(
@@ -163,6 +166,7 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 
 	private fun openPreferencesDialog() {
 		CoroutineScope(Dispatchers.IO).launch {
+			allPreferences = ragEngine.getPreferencesListForProfilePage()
 			val prefsEntity = db.userPreferencesDao().getPreferencesByUser(userId)
 			val selectedPrefs = prefsEntity?.interests?.toMutableSet()
 			val allPrefsArray = allPreferences.toTypedArray()

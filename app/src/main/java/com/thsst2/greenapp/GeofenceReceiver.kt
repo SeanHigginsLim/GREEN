@@ -126,7 +126,6 @@ class GeofenceReceiver : BroadcastReceiver() {
                     infoIntent.putExtra("buildingName", matchedPoi.name)
                     infoIntent.putExtra("poiId", matchedPoi.poiId)
                     context.sendBroadcast(infoIntent)
-
                 }
 
                 Geofence.GEOFENCE_TRANSITION_EXIT -> {

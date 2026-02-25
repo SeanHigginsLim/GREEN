@@ -43,6 +43,8 @@ class TourCoordinator(private val context: Context) {
                 return@withContext null
             }
 
+            Log.d("TourCoordinator", "Relevant POIs ${relevantPOIs}")
+
             val knowledgeGraph = RAGEngine.getKnowledgeGraph()
 
             // Identify user's disliked POIs/disinterests

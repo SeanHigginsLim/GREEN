@@ -228,6 +228,19 @@ interface SessionLogDao: BaseDao<SessionLogEntity> {
     suspend fun deleteAll()
 }
 
+// Transition DAO
+@Dao
+interface TransitionDao: BaseDao<TransitionEntity> {
+    @Query("SELECT * FROM transition WHERE transitionId = :id")
+    suspend fun getTransitionById(id: Long): TransitionEntity?
+
+    @Query("SELECT * FROM transition")
+    suspend fun getAll(): List<TransitionEntity>
+
+    @Query("DELETE FROM transition")
+    suspend fun deleteAll()
+}
+
 // User DAO
 @Dao
 interface UserDao: BaseDao<UserEntity> {

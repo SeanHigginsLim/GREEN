@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.location.Location
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -78,6 +79,7 @@ import com.thsst2.greenapp.data.UserLogEntity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlin.Long
+import kotlin.math.sqrt
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -124,6 +126,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var geofencingClient: GeofencingClient
 	private val LOCATION_PERMISSION_CODE = 2001
 	private var tourStarted = false
+	private var hasPassedEntryCheck = false
+	private var numChecks = 0
+	private var inGeofenceOrTransition = false
 
 	private val buildingReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
@@ -133,24 +138,24 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			messages.add("Bot: You entered $name")
 			val building = List<String>(1) { poiId }
 
+			// TODO: Add format so can output properly
 			lifecycleScope.launch {
 				onBuildingEntered(name)
 				lifecycleScope.launch {
 					val buildingData = ragEngine.getData(building, building)
-					val poiData = db.localDataDao().getLocalData(userId)
+//					val poiData = db.localDataDao().getLocalData(userId)
 					val aiPrompt = """
 					You are an AI tour guide for De La Salle University.
 
-					TASK:
+					TASK:	
 					When a user enters a geofenced building, display a short and informative introduction based only on the building’s data.
 					
 					INPUT:
 					Building Data: $buildingData
-					Poi Data: $poiData
 					
 					INSTRUCTIONS:
 					1. Read and understand the building data.
-					2. Use poi data to get more relevant building information. Only use the data that is related to the current building ${name} or ${poiId}.
+					2. Use building data to get relevant building information. Only use the data that is related to the current building ${name} or ${poiId}.
 					3. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
 					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
 					5. Do not invent information that isn’t provided.
@@ -165,7 +170,77 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
 						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 							if (response.isSuccessful) {
-								val botReply = response.body()?.response ?: "Tour overview ready."
+								val botReply = response.body()?.response ?: "Area Entered!"
+								messages.add("Bot: $botReply")
+								adapter.notifyItemInserted(messages.size - 1)
+								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+
+								lifecycleScope.launch {
+									dialogueHistoryDao.insert(
+										DialogueHistoryEntity(
+											userId = userId,
+											userText = "geofence trigger",
+											systemResponse = botReply,
+											contextSnapshot = aiPrompt,
+											turnNumber = messages.size
+										)
+									)
+								}
+							} else {
+								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+							}
+						}
+
+						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+							Log.e("ChatApi", "Error: ${t.message}", t)
+						}
+					})
+				}
+			}
+		}
+	}
+
+	private val floorReceiver = object : BroadcastReceiver() {
+		override fun onReceive(context: Context?, intent: Intent?) {
+			val floor = intent?.getIntExtra("floorNumber", 0) ?: return
+			if (floor == 0) return // Invalid floor
+			val poiId = intent.getStringExtra("poiId") ?: return
+
+			messages.add("Bot: You selected $floor")
+			val building = List<String>(1) { poiId }
+
+			// TODO: Add format so can output properly
+			lifecycleScope.launch {
+				onFloorSelected(floor)
+				lifecycleScope.launch {
+					val buildingData = ragEngine.getFloorData(floor, poiId)
+					val aiPrompt = """
+					You are an AI tour guide for De La Salle University.
+
+					TASK:	
+					When a user enters a geofenced building, display a short and informative introduction based only on the building’s data.
+					
+					INPUT:
+					Building Data: $buildingData
+					
+					INSTRUCTIONS:
+					1. Read and understand the building data.
+					2. Use building data to get relevant building information. Only use the data that is related to the current building ${floor} or ${poiId}.
+					3. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
+					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
+					5. Do not invent information that isn’t provided.
+					6. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
+					7. Start with the description immediately, don't add any other reply and be engaging.
+					
+					EXAMPLE OUTPUT:
+						  Henry Sy Sr. Hall,
+						  Welcome to Henry Sy Sr. Hall — a 14-story academic complex that houses modern classrooms, research facilities, and student spaces overlooking the DLSU campus.
+				""".trimIndent()
+
+					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+							if (response.isSuccessful) {
+								val botReply = response.body()?.response ?: "Area Entered!"
 								messages.add("Bot: $botReply")
 								adapter.notifyItemInserted(messages.size - 1)
 								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
@@ -226,7 +301,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		userInteractionTimeDao = db.userInteractionTimeDao()
 		userLogDao = db.userLogDao()
 		sessionLogDao = db.sessionLogDao()
-
+		numChecks
 
 		// Initialize map top fragment
 		val mapFragment = supportFragmentManager.findFragmentById(R.id.home_map_fragment)
@@ -310,8 +385,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		// Setup location and geofencing
 		setupLocationAndGeofence()
+
 		LocalBroadcastManager.getInstance(this)
 			.registerReceiver(buildingReceiver, IntentFilter("BUILDING_ENTERED"))
+
+		LocalBroadcastManager.getInstance(this)
+			.registerReceiver(floorReceiver, IntentFilter("FLOOR_SELECTED"))
 
 
 		mapFragment.getMapAsync @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION]) { googleMap ->
@@ -480,9 +559,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 		}
 
+		// TODO: Add format so can output properlyv
 		// If user wants a tour, call TourCoordinator
-		if (dmResult.intent == IntentType.START_TOUR && !tourStarted) {
+		if (dmResult.intent == IntentType.FINALIZE_PREFS && !tourStarted) {
+			dmResult.intent == IntentType.START_TOUR
 			tourStarted = true
+
+			Log.d("HomeActivity", "Intent: ${dmResult.intent}")
+			Log.d("HomeActivity", "Message: ${dmResult.message}")
+			Log.d("HomeActivity", "Tour Started: $tourStarted")
 			lifecycleScope.launch {
 //				homeBinding.mapLoadingIndicator.visibility = View.VISIBLE // show loading
 //				delay(100)
@@ -522,7 +607,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					POI Data: $poiData
 		
 					INSTRUCTIONS:
-					1. Write ONE continuous paragraph.
+					1. Write sectioned paragraphs.
 					2. Start from the beginning of the tour.
 					3. Do NOT include headings, labels, greetings, or conclusions.
 					4. Do NOT repeat or restart the text.
@@ -535,6 +620,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					EXAMPLE:
 					  	Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall...
 				""".trimIndent()
+
+				Log.d("HomeActivity", "aiPrompt: $aiPrompt")
 
 				chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
 					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
@@ -566,9 +653,39 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				})
 			}
 		} else if (dmResult.intent == IntentType.ASK_INFO) {
+
+			// TODO: Add format so can output properly
 			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
-			val poiData = db.localDataDao().getLocalData(userId)
+//			val poiData = db.localDataDao().getLocalData(userId)
 			val startingPoint = null
+			val allTags = ragEngine.getPreferencesListForProfilePage()
+			val aiTagPrompt = """
+				You are an AI that identifies relevant tags from a user's query.
+
+				USER QUERY: "$userMessage"
+		
+				AVAILABLE TAGS: $allTags
+		
+				TASK:
+				1. Read the user's query carefully.
+				2. Return only the tags that are relevant to this query.
+				3. Output the tags as a JSON array of strings, e.g. ["fn_academic", "acc_braille"]
+			""".trimIndent()
+
+			val relevantTags: List<String> = try {
+				val tagResponse = chatApi.generate(ChatRequest(aiTagPrompt)).execute().body()?.response
+				Gson().fromJson(tagResponse, Array<String>::class.java).toList()
+			} catch (e: Exception) {
+				Log.e("ChatApi", "Tag extraction failed: ${e.message}")
+				emptyList()
+			}
+
+			Log.d("HomeActivity", "Tags Chosen: $relevantTags")
+
+
+			// Filter POI data based on relevant tags
+			val filteredPoiData = ragEngine.filterPoiData(relevantTags)
+
 			val aiPrompt = """
 				You are an AI tour guide for De La Salle University.
 	
@@ -577,10 +694,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				User Query: $userMessage
 				User Role: $userRoleName
 				Preferences: $allPreferences
+				Relevant Tags: $relevantTags
 				Starting Location: $startingPoint
 	
 				POI Sequence: $poiJson
-				POI Data: $poiData
+       			POI Data: ${Gson().toJson(filteredPoiData)}
 	
 				INSTRUCTIONS:
 				1. Write a short, accurate response to the user query
@@ -595,7 +713,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
 				override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 					if (response.isSuccessful) {
-						val botReply = response.body()?.response ?: "Tour overview ready."
+						val botReply = response.body()?.response ?: "Answer:"
 						messages.add("Bot: $botReply")
 						adapter.notifyItemInserted(messages.size - 1)
 						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
@@ -762,6 +880,88 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val location = locationResult.lastLocation
 				if (location != null) {
 					Log.d("HomeActivity", "Current location: ${location.latitude}, ${location.longitude}")
+					if (numChecks == 0) {
+						lifecycleScope.launch {
+							val pois = RAGEngine().getBuildings()
+
+							for (poi in pois) {
+								val results = FloatArray(1)
+
+								Location.distanceBetween(
+									location.latitude,
+									location.longitude,
+									poi.latitude,
+									poi.longitude,
+									results
+								)
+
+								val distance = results[0]
+
+								Log.d("HomeActivity", "Distance: ${distance}, Radius: ${poi.radius}")
+								if (distance <= poi.radius) {
+									hasPassedEntryCheck = true
+									break
+								}
+							}
+
+							hasPassedEntryCheck = true //Temporary for testing
+							if (!hasPassedEntryCheck) {
+//								finishAffinity()
+							}
+						}
+						numChecks += 1
+					} else {
+						lifecycleScope.launch {
+							val pois = RAGEngine().getBuildings()
+							val transitions = RAGEngine().getTransitions()
+							var inGeofenceOrTransition = false
+
+							for (poi in pois) {
+								val results = FloatArray(1)
+
+								Location.distanceBetween(
+									location.latitude,
+									location.longitude,
+									poi.latitude,
+									poi.longitude,
+									results
+								)
+
+								val distance = results[0]
+
+								// Use formula of getting square inside circle [r * sqrt(2)] to get the side of the square.
+								// Divide by 2 to draw a small inner circle, ensuring entry is only inside the building.
+								if (distance <= (poi.radius * sqrt(2.0)) / 2) {
+									inGeofenceOrTransition = true
+									break
+								}
+							}
+
+							for (transition in transitions) {
+								val results = FloatArray(1)
+
+								Location.distanceBetween(
+									location.latitude,
+									location.longitude,
+									transition.latitude,
+									transition.longitude,
+									results
+								)
+
+								val distance = results[0]
+
+								if (distance <= transition.radius) {
+									inGeofenceOrTransition = true
+									break
+								}
+							}
+
+							inGeofenceOrTransition = true //Temporary for testing
+							if (!inGeofenceOrTransition || !hasPassedEntryCheck) {
+//								finishAffinity()
+							}
+						}
+					}
 				}
 			}
 		}
@@ -774,7 +974,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private fun setupGeofences() {
 		lifecycleScope.launch {
 			try {
-				val pois = db.poiDao().getAll()
+//				val pois = db.poiDao().getAll()
+				val pois = RAGEngine().getBuildings()
 				if (pois.isEmpty()) {
 					Toast.makeText(this@AndroidSmallHomeActivity, "No POIs found.", Toast.LENGTH_SHORT).show()
 					return@launch
@@ -840,6 +1041,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 	}
 
+	private fun onFloorSelected(floor: Int) {
+		messages.add("Bot: You selected $floor")
+		adapter.notifyItemInserted(messages.size - 1)
+		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+	}
 
 	private suspend fun drawMarkers(googleMap: GoogleMap, pois: List<PoiEntity>) = withContext(Dispatchers.Main) {
 		if (pois.isEmpty()) {
@@ -927,6 +1133,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val selectedFloor = which + 1
 				saveFloorSelection(poi, selectedFloor)
 				MapState.selectedFloor = selectedFloor
+
+				val intent = Intent("FLOOR_SELECTED")
+				intent.putExtra("floorNumber", selectedFloor)
+				intent.putExtra("poiId", poi.poiId)
+				LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
 			}
 			.setNegativeButton("Cancel", null)
 			.show()

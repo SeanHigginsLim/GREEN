@@ -23,6 +23,7 @@ import com.thsst2.greenapp.data.*
         PerformanceMetricsEntity::class,
         PoiEntity::class,
         ResponseJustificationEntity::class,
+        TransitionEntity::class,
         UserQueryEntity::class,
         UserLogEntity::class,
         UserFeedbackEntity::class,
@@ -32,7 +33,7 @@ import com.thsst2.greenapp.data.*
         UserVisitedLocationEntity::class,
         UserSkippedOrDislikedLocationEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(TypeConverter::class)
@@ -52,6 +53,7 @@ abstract class MyAppDatabase : RoomDatabase() {
     abstract fun performanceMetricsDao(): PerformanceMetricsDao
     abstract fun poiDao(): PoiDao
     abstract fun responseJustificationDao(): ResponseJustificationDao
+    abstract fun transitionDao(): TransitionDao
     abstract fun userQueryDao(): UserQueryDao
     abstract fun userLogDao(): UserLogDao
     abstract fun userFeedbackDao(): UserFeedbackDao

@@ -90,7 +90,7 @@ dependencies {
 
     //Location and Maps
     implementation("com.google.android.gms:play-services-location:21.3.0")
-    implementation("com.google.android.gms:play-services-maps:19.2.0")
+    implementation("com.google.android.gms:play-services-maps:20.0.0")
 
     //Room
     implementation("androidx.room:room-runtime:2.8.1")
