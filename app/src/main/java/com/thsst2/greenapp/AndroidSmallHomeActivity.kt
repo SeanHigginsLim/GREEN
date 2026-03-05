@@ -213,28 +213,29 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			lifecycleScope.launch {
 				onFloorSelected(floor)
 				lifecycleScope.launch {
-					val buildingData = ragEngine.getFloorData(floor, poiId)
+					val floorData = ragEngine.getFloorData(floor, poiId)
 					val aiPrompt = """
 					You are an AI tour guide for De La Salle University.
 
 					TASK:	
-					When a user enters a geofenced building, display a short and informative introduction based only on the building’s data.
+					When a user enters a geofenced building, display a short and informative introduction based only on the floor’s data.
 					
 					INPUT:
-					Building Data: $buildingData
+					Floor Data: $floorData
 					
 					INSTRUCTIONS:
-					1. Read and understand the building data.
-					2. Use building data to get relevant building information. Only use the data that is related to the current building ${floor} or ${poiId}.
-					3. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
+					1. Read and understand the floor data.
+					2. Use floor data to get relevant floor information. Only use the data that is related to the current building ${floor}.
+					3. Generate a short, friendly description of this floor — its amenities, labels, notes, and any notable details from the data.
 					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
 					5. Do not invent information that isn’t provided.
 					6. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
 					7. Start with the description immediately, don't add any other reply and be engaging.
 					
 					EXAMPLE OUTPUT:
-						  Henry Sy Sr. Hall,
-						  Welcome to Henry Sy Sr. Hall — a 14-story academic complex that houses modern classrooms, research facilities, and student spaces overlooking the DLSU campus.
+						  Henry Sy Sr. Hall Floor 12,
+						  Welcome to the 12th floor. The 12th floor includes the library, escalators, and bathrooms. 
+						  Inside the library, there are multiple books to read, and a cozy place to stay.
 				""".trimIndent()
 
 					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
@@ -887,6 +888,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 							for (poi in pois) {
 								val results = FloatArray(1)
 
+								// For Hector check as references
 								Location.distanceBetween(
 									location.latitude,
 									location.longitude,

@@ -19,7 +19,7 @@
         private val db = FirebaseDatabase.getInstance().reference
         private val gson = Gson()
 
-        // TODO: Change. Will use mapping of names, but return tags.
+        // Maps each preference name to their corresponding ID
         suspend fun mapPreferencesToTagNames(preferences: List<String>?): List<String> {
             if (preferences.isNullOrEmpty()) return emptyList()
 
@@ -63,6 +63,7 @@
             return matchedTagIds
         }
 
+        // Return list of preference choices
         suspend fun getPreferencesListForProfilePage(): List<String> {
             val annotationTagsSnapshot = db
                 .child("server_side")
@@ -70,9 +71,22 @@
                 .get()
                 .await()
 
+            val buildingsSnapshot = db
+                .child("server_side")
+                .child("pre_collected_data")
+                .child("building")
+                .get()
+                .await()
+
             val preferencesChoices = mutableListOf<String>()
 
             for (tagTypeSnapshot in annotationTagsSnapshot.children) {
+                // Skip interaction_tags
+                if (tagTypeSnapshot.key == "interaction_tags") {
+                    Log.d("RAGEngine", "Skipping interaction_tags")
+                    continue
+                }
+
                 for(preferencesChoiceSnapshot in tagTypeSnapshot.children){
                     try {
                         Log.d("RAGEngine", preferencesChoiceSnapshot.value.toString())
@@ -84,16 +98,34 @@
                             preferencesChoices.add(label)
                         }
 
-                        Log.d("RAGEngine", "Added preference: $label for roles $preferencesChoices")
+                        Log.d("RAGEngine", "Added preference: $label for preferences $preferencesChoices")
                     } catch (e: Exception) {
                         Log.d("RAGEngine", "Error parsing preferencesChoices: ${e.message}")
                     }
                 }
             }
 
+            for (buildingSnapshot in buildingsSnapshot.children) {
+                try {
+                    Log.d("RAGEngine", buildingSnapshot.value.toString())
+                    val name = buildingSnapshot
+                        .child("name")
+                        .getValue(String::class.java)
+
+                    if (name != null) {
+                        preferencesChoices.add(name)
+                    }
+
+                    Log.d("RAGEngine", "Added preference: $name for preferences $preferencesChoices")
+                } catch (e: Exception) {
+                    Log.d("RAGEngine", "Error parsing preferencesChoices: ${e.message}")
+                }
+            }
+
             return preferencesChoices
         }
 
+        // Return list of roles
         suspend fun getRoleList(): List<String> {
             val rolesSnapshot = db
                 .child("server_side")
@@ -120,9 +152,7 @@
             return roles
         }
 
-        /**
-         * Fetches POIs from the Realtime Database that match the user’s preferences.
-         */
+        // Return POIs from the Database that match the user’s preferences (Match tags or ids to return POI information)
         suspend fun getRelevantPOINames(preferences: List<String>?): List<PoiEntity> {
             if (preferences.isNullOrEmpty()) return emptyList()
 
@@ -188,7 +218,7 @@
             return pois
         }
 
-        // Get matching points of interest
+        // Call recursiveFetchMatchingNodes (For Generating Tour Overview)
         suspend fun getData(poiIds: List<String>, preferences: List<String>?): String {
             Log.d("RAGEngine", "Fetching data for POIs: $poiIds")
             Log.d("RAGEngine", "Fetching data for Preferences: $preferences")
@@ -205,6 +235,10 @@
             return jsonResult
         }
 
+        // Create one for Hector get lat and lon
+        // pass israndom
+        // get tags with student
+        // Get relevant data based on tags
         suspend fun recursiveFetchMatchingNodes(
             ref: DatabaseReference,
             preferences: List<String>?,
@@ -256,7 +290,7 @@
             return matched
         }
 
-        // Get data for relevant POIs
+        // Call recursiveFilterPoiData (For answering User Queries)
         suspend fun filterPoiData(relevantTags: List<String>?): String {
             Log.d("RAGEngine", "Fetching data for Relevant Tags: $relevantTags")
             val matchedData = recursiveFilterPoiData(
@@ -271,6 +305,7 @@
             return jsonResult
         }
 
+        // Get specific query data using relevant tags
         suspend fun recursiveFilterPoiData(
             ref: DatabaseReference,
             relevantTags: List<String>?,
@@ -393,6 +428,7 @@
             val weight: Double
         )
 
+        // Return knowledge graph as adjacency list
         suspend fun getKnowledgeGraph(): Map<String, List<Edge>> {
             val poiSnapshot = db.child("poi_nodes").get().await()
 
@@ -420,6 +456,7 @@
             return adjacencyList
         }
 
+        // Return list of all buildings (For displaying geofences and distance measurement)
         suspend fun getBuildings(): List<PoiEntity> {
             val buildingsSnapshot = db
                 .child("server_side")
@@ -460,8 +497,6 @@
                     val floors = building.child("floors").getValue(Int::class.java) ?: 0
 
                     // Create POI entity and add to list
-
-
                     val poi = PoiEntity(
                         poiId = poiId,
                         generatedPathId = null,
@@ -483,6 +518,7 @@
             return pois
         }
 
+        // Return list of transition areas
         suspend fun getTransitions(): List<TransitionEntity> {
             val transitionsSnapshot = db
                 .child("server_side")
@@ -521,6 +557,7 @@
             return transitions
         }
 
+        // Return floor functions data
         suspend fun getFloorFunctions(floor: String): List<String> {
             val floorFunctionsSnapshot = db
                 .child("server_side")
