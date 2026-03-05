@@ -234,10 +234,6 @@
             val jsonResult = gson.toJson(matchedData)
             return jsonResult
         }
-
-        // Create one for Hector get lat and lon
-        // pass israndom
-        // get tags with student
         // Get relevant data based on tags
         suspend fun recursiveFetchMatchingNodes(
             ref: DatabaseReference,

@@ -120,6 +120,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private var sessionId: Long = 0
 	private var userId: Long = 0
 
+    // Store current location
+    private var currentLatitude: Double? = null
+    private var currentLongitude: Double? = null
+
 	// Geofencing
 	private lateinit var fusedLocationClient: FusedLocationProviderClient
 	private var locationCallback: LocationCallback? = null
@@ -138,7 +142,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			messages.add("Bot: You entered $name")
 			val building = List<String>(1) { poiId }
 
-			// TODO: Add format so can output properly
 			lifecycleScope.launch {
 				onBuildingEntered(name)
 				lifecycleScope.launch {
@@ -209,7 +212,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			messages.add("Bot: You selected $floor")
 			val building = List<String>(1) { poiId }
 
-			// TODO: Add format so can output properly
 			lifecycleScope.launch {
 				onFloorSelected(floor)
 				lifecycleScope.launch {
@@ -560,7 +562,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 		}
 
-		// TODO: Add format so can output properlyv
 		// If user wants a tour, call TourCoordinator
 		if (dmResult.intent == IntentType.FINALIZE_PREFS && !tourStarted) {
 			dmResult.intent == IntentType.START_TOUR
@@ -572,9 +573,19 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			lifecycleScope.launch {
 //				homeBinding.mapLoadingIndicator.visibility = View.VISIBLE // show loading
 //				delay(100)
+                val lat = currentLatitude
+                val long = currentLongitude
+
+                if (lat == null || long == null) {
+                    Log.e("HomeActivity", "Cannot start tour: Location not available yet.")
+                    homeBinding.mapLoadingIndicator.visibility = View.GONE
+                    return@launch
+                }
 
 				val userTourPathHistory = withContext(Dispatchers.IO) {
-					tourCoordinator.startTourForUser(userId, allPreferences)
+                    // TODO: Sarah return an isRandom true or false to be used here from the dialogue manager
+                    var isRandom = true //Temporary, change to false when implemented, and set manually to true
+					tourCoordinator.startTourForUser(userId, allPreferences, lat, long, isRandom)
 				}
 
 				// draw path
@@ -655,7 +666,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			}
 		} else if (dmResult.intent == IntentType.ASK_INFO) {
 
-			// TODO: Add format so can output properly
 			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
 //			val poiData = db.localDataDao().getLocalData(userId)
 			val startingPoint = null
@@ -792,7 +802,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	// TOUR END
 	private fun endTour(userId: Long, sessionId: Long) {
-		// TODO: Save performance metrics
+		// TODO: Hector save performance metrics
 		lifecycleScope.launch {
 			userLogDao.insert(
 				UserLogEntity(
@@ -881,6 +891,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val location = locationResult.lastLocation
 				if (location != null) {
 					Log.d("HomeActivity", "Current location: ${location.latitude}, ${location.longitude}")
+                    // Save current location
+                    currentLatitude = location.latitude
+                    currentLongitude = location.longitude
+
 					if (numChecks == 0) {
 						lifecycleScope.launch {
 							val pois = RAGEngine().getBuildings()
@@ -916,7 +930,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 						lifecycleScope.launch {
 							val pois = RAGEngine().getBuildings()
 							val transitions = RAGEngine().getTransitions()
-							var inGeofenceOrTransition = false
+							inGeofenceOrTransition = false
 
 							for (poi in pois) {
 								val results = FloatArray(1)

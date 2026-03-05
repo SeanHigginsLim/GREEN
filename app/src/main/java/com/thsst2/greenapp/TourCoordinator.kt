@@ -19,7 +19,7 @@ class TourCoordinator(private val context: Context) {
     private val tempPreferences = mutableListOf<String>()
     private val metricsCollector = MetricsCollector(db)
 
-    suspend fun startTourForUser(userId: Long, preferences: List<String>?): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
+    suspend fun startTourForUser(userId: Long, preferences: List<String>?, currentLatitude: Double, currentLongitude: Double, isRandom: Boolean): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
         Log.d("TourCoordinator", "In Tour Coordinator")
         try {
             val startTime = System.currentTimeMillis()
@@ -34,7 +34,7 @@ class TourCoordinator(private val context: Context) {
             }
 
             Log.d("TourCoordinator", "Starting tour with prefs: ${prefs.interests}")
-            Log.d("TourCoordinator", "Mapped Preferences ${databaseMappedPreferences}")
+            Log.d("TourCoordinator", "Mapped Preferences $databaseMappedPreferences")
 
             // Retrieve relevant POIs using RAGEngine
             val relevantPOIs = RAGEngine.getRelevantPOINames(databaseMappedPreferences)
@@ -69,9 +69,11 @@ class TourCoordinator(private val context: Context) {
             // Generate path using the algos
             val path = tourPathPlanner.planTour(
                 knowledgeGraph = knowledgeGraphPoi,
-                startPoint = null,
+                currentLatitude = currentLatitude,
+                currentLongitude = currentLongitude,
+                relevantPOIs = relevantPOIs,
                 preferences = relevantPOIs.take(3), // top few as "preferred"
-                ordered = ordered
+                isRandom = isRandom
             )
             Log.d("TourCoordinator", "Path: $path")
 
