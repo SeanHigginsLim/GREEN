@@ -14,51 +14,59 @@ class MultiGoalDijkstra {
      * @param graph Knowledge graph with weighted edges from Firebase
      * @param preferences Unordered list of POIs to visit optimally
      * @param startPoint Optional starting location (e.g., user's current location or preferred start)
+     * @param dislikedPoiIds Set of POI IDs to exclude from the path (skipped/disliked locations)
      */
     fun findPath(
         graph: PoiGraph,
         preferences: List<PoiEntity>,
-        startPoint: PoiEntity? = null
+        startPoint: PoiEntity? = null,
+        dislikedPoiIds: Set<String> = emptySet()
     ): List<PoiEntity> {
         
         val allPois = graph.getAllNodes().toList()
         
-        // No preferences: return all POIs as path
-        if (preferences.isEmpty()) return allPois
+        // Filter out disliked POIs from all available POIs
+        val availablePois = allPois.filter { it.poiId !in dislikedPoiIds }
         
-        // Single preference: return path with this POI plus remaining POIs
-        if (preferences.size == 1) {
+        // Filter out disliked POIs from preferences as well
+        val filteredPreferences = preferences.filter { it.poiId !in dislikedPoiIds }
+        
+        // No preferences: return available POIs as path
+        if (filteredPreferences.isEmpty()) return availablePois
+        
+        // Single preference: return path with this POI plus remaining
+        if (filteredPreferences.size == 1) {
             // If start point provided, build path: startPoint -> preference -> remaining
-            return if (startPoint != null && startPoint.poiId != preferences[0].poiId) {
-                val remaining = allPois.filterNot { 
-                    it.poiId == preferences[0].poiId || it.poiId == startPoint.poiId 
+            return if (startPoint != null && startPoint.poiId != filteredPreferences[0].poiId && startPoint.poiId !in dislikedPoiIds) {
+                val remaining = availablePois.filterNot { 
+                    it.poiId == filteredPreferences[0].poiId || it.poiId == startPoint.poiId 
                 }
-                listOf(startPoint) + preferences + remaining
+                listOf(startPoint) + filteredPreferences + remaining
             } else {
-                val remaining = allPois.filterNot { it.poiId == preferences[0].poiId }
-                preferences + remaining
+                val remaining = availablePois.filterNot { it.poiId == filteredPreferences[0].poiId }
+                filteredPreferences + remaining
             }
         }
         
         // Multi-Goal optimization: find fastest path order through preferences using weighted edges
         data class State(val poi: PoiEntity, val unvisited: Int, val path: List<PoiEntity>, val cost: Double)
         
-        val goalIndices = preferences.withIndex().associate { it.value.poiId to it.index }
+        val goalIndices = filteredPreferences.withIndex().associate { it.value.poiId to it.index }
         val allVisited = 0  // All bits 0 = all goals visited
         
         val openSet = PriorityQueue<State>(compareBy { it.cost })
         val visited = mutableSetOf<Pair<String, Int>>()
         
         // If start point provided, begin from there; otherwise try each preference as start
-        if (startPoint != null && startPoint.poiId !in goalIndices) {
+        if (startPoint != null && startPoint.poiId !in goalIndices && startPoint.poiId !in dislikedPoiIds) {
             // Start from user location, visit all preferences
-            val startMask = (1 shl preferences.size) - 1
+            val startMask = (1 shl filteredPreferences.size) - 1
             openSet.add(State(startPoint, startMask, listOf(startPoint), 0.0))
         } else {
             // Try starting from each preference to find globally optimal path
-            preferences.forEach { start ->
+            filteredPreferences.forEach { start ->
                 val startIndex = goalIndices[start.poiId]!!
-                val startMask = ((1 shl preferences.size) - 1) xor (1 shl startIndex)
+                val startMask = ((1 shl filteredPreferences.size) - 1) xor (1 shl startIndex)
                 
                 // If startPoint is one of the preferences, prioritize starting there
                 val initialCost = if (startPoint != null && start.poiId == startPoint.poiId) 0.0 else 0.0
@@ -72,8 +80,8 @@ class MultiGoalDijkstra {
             // Found complete fastest path through all preferences
             if (current.unvisited == allVisited) {
                 // Append remaining POIs from knowledge graph to complete the path
-                val remaining = allPois.filterNot { poi -> 
-                    preferences.any { pref -> pref.poiId == poi.poiId } ||
+                val remaining = availablePois.filterNot { poi -> 
+                    filteredPreferences.any { pref -> pref.poiId == poi.poiId } ||
                     (startPoint != null && poi.poiId == startPoint.poiId)
                 }
                 return current.path + remaining

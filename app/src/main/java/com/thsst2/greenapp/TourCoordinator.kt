@@ -19,7 +19,13 @@ class TourCoordinator(private val context: Context) {
     private val tempPreferences = mutableListOf<String>()
     private val metricsCollector = MetricsCollector(db)
 
-    suspend fun startTourForUser(userId: Long, preferences: List<String>?, currentLatitude: Double, currentLongitude: Double, isRandom: Boolean): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
+    suspend fun startTourForUser(
+        userId: Long, 
+        preferences: List<String>?,
+        currentLatitude: Double,
+        currentLongitude: Double,
+        isRandom: Boolean
+    ): UserTourPathHistoryEntity? = withContext(Dispatchers.IO) {
         Log.d("TourCoordinator", "In Tour Coordinator")
         try {
             val startTime = System.currentTimeMillis()
@@ -34,7 +40,7 @@ class TourCoordinator(private val context: Context) {
             }
 
             Log.d("TourCoordinator", "Starting tour with prefs: ${prefs.interests}")
-            Log.d("TourCoordinator", "Mapped Preferences $databaseMappedPreferences")
+            Log.d("TourCoordinator", "Mapped Preferences ${databaseMappedPreferences}")
 
             // Retrieve relevant POIs using RAGEngine
             val relevantPOIs = RAGEngine.getRelevantPOINames(databaseMappedPreferences)
@@ -42,8 +48,6 @@ class TourCoordinator(private val context: Context) {
                 Log.w("TourCoordinator", "No POIs found for preferences: ${prefs.interests}")
                 return@withContext null
             }
-
-            Log.d("TourCoordinator", "Relevant POIs ${relevantPOIs}")
 
             val knowledgeGraph = RAGEngine.getKnowledgeGraph()
 
@@ -54,9 +58,6 @@ class TourCoordinator(private val context: Context) {
                 .toSet()
 
             val disinterests = prefs.disinterests ?: emptyList()
-
-            //Determine ordered flag
-            val ordered = prefs.tourPace?.contains("ordered", ignoreCase = true) ?: false
 
             // Convert Firebase knowledge graph format to PoiGraph
             val knowledgeGraphPoi = PoiGraph(
@@ -73,6 +74,7 @@ class TourCoordinator(private val context: Context) {
                 currentLongitude = currentLongitude,
                 relevantPOIs = relevantPOIs,
                 preferences = relevantPOIs.take(3), // top few as "preferred"
+                dislikedPoiIds = dislikedIds,
                 isRandom = isRandom
             )
             Log.d("TourCoordinator", "Path: $path")
@@ -92,11 +94,7 @@ class TourCoordinator(private val context: Context) {
                 userId = userId,
                 pathType = "Generated",
                 estimatedDuration = "${path.size * 10} min",
-                routeAlgorithm = when {
-                    ordered -> "ChainedAStar"
-                    prefs.interests.isNotEmpty() -> "MultiLabelAStar"
-                    else -> "RandomBFS"
-                }
+                routeAlgorithm = if (isRandom) "RandomBFS" else "MultiGoalDijkstra"
             )
             pathId = db.generatedPathDao().insert(generatedPathEntity)
 
