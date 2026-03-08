@@ -90,6 +90,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var sessionManager: SessionManager
 	private lateinit var tourCoordinator: TourCoordinator
 	private lateinit var dialogueManager: DialogueManager
+	private lateinit var metricsCollector: MetricsCollector
 
 	private lateinit var ragEngine: RAGEngine
 	private var sessionEnded = false
@@ -304,6 +305,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		userInteractionTimeDao = db.userInteractionTimeDao()
 		userLogDao = db.userLogDao()
 		sessionLogDao = db.sessionLogDao()
+		metricsCollector = MetricsCollector(db)
 		numChecks
 
 		// Initialize map top fragment
@@ -802,8 +804,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	// TOUR END
 	private fun endTour(userId: Long, sessionId: Long) {
-		// TODO: Hector save performance metrics
 		lifecycleScope.launch {
+			// Finalize and save performance metrics for this session
+			metricsCollector.finalizeSessionMetrics(sessionId)
+			
 			userLogDao.insert(
 				UserLogEntity(
 					userId = userId,
