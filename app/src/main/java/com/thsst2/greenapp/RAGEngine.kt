@@ -218,6 +218,70 @@
             return pois
         }
 
+        // Get matched user role data
+        suspend fun getUserRoleData(userRole: String): List<PoiEntity> {
+            val buildingsSnapshot = db
+                .child("server_side")
+                .child("pre_collected_data")
+                .child("buildings")
+                .get()
+                .await()
+
+            Log.d("RAGEngine", "Retrieved ${buildingsSnapshot.childrenCount} buildings from Firebase.")
+
+            val pois = mutableListOf<PoiEntity>()
+
+            Log.d("DEBUG", "User Role: $userRole")
+            // Loop through all buildings
+            for (building in buildingsSnapshot.children) {
+                try {
+                    Log.d("RAGEngine", "${building.child("building_id").getValue(String::class.java)}")
+                    val accessibility = building.child("accessibility").children.mapNotNull { it.value as? String }
+                    val poiId = building.child("building_id").getValue(String::class.java) ?: continue
+                    val name = building.child("name").getValue(String::class.java) ?: ""
+                    val description = building.child("description").getValue(String::class.java) ?: ""
+
+                    // Extract tags
+                    val functionTags = building.child("function_tags").children.mapNotNull { it.value as? String }
+                    val locationTags = building.child("location_tags").children.mapNotNull { it.value as? String }
+                    val typeTags = building.child("type_tags").children.mapNotNull { it.value as? String }
+
+                    val allTags = accessibility + functionTags + locationTags + typeTags
+
+                    // Check if any tag matches the user's preferences
+                    val matches = userRole.any { role ->
+                        poiId.contains(role, ignoreCase = true) ||
+                                allTags.any { tag -> tag.equals(role.toString(), ignoreCase = true) }
+                    }
+
+                    matches.let { if (!it) continue }  // Skip if no match found
+
+                    // Extract coordinates
+                    val geo = building.child("coordinates")
+                    val lat = geo.child("lat").getValue(Double::class.java) ?: 0.0
+                    val lng = geo.child("lng").getValue(Double::class.java) ?: 0.0
+
+                    // Create POI entity and add to list
+                    val poi = PoiEntity(
+                        poiId = poiId,
+                        generatedPathId = null,
+                        name = name,
+                        description = description,
+                        category = allTags,
+                        latitude = lat,
+                        longitude = lng
+                    )
+
+                    pois.add(poi)
+                    Log.d("RAGEngine", "Added matching POI: $name for role $userRole")
+                } catch (e: Exception) {
+                    Log.e("RAGEngine", "Error parsing building: ${e.message}")
+                }
+            }
+
+            return pois
+        }
+
         // Call recursiveFetchMatchingNodes (For Generating Tour Overview)
         suspend fun getData(poiIds: List<String>, preferences: List<String>?): String {
             Log.d("RAGEngine", "Fetching data for POIs: $poiIds")
