@@ -283,7 +283,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		FirebaseApp.initializeApp(this)
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
-		tourCoordinator = TourCoordinator(this)
+		tourCoordinator = TourCoordinator(userId, this)
 		dialogueManager = DialogueManager(this)
 		ragEngine = RAGEngine()
 

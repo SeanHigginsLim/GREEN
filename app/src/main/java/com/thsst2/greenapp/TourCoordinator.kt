@@ -10,11 +10,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.String
 
-class TourCoordinator(private val context: Context) {
+class TourCoordinator(userId: Long, private val context: Context) {
 
     private val db = MyAppDatabase.getInstance(context)
     private val RAGEngine = RAGEngine()
-    private val tourPathPlanner = TourPathPlanner()
+    private val tourPathPlanner = TourPathPlanner(userId, context)
     private val FirebaseSync = FirebaseSync()
     private val tempPreferences = mutableListOf<String>()
     private val metricsCollector = MetricsCollector(db)
