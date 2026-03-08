@@ -31,6 +31,7 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 	private var allRoles: List<String> = emptyList()
 
 	private lateinit var ragEngine: RAGEngine
+	private var openedFromChatbotFlow: Boolean = false
 
 //	private val allRoles = listOf("Student", "Faculty", "Guest")
 
@@ -49,7 +50,6 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 
 		// Initial load
 		loadPreferencesTextView()
-		loadUserRoleText()
 
 		// Load all images with glide
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/0228mxps_expires_30_days.png").into(findViewById(R.id.rorhz9ugpp3))
@@ -62,6 +62,7 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 
 		lifecycleScope.launch {
 			allRoles = ragEngine.getRoleList()
+			loadUserRoleText()
 		}
 
 		profileBinding.actionBarSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -91,6 +92,12 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 
 		// Run Navigation Bar
 		setupNavigationBar()
+
+
+		openedFromChatbotFlow = intent.getBooleanExtra("open_prefs_dialog", false)
+		if (openedFromChatbotFlow) {
+			openPreferencesDialog()
+		}
 	}
 
 	private fun loadUserRoleText() {
@@ -193,10 +200,28 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 
 							withContext(Dispatchers.Main) {
 								loadPreferencesTextView()
+
+								if (openedFromChatbotFlow) {
+									val returnIntent = Intent(this@AndroidSmallProfileActivity, AndroidSmallHomeActivity::class.java)
+									returnIntent.putExtra("from_pref_edit", true)
+									returnIntent.putExtra("pref_edit_saved", true)
+									returnIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+									startActivity(returnIntent)
+									finish()
+								}
 							}
 						}
 					}
-					.setNegativeButton("Cancel", null)
+					.setNegativeButton("Cancel") { _, _ ->
+						if (openedFromChatbotFlow) {
+							val returnIntent = Intent(this@AndroidSmallProfileActivity, AndroidSmallHomeActivity::class.java)
+							returnIntent.putExtra("from_pref_edit", true)
+							returnIntent.putExtra("pref_edit_saved", false)
+							returnIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+							startActivity(returnIntent)
+							finish()
+						}
+					}
 					.show()
 			}
 		}

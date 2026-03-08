@@ -323,7 +323,9 @@
 
                 // Check current snapshot for matching data
                 for (data in childSnapshot.children) {
-                    val dataValue = data.getValue(String::class.java) ?: continue
+                    //val dataValue = data.getValue(String::class.java) ?: continue
+                    val rawValue = data.value ?: continue
+                    val dataValue = rawValue.toString()
 
                     // Check if this data matches any user preference
                     val preferenceMatch = preferences?.any { it.equals(dataValue, ignoreCase = true) } == true
@@ -388,7 +390,9 @@
 
                 // Check current snapshot for matching data
                 for (data in childSnapshot.children) {
-                    val dataValue = data.getValue(String::class.java) ?: continue
+                    //val dataValue = data.getValue(String::class.java) ?: continue
+                    val rawValue = data.value ?: continue
+                    val dataValue = rawValue.toString()
 
                     // Check if this data matches any user preference
                     val relevantTagMatch = relevantTags?.any { it.equals(dataValue, ignoreCase = true) } == true
