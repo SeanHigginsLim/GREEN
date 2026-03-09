@@ -57,8 +57,6 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 .map { it.poiId }
                 .toSet()
 
-            val disinterests = prefs.disinterests ?: emptyList()
-
             // Convert Firebase knowledge graph format to PoiGraph
             val knowledgeGraphPoi = PoiGraph(
                 nodes = relevantPOIs.associateBy { it.poiId },
@@ -73,7 +71,7 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 currentLatitude = currentLatitude,
                 currentLongitude = currentLongitude,
                 relevantPOIs = relevantPOIs,
-                preferences = relevantPOIs.take(3), // top few as "preferred"
+                preferences = relevantPOIs,
                 dislikedPoiIds = dislikedIds,
                 isRandom = isRandom
             )
@@ -162,7 +160,7 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 sessionId = sessionId,
                 pathLength = path.size,
                 processingTimeMs = processingTime,
-                preferredPoisCount = relevantPOIs.take(3).size
+                preferredPoisCount = relevantPOIs.size
             )
 
             Log.d("TourCoordinator", "Tour successfully generated with ${path.size} stops.")

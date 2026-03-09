@@ -52,7 +52,7 @@ class RandomBFS {
             // Get neighbors from knowledge graph, then randomize the order for variety
             val graphNeighbors = graph.getEdges(current.poiId)
                 .mapNotNull { edge -> graph.getNode(edge.to) }
-                .filter { it !in visited }
+                .filter { it !in visited && it.poiId !in dislikedPoiIds }
                 .shuffled(Random.Default)
 
             for (neighbor in graphNeighbors) {

@@ -5,31 +5,33 @@ import com.thsst2.greenapp.MyAppDatabase
 import com.thsst2.greenapp.RAGEngine
 import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.graph.PoiGraph
+import kotlinx.coroutines.runBlocking
 
 class TourPathPlanner(
-    private val distanceCalculator: DistanceCalculator = AndroidDistanceCalculator()
+    private val distanceCalculator: DistanceCalculator = AndroidDistanceCalculator(),
+    private val userId: Long? = null,
+    private val db: MyAppDatabase? = null,
+    private val ragEngine: RAGEngine? = null
 ) {
-class TourPathPlanner(private val userId: Long, private val context: Context) {
-    private val db = MyAppDatabase.getInstance(context)
-    private val RAGEngine = RAGEngine()
+    constructor(userId: Long, context: Context) : this(
+        distanceCalculator = AndroidDistanceCalculator(),
+        userId = userId,
+        db = MyAppDatabase.getInstance(context),
+        ragEngine = RAGEngine()
+    )
 
-    // TODO: Update parameter information
     /**
      * Plan a tour using pre-computed knowledge graph from Firebase.
-     * 
-     * The knowledge graph contains weighted edges calculated server-side.
-     * Algorithms use these weights directly for pathfinding - no filtering applied here.
-     * All filtering (preferences, dislikes, interests) should be handled in the knowledge graph itself.
-     * 
-     * @param knowledgeGraph Pre-computed weighted graph from Firebase with filtered POIs and edges
-     * @param currentLatitude User's current GPS latitude
-     * @param currentLongitude User's current GPS longitude
-     * @param relevantPOIs List of POIs available in the knowledge graph
-     * @param preferences List of POIs user wants to visit (already filtered by knowledge graph)
-     * @param dislikedPoiIds Set of POI IDs that user has skipped or disliked
-     * @param isRandom If true, uses RandomBFS for exploration; otherwise uses MultiGoalDijkstra for optimization
+     *
+     * @param knowledgeGraph Weighted graph built from available POIs and edges.
+     * @param currentLatitude User's current GPS latitude.
+     * @param currentLongitude User's current GPS longitude.
+     * @param relevantPOIs POIs available to this planning run.
+     * @param preferences POIs to prioritize for optimized routing.
+     * @param dislikedPoiIds POI IDs excluded from the route.
+     * @param isRandom If true, uses RandomBFS; otherwise uses MultiGoalDijkstra.
      */
-    suspend fun planTour(
+    fun planTour(
         knowledgeGraph: PoiGraph,
         currentLatitude: Double,
         currentLongitude: Double,
@@ -38,61 +40,80 @@ class TourPathPlanner(private val userId: Long, private val context: Context) {
         dislikedPoiIds: Set<String> = emptySet(),
         isRandom: Boolean
     ): List<PoiEntity> {
-        // Find the closest POI to current location to use as starting point
+        val effectiveRelevantPOIs = if (isRandom) {
+            resolveRoleFilteredPOIs(relevantPOIs)
+        } else {
+            relevantPOIs
+        }
+
+        if (effectiveRelevantPOIs.isEmpty()) return emptyList()
+
+        val allowedIds = effectiveRelevantPOIs.map { it.poiId }.toSet()
+        val effectiveGraph = if (isRandom) {
+            PoiGraph(
+                nodes = knowledgeGraph.nodes.filterKeys { it in allowedIds },
+                adjacencyList = knowledgeGraph.adjacencyList
+                    .filterKeys { it in allowedIds }
+                    .mapValues { (_, edges) -> edges.filter { it.to in allowedIds } }
+            )
+        } else {
+            knowledgeGraph
+        }
+
+        val effectivePreferences = preferences.filter { it.poiId in allowedIds }
+
+        // Find closest available POI as start point.
         var closestPOI: PoiEntity? = null
         var minDistance = Float.MAX_VALUE
-        
-        for (poi in relevantPOIs) {
+
+        for (poi in effectiveRelevantPOIs) {
             val distance = distanceCalculator.calculateDistance(
                 currentLatitude,
                 currentLongitude,
                 poi.latitude,
                 poi.longitude
             )
-            
             if (distance < minDistance) {
                 minDistance = distance
                 closestPOI = poi
             }
         }
-        
+
         val startPoint = closestPOI
-        
-        return when {
-            isRandom -> {
-                // Random exploration using BFS
-                RandomBFS().findPath(knowledgeGraph, startPoint, dislikedPoiIds)
+
+        return if (isRandom) {
+            RandomBFS().findPath(effectiveGraph, startPoint, dislikedPoiIds)
+        } else {
+            MultiGoalDijkstra().findPath(effectiveGraph, effectivePreferences, startPoint, dislikedPoiIds)
+        }
+    }
+
+    private fun resolveRoleFilteredPOIs(relevantPOIs: List<PoiEntity>): List<PoiEntity> {
+        if (userId == null || db == null || ragEngine == null) return relevantPOIs
+
+        val roleFiltered = runBlocking {
+            val userRoleEntity = db.userRoleDao().getUserRoleById(userId)
+            val userRole = userRoleEntity?.role
+            val userRoleData = if (!userRole.isNullOrBlank()) {
+                ragEngine.getUserRoleData(userRole)
+            } else {
+                emptyList()
             }
-            else -> {
-                // Optimized tour through preferences using multi-goal optimization
-                MultiGoalDijkstra().findPath(knowledgeGraph, preferences, startPoint, dislikedPoiIds)
+
+            when {
+                userRoleData.isNotEmpty() -> {
+                    val rolePoiIds = userRoleData.map { it.poiId }.toSet()
+                    relevantPOIs.filter { it.poiId in rolePoiIds }
+                }
+                !userRole.isNullOrBlank() -> {
+                    relevantPOIs.filter { poi ->
+                        poi.category.any { tag -> tag.equals(userRole, ignoreCase = true) }
+                    }
+                }
+                else -> relevantPOIs
             }
         }
-        // TODO: SAMPLE LOGIC ONLY. Iterate relevant pois, get latitude and longitude. Use AndroidSmallHomeActivity Location.distanceBetween
-        //      as basis to compare distances between current to the closest relevant poi. Use this as starting point, then iterate over each
-        //      adjacent node from the starting node, compute distance between to choose where to go to(This will be the weight). Use isRandom
-        //      to determing whether or not random bfs or dijkstra. Also, come back to me on why we are using only top 3 preferences?
 
-        val userRoleEntity = db.userRoleDao().getUserRoleById(userId)
-        val userRole = userRoleEntity?.role
-        val userRoleData = RAGEngine.getUserRoleData(userRole.toString())
-
-        return TODO("Provide the return value")
-//        return when {
-////            // No preferences -> random BFS exploration over knowledge graph
-//////            preferences == null || preferences.isEmpty() -> {
-//////                RandomBFS().findPath(knowledgeGraph, startPoint)
-//////            }
-//////
-//////            // Preferences provided, no strict order -> multi-goal optimization
-//////            !ordered -> {
-//////                MultiGoalDijkstra().findPath(knowledgeGraph, preferences, startPoint)
-//////            }
-//////
-//////            // Ordered preferences -> chained Dijkstra
-//////            else -> {
-//////                ChainedDijkstra().findPath(knowledgeGraph, preferences, startPoint, strictOrder)
-//////            }
-//        }
+        return if (roleFiltered.isNotEmpty()) roleFiltered else relevantPOIs
     }
 }
