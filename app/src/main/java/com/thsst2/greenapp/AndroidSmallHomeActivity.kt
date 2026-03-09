@@ -283,7 +283,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		FirebaseApp.initializeApp(this)
 		auth = FirebaseAuth.getInstance()
 		sessionManager = SessionManager(this)
-		tourCoordinator = TourCoordinator(userId, this)
+		//tourCoordinator = TourCoordinator(userId, this)
 		dialogueManager = DialogueManager(this)
 		ragEngine = RAGEngine()
 
@@ -330,6 +330,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		userId = currentUser.uid.hashCode().toLong()
 		Log.d("USER_ID", "Generated userId = $userId (from uid = ${currentUser.uid})")
 		sessionId = UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE
+		tourCoordinator = TourCoordinator(userId, this)
 
 		val user = UserEntity(
 			userId = userId
@@ -558,15 +559,22 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Let DialogueManager process the input
 		val dmResult = dialogueManager.processMessage(userId, userMessage)
 
-		if (dmResult.message.isNotBlank() && dmResult.intent != IntentType.START_TOUR) {
+		if (dmResult.message.isNotBlank()) {
 			messages.add("Bot: ${dmResult.message}")
 			adapter.notifyItemInserted(messages.size - 1)
 			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 		}
 
+		// Open profile preferences edit box
+		if (dmResult.openProfileForPrefs) {
+			val intent = Intent(this@AndroidSmallHomeActivity, AndroidSmallProfileActivity::class.java)
+			intent.putExtra("open_prefs_dialog", true)
+			startActivity(intent)
+			return
+		}
+
 		// If user wants a tour, call TourCoordinator
-		if (dmResult.intent == IntentType.FINALIZE_PREFS && !tourStarted) {
-			dmResult.intent == IntentType.START_TOUR
+		if (dmResult.context == ConversationContext.TOUR_READY && !tourStarted) {
 			tourStarted = true
 
 			Log.d("HomeActivity", "Intent: ${dmResult.intent}")
@@ -585,8 +593,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
                 }
 
 				val userTourPathHistory = withContext(Dispatchers.IO) {
-                    // TODO: Sarah return an isRandom true or false to be used here from the dialogue manager
-                    var isRandom = true //Temporary, change to false when implemented, and set manually to true
+					val isRandom = dmResult.isRandom ?: false
 					tourCoordinator.startTourForUser(userId, allPreferences, lat, long, isRandom)
 				}
 
@@ -1186,6 +1193,26 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					"Floor $floor selected for ${poi.name}",
 					Toast.LENGTH_SHORT
 				).show()
+			}
+		}
+	}
+
+	override fun onNewIntent(intent: Intent) {
+		super.onNewIntent(intent)
+		setIntent(intent)
+
+		val fromPrefEdit = intent.getBooleanExtra("from_pref_edit", false)
+		if (!fromPrefEdit) return
+
+		val didSave = intent.getBooleanExtra("pref_edit_saved", false)
+
+		lifecycleScope.launch {
+			val result = dialogueManager.handleProfilePreferenceResult(userId, didSave)
+
+			if (result.message.isNotBlank()) {
+				messages.add("Bot: ${result.message}")
+				adapter.notifyItemInserted(messages.size - 1)
+				homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 			}
 		}
 	}
