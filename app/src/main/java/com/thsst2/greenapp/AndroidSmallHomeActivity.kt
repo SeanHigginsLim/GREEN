@@ -1054,9 +1054,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 								val distance = results[0]
 
-								// Use formula of getting square inside circle [r * sqrt(2)] to get the side of the square.
-								// Divide by 2 to draw a small inner circle, ensuring entry is only inside the building.
-								if (distance <= (poi.radius * sqrt(2.0)) / 2) {
+								// Simulate a circle inside a square. If a circle is inside a square, the distance
+								// from the center of the circle to the corner is r * square root of 2
+								if (distance <= (poi.radius * sqrt(2.0))) {
 									inGeofenceOrTransition = true
 									break
 								}
@@ -1074,6 +1074,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 								)
 
 								val distance = results[0]
+
+								Log.d("HomeActivity", "Distance: ${distance}, Radius: ${transition.radius}")
 
 								if (distance <= transition.radius) {
 									inGeofenceOrTransition = true
@@ -1101,6 +1103,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			try {
 //				val pois = db.poiDao().getAll()
 				val pois = RAGEngine().getBuildings()
+				Log.d("HomeActivity", "Found $pois POIs.")
+
 				if (pois.isEmpty()) {
 					Toast.makeText(this@AndroidSmallHomeActivity, "No POIs found.", Toast.LENGTH_SHORT).show()
 					return@launch

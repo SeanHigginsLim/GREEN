@@ -59,7 +59,7 @@
 
         <receiver
             android:name=".GeofenceReceiver"
-            android:exported="true"
+            android:exported="false"
             android:enabled="true">
             <intent-filter>
                 <action android:name="com.thsst2.greenapp.GEOFENCE_TRANSITION_ACTION" />

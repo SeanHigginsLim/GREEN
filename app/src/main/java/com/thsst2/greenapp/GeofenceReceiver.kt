@@ -58,6 +58,8 @@ class GeofenceReceiver : BroadcastReceiver() {
             val readableNow = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(now))
             val sessionId = getActiveSessionId(db)
 
+            Log.d("GeofenceReceiver", "poiDao: ${poiDao.getAll()}")
+
             val matchedPoi = try {
                 poiDao.getAll().find { it.name == triggeredNames }
             } catch (e: Exception) {
