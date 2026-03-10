@@ -1,6 +1,7 @@
 package com.thsst2.greenapp.algorithms
 
 import android.content.Context
+import android.util.Log
 import com.thsst2.greenapp.MyAppDatabase
 import com.thsst2.greenapp.RAGEngine
 import com.thsst2.greenapp.data.PoiEntity
@@ -40,7 +41,9 @@ class TourPathPlanner(
         dislikedPoiIds: Set<String> = emptySet(),
         isRandom: Boolean
     ): List<PoiEntity> {
+        Log.d("TourPathPlanner", "isRandom: $isRandom")
         val effectiveRelevantPOIs = if (isRandom) {
+            Log.d("TourPathPlanner", "Entered isRandom")
             resolveRoleFilteredPOIs(relevantPOIs)
         } else {
             relevantPOIs
@@ -49,6 +52,7 @@ class TourPathPlanner(
         if (effectiveRelevantPOIs.isEmpty()) return emptyList()
 
         val allowedIds = effectiveRelevantPOIs.map { it.poiId }.toSet()
+        Log.d("TourPathPlanner", "allowedIds: $allowedIds")
         val effectiveGraph = if (isRandom) {
             PoiGraph(
                 nodes = knowledgeGraph.nodes.filterKeys { it in allowedIds },
@@ -59,8 +63,10 @@ class TourPathPlanner(
         } else {
             knowledgeGraph
         }
+        Log.d("TourPathPlanner", "effectiveGraph: $effectiveGraph")
 
         val effectivePreferences = preferences.filter { it.poiId in allowedIds }
+        Log.d("TourPathPlanner", "effectivePreferences: $effectivePreferences")
 
         // Find closest available POI as start point.
         var closestPOI: PoiEntity? = null
@@ -80,6 +86,7 @@ class TourPathPlanner(
         }
 
         val startPoint = closestPOI
+        Log.d("TourPathPlanner", "startPoint: $startPoint")
 
         return if (isRandom) {
             RandomBFS().findPath(effectiveGraph, startPoint, dislikedPoiIds)
@@ -99,6 +106,8 @@ class TourPathPlanner(
             } else {
                 emptyList()
             }
+            Log.d("TourPathPlanner", "userRole: $userRole")
+            Log.d("TourPathPlanner", "userRoleData: $userRoleData")
 
             when {
                 userRoleData.isNotEmpty() -> {
@@ -114,6 +123,7 @@ class TourPathPlanner(
             }
         }
 
+        Log.d("TourPathPlanner", "roleFiltered: $roleFiltered")
         return if (roleFiltered.isNotEmpty()) roleFiltered else relevantPOIs
     }
 }

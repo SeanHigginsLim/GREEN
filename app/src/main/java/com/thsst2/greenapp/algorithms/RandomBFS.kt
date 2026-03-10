@@ -1,5 +1,6 @@
 package com.thsst2.greenapp.algorithms
 
+import android.util.Log
 import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.graph.PoiGraph
 import kotlin.random.Random
@@ -19,13 +20,17 @@ class RandomBFS {
         startPoint: PoiEntity? = null,
         dislikedPoiIds: Set<String> = emptySet()
     ): List<PoiEntity> {
-        
+        Log.d("RandomBFS", "graph: $graph")
+        Log.d("RandomBFS", "startPoint: $startPoint")
         val allPois = graph.getAllNodes().toList()
         if (allPois.isEmpty()) return emptyList()
+
+        Log.d("RandomBFS", "allPois: $allPois")
 
         // Filter out disliked POIs
         val availablePois = allPois.filter { it.poiId !in dislikedPoiIds }
         if (availablePois.isEmpty()) return emptyList()
+        Log.d("RandomBFS", "availablePois: $availablePois")
 
         val visited = mutableSetOf<PoiEntity>()
         val path = mutableListOf<PoiEntity>()
@@ -63,6 +68,7 @@ class RandomBFS {
             }
         }
 
+        Log.d("RandomBFS", "path: $path")
         return path
     }
 }

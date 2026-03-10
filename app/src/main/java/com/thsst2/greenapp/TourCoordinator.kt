@@ -65,6 +65,7 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 }
             )
 
+            Log.d("Tour Coordinator", "isRandom: $isRandom")
             // Generate path using the algos
             val path = tourPathPlanner.planTour(
                 knowledgeGraph = knowledgeGraphPoi,
@@ -144,6 +145,7 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 algorithmUsed = db.generatedPathDao().getGeneratedPathsByUser(userId).firstOrNull()?.routeAlgorithm ?: "Unknown",
                 status = "Generated"
             )
+            Log.d("TourCoordinator", "User Tour Path History: $userTourPathHistory")
             db.userTourPathHistoryDao().insert(userTourPathHistory)
 
             // Track preference matching

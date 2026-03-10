@@ -4,15 +4,23 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
-class MyAdapter(private val items: List<String>) :
-    RecyclerView.Adapter<MyAdapter.MyViewHolder>() {
+class MyAdapter(private val items: List<ChatMessage>, private val onSuggestionClick: (String) -> Unit
+) : RecyclerView.Adapter<MyAdapter.MyViewHolder>() {
 
     class MyViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textView: TextView = itemView.findViewById(R.id.textViewItem)
+        val messageContainer: LinearLayout = itemView.findViewById(R.id.messageContainer)
+        val suggestionsContainer: LinearLayout = itemView.findViewById(R.id.suggestionsContainer)
+        val buttonSuggestion1: Button = itemView.findViewById(R.id.buttonSuggestion1)
+        val buttonSuggestion2: Button = itemView.findViewById(R.id.buttonSuggestion2)
+        val buttonSuggestion3: Button = itemView.findViewById(R.id.buttonSuggestion3)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
@@ -22,40 +30,58 @@ class MyAdapter(private val items: List<String>) :
     }
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
-        val raw = items[position] ?: ""
-        // detect who sent it
-        val trimmed = raw.trim()
-        val isBot = trimmed.startsWith("Bot:", ignoreCase = true)
-        val isUser = trimmed.startsWith("You:", ignoreCase = true) || trimmed.startsWith("User:", ignoreCase = true)
+        val item = items[position]
 
-        val displayText = when {
-            isBot -> trimmed.removePrefix("Bot:").trim()
-            isUser -> trimmed.removePrefix("You:").removePrefix("User:").trim()
-            else -> trimmed
-        }
+        holder.textView.text = item.text
 
-        holder.textView.text = displayText
         val params = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         )
 
-        val marginHorizontal = (holder.itemView.context.resources.displayMetrics.density * 12).toInt()
-        val marginVertical = (holder.itemView.context.resources.displayMetrics.density * 4).toInt()
+        val marginHorizontal =
+            (holder.itemView.context.resources.displayMetrics.density * 12).toInt()
+        val marginVertical =
+            (holder.itemView.context.resources.displayMetrics.density * 4).toInt()
+
         params.setMargins(marginHorizontal, marginVertical, marginHorizontal, marginVertical)
 
-        if (isUser) {
-            // Align to right
+        if (item.isUser) {
             params.gravity = Gravity.END
-            holder.textView.layoutParams = params
+            holder.messageContainer.layoutParams = params
             holder.textView.setBackgroundResource(R.drawable.chat_bubble_user)
             holder.textView.setTextColor(Color.parseColor("#000000"))
+            holder.suggestionsContainer.visibility = View.GONE
         } else {
-            // Default to left
             params.gravity = Gravity.START
-            holder.textView.layoutParams = params
+            holder.messageContainer.layoutParams = params
             holder.textView.setBackgroundResource(R.drawable.chat_bubble_bot)
             holder.textView.setTextColor(Color.parseColor("#000000"))
+
+            if (item.suggestions.isNotEmpty()) {
+                holder.suggestionsContainer.visibility = View.VISIBLE
+
+                val buttons = listOf(
+                    holder.buttonSuggestion1,
+                    holder.buttonSuggestion2,
+                    holder.buttonSuggestion3
+                )
+
+                buttons.forEachIndexed { index, button ->
+                    if (index < item.suggestions.size) {
+                        button.visibility = View.VISIBLE
+                        button.text = item.suggestions[index]
+
+                        button.setOnClickListener {
+                            onSuggestionClick(item.suggestions[index])
+                        }
+                    } else {
+                        button.visibility = View.GONE
+                    }
+                }
+            } else {
+                holder.suggestionsContainer.visibility = View.GONE
+            }
         }
     }
 

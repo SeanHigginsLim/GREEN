@@ -155,7 +155,6 @@
 								/>
 							<!--map-->
 							<FrameLayout
-								android:id="@+id/home_map_fragment"
 								android:layout_width="match_parent"
 								android:layout_height="250dp"
 								android:layout_marginTop="8dp"
@@ -165,6 +164,13 @@
 								android:clipToOutline="true"
 								android:background="@drawable/cr10bffffff">
 
+								<!-- Actual map container -->
+								<FrameLayout
+									android:id="@+id/home_map_fragment"
+									android:layout_width="match_parent"
+									android:layout_height="match_parent" />
+
+								<!-- Loading indicator -->
 								<ProgressBar
 									android:id="@+id/mapLoadingIndicator"
 									style="?android:attr/progressBarStyleLarge"
@@ -174,6 +180,28 @@
 									android:elevation="10dp"
 									android:translationZ="10dp"
 									android:visibility="gone" />
+
+								<!-- Top-center building/floor overlay -->
+								<TextView
+									android:id="@+id/currentLocationOverlay"
+									android:layout_width="wrap_content"
+									android:layout_height="wrap_content"
+									android:layout_gravity="top|center_horizontal"
+									android:layout_marginTop="10dp"
+									android:background="@drawable/cr10bffffff"
+									android:elevation="10dp"
+									android:paddingStart="16dp"
+									android:paddingEnd="16dp"
+									android:paddingTop="8dp"
+									android:paddingBottom="8dp"
+									android:text="Not in a building"
+									android:textColor="#000000"
+									android:textSize="13sp"
+									android:textStyle="bold"
+									android:maxLines="1"
+									android:ellipsize="end"
+									android:clickable="true"
+									android:focusable="true"/>
 
 							</FrameLayout>
 						</RelativeLayout>

@@ -83,7 +83,8 @@ import kotlin.math.sqrt
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
-	private val messages = mutableListOf<String>()
+	//private val messages = mutableListOf<String>()
+	private val messages = mutableListOf<ChatMessage>()
 	private lateinit var adapter: MyAdapter
 	private lateinit var chatApi: ChatApi
 	private lateinit var auth: FirebaseAuth
@@ -140,12 +141,23 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			val name = intent?.getStringExtra("buildingName") ?: return
 			val poiId = intent.getStringExtra("poiId") ?: return
 
-			messages.add("Bot: You entered $name")
+			val currentPoi = GeofenceReceiver.currentPoiInside
+			MapState.selectedFloor = 1
+			runOnUiThread {
+				updateCurrentLocationOverlay(currentPoi, 1)
+			}
+
+			messages.add(
+				ChatMessage(
+					text = "You entered $name",
+					isUser = false
+				)
+			)
+			adapter.notifyItemInserted(messages.size - 1)
+			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 			val building = List<String>(1) { poiId }
 
 			lifecycleScope.launch {
-				onBuildingEntered(name)
-				lifecycleScope.launch {
 					val buildingData = ragEngine.getData(building, building)
 //					val poiData = db.localDataDao().getLocalData(userId)
 					val aiPrompt = """
@@ -175,7 +187,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 							if (response.isSuccessful) {
 								val botReply = response.body()?.response ?: "Area Entered!"
-								messages.add("Bot: $botReply")
+								messages.add(
+									ChatMessage(
+										text = botReply,
+										isUser = false,
+										suggestions = listOf("More Info", "Next Stop", "Change Floor")
+									)
+								)
 								adapter.notifyItemInserted(messages.size - 1)
 								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
@@ -199,7 +217,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 							Log.e("ChatApi", "Error: ${t.message}", t)
 						}
 					})
-				}
 			}
 		}
 	}
@@ -210,12 +227,22 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			if (floor == 0) return // Invalid floor
 			val poiId = intent.getStringExtra("poiId") ?: return
 
-			messages.add("Bot: You selected $floor")
+			val currentPoi = GeofenceReceiver.currentPoiInside
+			runOnUiThread {
+				updateCurrentLocationOverlay(currentPoi, floor)
+			}
+
+			messages.add(
+				ChatMessage(
+					text = "You selected floor $floor",
+					isUser = false
+				)
+			)
+			adapter.notifyItemInserted(messages.size - 1)
+			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 			val building = List<String>(1) { poiId }
 
 			lifecycleScope.launch {
-				onFloorSelected(floor)
-				lifecycleScope.launch {
 					val floorData = ragEngine.getFloorData(floor, poiId)
 					val aiPrompt = """
 					You are an AI tour guide for De La Salle University.
@@ -245,7 +272,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 							if (response.isSuccessful) {
 								val botReply = response.body()?.response ?: "Area Entered!"
-								messages.add("Bot: $botReply")
+								messages.add(
+									ChatMessage(
+										text = botReply,
+										isUser = false,
+										suggestions = listOf("More Info", "Next Stop", "Change Floor")
+									)
+								)
 								adapter.notifyItemInserted(messages.size - 1)
 								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
@@ -269,7 +302,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 							Log.e("ChatApi", "Error: ${t.message}", t)
 						}
 					})
-				}
 			}
 		}
 	}
@@ -338,7 +370,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		saveUserLocally(user)
 
 		val sessionProfile = SessionEntity(
-			sessionId = sessionId,
 			userId = user.userId,
 			componentsUsed = null,
 			sessionStartedAt = System.currentTimeMillis().toString()
@@ -382,9 +413,41 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		setupNavigationBar()
 
 		// Setup RecyclerView
-		adapter = MyAdapter(messages)
+		adapter = MyAdapter(messages) { suggestion ->
+			when (suggestion) {
+				"Change Floor" -> {
+					val currentPoi = GeofenceReceiver.currentPoiInside
+					if (currentPoi != null && (currentPoi.floors ?: 1) > 1) {
+						showFloorSelectionDialog(currentPoi)
+					} else {
+						Toast.makeText(
+							this,
+							"No multi-floor building is currently selected.",
+							Toast.LENGTH_SHORT
+						).show()
+					}
+				}
+
+				"More Info" -> {
+					Toast.makeText(this, "More Info not implemented yet.", Toast.LENGTH_SHORT).show()
+				}
+
+				"Next Stop" -> {
+					Toast.makeText(this, "Next Stop not implemented yet.", Toast.LENGTH_SHORT).show()
+				}
+			}
+		}
 		homeBinding.recyclerViewChatReplies.adapter = adapter
 		homeBinding.recyclerViewChatReplies.layoutManager = LinearLayoutManager(this)
+
+		updateCurrentLocationOverlay(null)
+
+		homeBinding.currentLocationOverlay.setOnClickListener {
+			val currentPoi = GeofenceReceiver.currentPoiInside
+			if (currentPoi != null && (currentPoi.floors ?: 1) > 1) {
+				showFloorSelectionDialog(currentPoi)
+			}
+		}
 
 		// Setup Retrofit
 		setupRetrofit()
@@ -461,7 +524,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			// start the dialogue manager looping
 			lifecycleScope.launch {
 				val result = dialogueManager.processMessage(userId, "hi")  // start greeting phase
-				messages.add("Bot: ${result.message}")
+				messages.add(
+					ChatMessage(
+						text = result.message,
+						isUser = false
+					)
+				)
 				adapter.notifyItemInserted(messages.size - 1)
 			}
 		}
@@ -552,7 +620,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 //		val aiPrompt = "$contextString $userMessage"
 
-		messages.add("You: $userMessage")
+		messages.add(
+			ChatMessage(
+				text = userMessage,
+				isUser = true
+			)
+		)
 		adapter.notifyItemInserted(messages.size - 1)
 		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
@@ -560,7 +633,20 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		val dmResult = dialogueManager.processMessage(userId, userMessage)
 
 		if (dmResult.message.isNotBlank()) {
-			messages.add("Bot: ${dmResult.message}")
+//			val suggestions = if (tourStarted) {
+//				listOf("More Info", "Next Stop", "Change Floor")
+//			} else {
+//				emptyList()
+//			}
+			val suggestions = listOf("More Info", "Next Stop", "Change Floor")
+
+			messages.add(
+				ChatMessage(
+					text = dmResult.message,
+					isUser = false,
+					suggestions = suggestions
+				)
+			)
 			adapter.notifyItemInserted(messages.size - 1)
 			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 		}
@@ -614,7 +700,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 				val poiJson = Gson().toJson(userTourPathHistory.pathSequence)
 				val poiData = db.localDataDao().getLocalData(userId)
-				val startingPoint = null
+				val startingPoint = null // building starting point
 				val aiPrompt = """
 					You are an AI tour guide for De La Salle University.
 		
@@ -648,7 +734,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 						if (response.isSuccessful) {
 							val botReply = response.body()?.response ?: "Tour overview ready."
-							messages.add("Bot: $botReply")
+							messages.add(
+								ChatMessage(
+									text = botReply,
+									isUser = false,
+									suggestions = listOf("More Info", "Next Stop", "Change Floor")
+								)
+							)
 							adapter.notifyItemInserted(messages.size - 1)
 							homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
@@ -734,7 +826,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 					if (response.isSuccessful) {
 						val botReply = response.body()?.response ?: "Answer:"
-						messages.add("Bot: $botReply")
+						messages.add(
+							ChatMessage(
+								text = botReply,
+								isUser = false,
+								suggestions = listOf("More Info", "Next Stop", "Change Floor")
+							)
+						)
 						adapter.notifyItemInserted(messages.size - 1)
 						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
@@ -1062,18 +1160,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
-	private suspend fun onBuildingEntered(name: String) {
-		messages.add("Bot: You entered $name")
-		adapter.notifyItemInserted(messages.size - 1)
-		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-	}
-
-	private fun onFloorSelected(floor: Int) {
-		messages.add("Bot: You selected $floor")
-		adapter.notifyItemInserted(messages.size - 1)
-		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-	}
-
 	private suspend fun drawMarkers(googleMap: GoogleMap, pois: List<PoiEntity>) = withContext(Dispatchers.Main) {
 		if (pois.isEmpty()) {
 			Toast.makeText(this@AndroidSmallHomeActivity, "No POIs available.", Toast.LENGTH_SHORT).show()
@@ -1150,6 +1236,27 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		Log.d("HomeActivity", "Tour path drawn with ${orderedPois.size} points.")
 	}
 
+	private fun updateCurrentLocationOverlay(poi: PoiEntity?, floor: Int? = null) {
+		if (poi == null) {
+			homeBinding.currentLocationOverlay.text = "Not in a building"
+			homeBinding.currentLocationOverlay.isClickable = false
+			homeBinding.currentLocationOverlay.alpha = 0.5f
+			return
+		}
+
+		val displayFloor = floor ?: 1
+		val canChangeFloor = (poi.floors ?: 1) > 1
+
+		homeBinding.currentLocationOverlay.text = if (canChangeFloor) {
+			"${poi.name} • Floor $displayFloor ▼"
+		} else {
+			"${poi.name} • Floor $displayFloor"
+		}
+
+		homeBinding.currentLocationOverlay.isClickable = canChangeFloor
+		homeBinding.currentLocationOverlay.alpha = if (canChangeFloor) 1f else 0.85f
+	}
+
 	private fun showFloorSelectionDialog(poi: PoiEntity) {
 		val maxFloor = poi.floors ?: 1
 		val floors = (1..maxFloor).map { "Floor $it" }.toTypedArray()
@@ -1158,6 +1265,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			.setTitle("Select floor in ${poi.name}")
 			.setItems(floors) { _, which ->
 				val selectedFloor = which + 1
+
+				runOnUiThread {
+					updateCurrentLocationOverlay(poi, selectedFloor)
+				}
+
 				saveFloorSelection(poi, selectedFloor)
 				MapState.selectedFloor = selectedFloor
 
@@ -1210,7 +1322,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			val result = dialogueManager.handleProfilePreferenceResult(userId, didSave)
 
 			if (result.message.isNotBlank()) {
-				messages.add("Bot: ${result.message}")
+				val suggestions = listOf("More Info", "Next Stop", "Change Floor")
+
+				messages.add(
+					ChatMessage(
+						text = result.message,
+						isUser = false,
+						suggestions = suggestions
+					)
+				)
 				adapter.notifyItemInserted(messages.size - 1)
 				homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 			}
@@ -1236,6 +1356,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			}
 		}
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(buildingReceiver)
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(floorReceiver)
 
 		super.onDestroy()
 	}
