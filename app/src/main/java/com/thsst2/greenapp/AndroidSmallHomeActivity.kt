@@ -66,6 +66,7 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CircleOptions
 import com.thsst2.greenapp.data.PoiEntity
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.gms.maps.model.Dot
@@ -125,6 +126,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
     // Store current location
     private var currentLatitude: Double? = null
     private var currentLongitude: Double? = null
+
+	// For More Info button
+	private var pendingMoreInfoParagraphs: List<String> = emptyList()
+	private var nextParagraphIndex: Int = 0
+	// For Next Stop button
+	private var currentTourPathSequence: List<String> = emptyList()
+	private var currentTourStopIndex: Int = -1
 
 	// Geofencing
 	private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -187,15 +195,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 							if (response.isSuccessful) {
 								val botReply = response.body()?.response ?: "Area Entered!"
-								messages.add(
-									ChatMessage(
-										text = botReply,
-										isUser = false,
-										suggestions = listOf("More Info", "Next Stop", "Change Floor")
-									)
-								)
-								adapter.notifyItemInserted(messages.size - 1)
-								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+								Log.d("LLM_RESPONSE", botReply)
+								addBotMessageWithProgressiveInfo(botReply)
 
 								lifecycleScope.launch {
 									dialogueHistoryDao.insert(
@@ -255,7 +256,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					
 					INSTRUCTIONS:
 					1. Read and understand the floor data.
-					2. Use floor data to get relevant floor information. Only use the data that is related to the current building ${floor}.
+					2. Use floor data to get relevant floor information. Only use the data that is related to the current building floor ${floor}.
 					3. Generate a short, friendly description of this floor — its amenities, labels, notes, and any notable details from the data.
 					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
 					5. Do not invent information that isn’t provided.
@@ -272,15 +273,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 							if (response.isSuccessful) {
 								val botReply = response.body()?.response ?: "Area Entered!"
-								messages.add(
-									ChatMessage(
-										text = botReply,
-										isUser = false,
-										suggestions = listOf("More Info", "Next Stop", "Change Floor")
-									)
-								)
-								adapter.notifyItemInserted(messages.size - 1)
-								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+								Log.d("LLM_RESPONSE", botReply)
+								addBotMessageWithProgressiveInfo(botReply)
 
 								lifecycleScope.launch {
 									dialogueHistoryDao.insert(
@@ -412,29 +406,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Setup navigation bar
 		setupNavigationBar()
 
-		// Setup RecyclerView
+		// Setup Recycler View
 		adapter = MyAdapter(messages) { suggestion ->
 			when (suggestion) {
-				"Change Floor" -> {
-					val currentPoi = GeofenceReceiver.currentPoiInside
-					if (currentPoi != null && (currentPoi.floors ?: 1) > 1) {
-						showFloorSelectionDialog(currentPoi)
-					} else {
-						Toast.makeText(
-							this,
-							"No multi-floor building is currently selected.",
-							Toast.LENGTH_SHORT
-						).show()
-					}
-				}
-
-				"More Info" -> {
-					Toast.makeText(this, "More Info not implemented yet.", Toast.LENGTH_SHORT).show()
-				}
-
-				"Next Stop" -> {
-					Toast.makeText(this, "Next Stop not implemented yet.", Toast.LENGTH_SHORT).show()
-				}
+				"Change Floor" -> handleChangeFloorAction()
+				"More Info" -> showNextMoreInfoParagraph()
+				"Next Stop" -> goToNextStop()
 			}
 		}
 		homeBinding.recyclerViewChatReplies.adapter = adapter
@@ -578,6 +555,148 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			} else false
 		}
 	}
+	private fun splitIntoParagraphs(text: String): List<String> {
+		return text
+			.split(Regex("\\n\\s*\\n"))
+			.map { it.trim() }
+			.filter { it.isNotEmpty() }
+	}
+
+	private fun buildSuggestionsForCurrentState(hasMoreInfo: Boolean): List<String> {
+		val suggestions = mutableListOf<String>()
+
+		if (hasMoreInfo) {
+			suggestions.add("More Info")
+		}
+
+		if (tourStarted && currentTourPathSequence.isNotEmpty()) {
+			suggestions.add("Next Stop")
+		}
+
+		val currentPoi = GeofenceReceiver.currentPoiInside
+		if (currentPoi != null && (currentPoi.floors ?: 1) > 1) {
+			suggestions.add("Change Floor")
+		}
+
+		return suggestions
+	}
+
+	private fun addBotMessageWithProgressiveInfo(fullReply: String) {
+		val paragraphs = splitIntoParagraphs(fullReply)
+		Log.d("LLM_PARAGRAPHS", paragraphs.joinToString(" | "))
+
+		if (paragraphs.isEmpty()) return
+
+		pendingMoreInfoParagraphs = paragraphs
+		nextParagraphIndex = 1
+
+		val firstParagraph = paragraphs.first()
+		val suggestions = buildSuggestionsForCurrentState(
+			hasMoreInfo = nextParagraphIndex < pendingMoreInfoParagraphs.size
+		)
+
+		messages.add(
+			ChatMessage(
+				text = firstParagraph,
+				isUser = false,
+				suggestions = suggestions
+			)
+		)
+		adapter.notifyItemInserted(messages.size - 1)
+		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+	}
+
+	private fun showNextMoreInfoParagraph() {
+		if (nextParagraphIndex >= pendingMoreInfoParagraphs.size) {
+			Toast.makeText(this, "No more info available.", Toast.LENGTH_SHORT).show()
+			return
+		}
+
+		val nextParagraph = pendingMoreInfoParagraphs[nextParagraphIndex]
+		nextParagraphIndex++
+
+		val suggestions = buildSuggestionsForCurrentState(
+			hasMoreInfo = nextParagraphIndex < pendingMoreInfoParagraphs.size
+		)
+
+		messages.add(
+			ChatMessage(
+				text = nextParagraph,
+				isUser = false,
+				suggestions = suggestions
+			)
+		)
+		adapter.notifyItemInserted(messages.size - 1)
+		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+	}
+	private fun handleChangeFloorAction() {
+		val currentPoi = GeofenceReceiver.currentPoiInside
+		if (currentPoi != null && (currentPoi.floors ?: 1) > 1) {
+			showFloorSelectionDialog(currentPoi)
+		} else {
+			Toast.makeText(
+				this,
+				"No multi-floor building is currently selected.",
+				Toast.LENGTH_SHORT
+			).show()
+		}
+	}
+	private fun goToNextStop() {
+		if (!tourStarted || currentTourPathSequence.isEmpty()) {
+			Toast.makeText(this, "No active tour path yet.", Toast.LENGTH_SHORT).show()
+			return
+		}
+
+		if (currentTourStopIndex >= currentTourPathSequence.lastIndex) {
+			messages.add(
+				ChatMessage(
+					text = "You’ve already reached the last stop of the tour.",
+					isUser = false,
+					suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
+				)
+			)
+			adapter.notifyItemInserted(messages.size - 1)
+			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+			return
+		}
+
+		currentTourStopIndex++
+
+		val nextStopName = currentTourPathSequence[currentTourStopIndex]
+
+		messages.add(
+			ChatMessage(
+				text = "Next stop: $nextStopName",
+				isUser = false,
+				suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
+			)
+		)
+		adapter.notifyItemInserted(messages.size - 1)
+		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+
+		val mapFragment =
+			supportFragmentManager.findFragmentById(R.id.home_map_fragment) as? SupportMapFragment
+
+		mapFragment?.getMapAsync { googleMap ->
+			lifecycleScope.launch(Dispatchers.IO) {
+				val pois = db.poiDao().getAll()
+				val nextPoi = pois.find { it.name == nextStopName }
+
+				withContext(Dispatchers.Main) {
+					if (nextPoi != null) {
+						val latLng = LatLng(nextPoi.latitude, nextPoi.longitude)
+						googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18f))
+					} else {
+						Toast.makeText(
+							this@AndroidSmallHomeActivity,
+							"Could not find the next stop on the map.",
+							Toast.LENGTH_SHORT
+						).show()
+					}
+				}
+			}
+		}
+	}
 
 	// USER MESSAGE HANDLER
 	private suspend fun handleUserMessage(userMessage: String, userId: Long) {
@@ -632,23 +751,34 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Let DialogueManager process the input
 		val dmResult = dialogueManager.processMessage(userId, userMessage)
 
+		when (dmResult.intent) {
+			IntentType.MORE_INFO -> {
+				showNextMoreInfoParagraph()
+				return
+			}
+
+			IntentType.CHANGE_FLOOR -> {
+				handleChangeFloorAction()
+				return
+			}
+
+			IntentType.NEXT_STOP -> {
+				goToNextStop()
+				return
+			}
+
+			else -> {
+				// continue normal flow
+			}
+		}
+
 		if (dmResult.message.isNotBlank()) {
 //			val suggestions = if (tourStarted) {
 //				listOf("More Info", "Next Stop", "Change Floor")
 //			} else {
 //				emptyList()
 //			}
-			val suggestions = listOf("More Info", "Next Stop", "Change Floor")
-
-			messages.add(
-				ChatMessage(
-					text = dmResult.message,
-					isUser = false,
-					suggestions = suggestions
-				)
-			)
-			adapter.notifyItemInserted(messages.size - 1)
-			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+			addBotMessageWithProgressiveInfo(dmResult.message)
 		}
 
 		// Open profile preferences edit box
@@ -689,6 +819,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Log.w("HomeActivity", "TourCoordinator returned empty path.")
 					return@launch
 				}
+				currentTourPathSequence = userTourPathHistory?.pathSequence ?: emptyList()
+				currentTourStopIndex = -1
 
 				val mapFragment = supportFragmentManager.findFragmentById(R.id.home_map_fragment) as? SupportMapFragment
 				mapFragment?.getMapAsync { googleMap ->
@@ -734,15 +866,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 						if (response.isSuccessful) {
 							val botReply = response.body()?.response ?: "Tour overview ready."
-							messages.add(
-								ChatMessage(
-									text = botReply,
-									isUser = false,
-									suggestions = listOf("More Info", "Next Stop", "Change Floor")
-								)
-							)
-							adapter.notifyItemInserted(messages.size - 1)
-							homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+							Log.d("LLM_RESPONSE", botReply)
+							addBotMessageWithProgressiveInfo(botReply)
 
 							lifecycleScope.launch {
 								dialogueHistoryDao.insert(
@@ -826,15 +951,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 					if (response.isSuccessful) {
 						val botReply = response.body()?.response ?: "Answer:"
-						messages.add(
-							ChatMessage(
-								text = botReply,
-								isUser = false,
-								suggestions = listOf("More Info", "Next Stop", "Change Floor")
-							)
-						)
-						adapter.notifyItemInserted(messages.size - 1)
-						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+						Log.d("LLM_RESPONSE", botReply)
+						addBotMessageWithProgressiveInfo(botReply)
 
 						lifecycleScope.launch {
 							dialogueHistoryDao.insert(
@@ -1189,14 +1307,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				)
 			}
 			// Draw geofence circle
-//			googleMap.addCircle(
-//				CircleOptions()
-//					.center(position)
-//					.radius(poi.radius)  // meters
-//					.strokeColor(Color.argb(100, 0, 150, 136))
-//					.fillColor(Color.argb(40, 0, 150, 136))
-//					.strokeWidth(2f)
-//			)
+			googleMap.addCircle(
+				CircleOptions()
+					.center(position)
+					.radius(poi.radius)  // meters
+					.strokeColor(Color.argb(100, 0, 150, 136))
+					.fillColor(Color.argb(40, 0, 150, 136))
+					.strokeWidth(2f)
+			)
 			boundsBuilder.include(position)
 		}
 		MapState.pois = pois
@@ -1326,17 +1444,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			val result = dialogueManager.handleProfilePreferenceResult(userId, didSave)
 
 			if (result.message.isNotBlank()) {
-				val suggestions = listOf("More Info", "Next Stop", "Change Floor")
-
-				messages.add(
-					ChatMessage(
-						text = result.message,
-						isUser = false,
-						suggestions = suggestions
-					)
-				)
-				adapter.notifyItemInserted(messages.size - 1)
-				homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+				addBotMessageWithProgressiveInfo(result.message)
 			}
 		}
 	}
