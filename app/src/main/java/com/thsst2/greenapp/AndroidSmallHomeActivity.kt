@@ -657,6 +657,19 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			)
 			adapter.notifyItemInserted(messages.size - 1)
 			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+
+			tourStarted = false
+			lifecycleScope.launch {
+				val result = dialogueManager.processMessage(userId, "hi")  // start greeting phase
+				messages.add(
+					ChatMessage(
+						text = result.message,
+						isUser = false
+					)
+				)
+				adapter.notifyItemInserted(messages.size - 1)
+			}
+
 			return
 		}
 
@@ -721,7 +734,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		)
 
 		// Build context string
+		Log.d("HomeActivity", "userId: $userId")
 		val userRole = db.userRoleDao().getUserRoleById(userId)
+		Log.d("HomeActivity", "userRole: $userRole")
 		val userRoleName = userRole?.role
 		val activePreferences = userPreferencesDao.getPreferencesByUser(userId)
 		val userVisitedLocation = userVisitedLocationDao.getById(userId)
@@ -832,6 +847,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 				val poiJson = Gson().toJson(userTourPathHistory.pathSequence)
 				val poiData = db.localDataDao().getLocalData(userId)
+				val poiInfoOnly = poiData?.poiInfoJson ?: "[]"
 				val startingPoint = null // building starting point
 				val aiPrompt = """
 					You are an AI tour guide for De La Salle University.
@@ -843,7 +859,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Starting Location: $startingPoint
 		
 					POI Sequence: $poiJson
-					POI Data: $poiData
+					POI Data: $poiInfoOnly
 		
 					INSTRUCTIONS:
 					1. Write sectioned paragraphs.
@@ -860,6 +876,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					  	Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall...
 				""".trimIndent()
 
+				Log.d("HomeActivity", "User Role Name: $userRoleName")
+				Log.d("HomeActivity", "All Preferences: $allPreferences")
+				Log.d("HomeActivity", "Starting Point: $startingPoint")
+				Log.d("HomeActivity", "POI Sequence: $poiJson")
+				logLargeString("HomeActivity", "POI Info Only: $poiInfoOnly")
+				Log.d("HomeActivity", "POI Data: $poiData")
 				Log.d("HomeActivity", "aiPrompt: $aiPrompt")
 
 				chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
@@ -1428,6 +1450,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Toast.LENGTH_SHORT
 				).show()
 			}
+		}
+	}
+
+	fun logLargeString(tag: String, content: String) {
+		if (content.length > 4000) {
+			Log.d(tag, content.substring(0, 4000))
+			logLargeString(tag, content.substring(4000))
+		} else {
+			Log.d(tag, content)
 		}
 	}
 

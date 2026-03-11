@@ -287,7 +287,7 @@
             Log.d("RAGEngine", "Fetching data for POIs: $poiIds")
             Log.d("RAGEngine", "Fetching data for Preferences: $preferences")
             val matchedData = recursiveFetchMatchingNodes(
-                ref = db.child("server_side").child("pre_collected_data").child("buildings"),
+                ref = db.child("server_side").child("pre_collected_data"),
                 preferences = preferences,
                 poiIds = poiIds
             )
@@ -334,16 +334,23 @@
                     val poiMatch = poiIds.any { it.equals(dataValue, ignoreCase = true) }
 
                     if (preferenceMatch || poiMatch) {
-                        val buildingId = childSnapshot.child("building_id").getValue(String::class.java)
-                        if (buildingId != null && !seenIds.contains(buildingId)) {
-                            // This building/data matches — add to your matched list
-                            val parentData: Map<String, Any?> = childSnapshot.children.associate {
-                                val key = it.key ?: ""
-                                val value = it.value
-                                key to value
-                            }
+                        val parentData: Map<String, Any?> = childSnapshot.children.associate {
+                            val key = it.key ?: ""
+                            val value = it.value
+                            key to value
+                        }
+
+                        // Create a hash using JSON string
+                        val parentHash = Gson().toJson(parentData)
+
+                        if (!seenIds.contains(parentHash)) {
                             matched.add(parentData)
-                            seenIds.add(buildingId)
+                            seenIds.add(parentHash)
+
+                            Log.d(
+                                "RAGEngine",
+                                "Match found at: ${childSnapshot.ref}"
+                            )
                         }
                     }
                 }

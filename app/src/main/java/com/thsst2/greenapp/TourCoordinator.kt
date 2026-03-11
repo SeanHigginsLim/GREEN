@@ -113,6 +113,8 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 db.poiDao().insert(poiEntity)
             }
 
+            Log.d("TourCoordinator", "list of all relevant poi ids: ${db.poiDao().getAll().map { it.poiId }}")
+            Log.d("TourCoordinator", "list of all relevant preferences: $databaseMappedPreferences")
             val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId }, databaseMappedPreferences)
             Log.d("TourCoordinator", "POI Data: $poiData")
             // Simulate sync to Firebase
