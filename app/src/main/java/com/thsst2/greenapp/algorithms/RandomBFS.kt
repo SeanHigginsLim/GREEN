@@ -32,7 +32,7 @@ class RandomBFS {
         if (availablePois.isEmpty()) return emptyList()
         Log.d("RandomBFS", "availablePois: $availablePois")
 
-        val visited = mutableSetOf<PoiEntity>()
+        val visited = mutableSetOf<String>()
         val path = mutableListOf<PoiEntity>()
         val queue = ArrayDeque<PoiEntity>()
 
@@ -46,10 +46,15 @@ class RandomBFS {
             // No start point or start is disliked - pick random from available POIs
             availablePois.shuffled(Random.Default).first()
         }
+
+        Log.d("RandomBFS", "start: $start")
         
         queue.add(start)
-        visited.add(start)
+        visited.add(start.poiId)
 
+        Log.d("RandomBFS", "queue: $queue")
+        Log.d("RandomBFS", "visited: $visited")
+        Log.d("RandomBFS", "path: $path")
         while (queue.isNotEmpty()) {
             val current = queue.removeFirst()
             path.add(current)
@@ -57,15 +62,19 @@ class RandomBFS {
             // Get neighbors from knowledge graph, then randomize the order for variety
             val graphNeighbors = graph.getEdges(current.poiId)
                 .mapNotNull { edge -> graph.getNode(edge.to) }
-                .filter { it !in visited && it.poiId !in dislikedPoiIds }
+                .filter { it.poiId !in visited && it.poiId !in dislikedPoiIds }
                 .shuffled(Random.Default)
 
+            Log.d("RandomBFS", "graphNeighbors: $graphNeighbors")
+
             for (neighbor in graphNeighbors) {
-                if (neighbor !in visited) {
+                if (neighbor.poiId !in visited) {
                     queue.add(neighbor)
-                    visited.add(neighbor)
+                    visited.add(neighbor.poiId)
                 }
             }
+
+            Log.d("RandomBFS", "visited: $visited")
         }
 
         Log.d("RandomBFS", "path: $path")
