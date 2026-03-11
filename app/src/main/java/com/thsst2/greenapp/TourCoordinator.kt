@@ -51,6 +51,8 @@ class TourCoordinator(userId: Long, private val context: Context) {
 
             val knowledgeGraph = RAGEngine.getKnowledgeGraph()
 
+            Log.d("TourCoordinator", "knowledgeGraph: $knowledgeGraph")
+
             // Identify user's disliked POIs/disinterests
             val dislikedIds = db.userSkippedOrDislikedLocationDao()
                 .getAll()
@@ -64,6 +66,8 @@ class TourCoordinator(userId: Long, private val context: Context) {
                     edges.map { Edge(edgeId = it.edgeId, to = it.to, weight = it.weight) }
                 }
             )
+
+            Log.d("TourCoordinator", "knowledgeGraphPoi: $knowledgeGraphPoi")
 
             Log.d("Tour Coordinator", "isRandom: $isRandom")
             // Generate path using the algos
@@ -113,8 +117,10 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 db.poiDao().insert(poiEntity)
             }
 
+            Log.d("TourCoordinator", "list of all relevant poi ids: ${db.poiDao().getAll().map { it.poiId }}")
+            Log.d("TourCoordinator", "list of all relevant preferences: $databaseMappedPreferences")
             val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId }, databaseMappedPreferences)
-            Log.d("TourCoordinator", "POI Data: $poiData")
+            logLargeString("TourCoordinator", "POI Data: $poiData")
             // Simulate sync to Firebase
 //            FirebaseSync.syncEntity("generated_paths", generatedPathEntity)
 //            for (poi in relevantPOIs) {
@@ -170,6 +176,15 @@ class TourCoordinator(userId: Long, private val context: Context) {
         } catch (e: Exception) {
             Log.e("TourCoordinator", "Error generating tour", e)
             return@withContext null
+        }
+    }
+
+    fun logLargeString(tag: String, content: String) {
+        if (content.length > 4000) {
+            Log.d(tag, content.substring(0, 4000))
+            logLargeString(tag, content.substring(4000))
+        } else {
+            Log.d(tag, content)
         }
     }
 }

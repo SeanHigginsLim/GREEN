@@ -287,14 +287,14 @@
             Log.d("RAGEngine", "Fetching data for POIs: $poiIds")
             Log.d("RAGEngine", "Fetching data for Preferences: $preferences")
             val matchedData = recursiveFetchMatchingNodes(
-                ref = db.child("server_side").child("pre_collected_data").child("buildings"),
+                ref = db.child("server_side").child("pre_collected_data"),
                 preferences = preferences,
                 poiIds = poiIds
             )
 
             // Number of matched nodes
             Log.d("RAGEngine", "Matched nodes count: ${matchedData.size}")
-
+            Log.d("RAGEngine", "Matched nodes: $matchedData")
             val jsonResult = gson.toJson(matchedData)
             return jsonResult
         }
@@ -306,12 +306,20 @@
             matched: MutableList<Map<String, Any?>> = mutableListOf(),
             seenIds: MutableSet<String> = mutableSetOf()
         ): List<Map<String, Any?>> {
+//            Log.d("RAGEngine", "Scanning node: ${ref.key} -> $ref")
+
             val snapshot = ref.get().await()
             if (!snapshot.exists()) return matched
 
+//            Log.d("RAGEngine", "Children count at ${ref.key}: ${snapshot.childrenCount}")
+
             for (childSnapshot in snapshot.children) {
+//                Log.d("RAGEngine", "Inspecting child node: ${childSnapshot.key} -> ${childSnapshot.ref}")
+
                 // If this snapshot has children, recurse
                 if (childSnapshot.hasChildren()) {
+//                    Log.d("RAGEngine", "Recursing into: ${childSnapshot.key}")
+
                     recursiveFetchMatchingNodes(
                         ref = childSnapshot.ref,
                         preferences = preferences,
@@ -327,6 +335,8 @@
                     val rawValue = data.value ?: continue
                     val dataValue = rawValue.toString()
 
+//                    Log.d("RAGEngine", "Checking value: '$dataValue' at ${data.key}")
+
                     // Check if this data matches any user preference
                     val preferenceMatch = preferences?.any { it.equals(dataValue, ignoreCase = true) } == true
 
@@ -334,16 +344,27 @@
                     val poiMatch = poiIds.any { it.equals(dataValue, ignoreCase = true) }
 
                     if (preferenceMatch || poiMatch) {
-                        val buildingId = childSnapshot.child("building_id").getValue(String::class.java)
-                        if (buildingId != null && !seenIds.contains(buildingId)) {
-                            // This building/data matches — add to your matched list
-                            val parentData: Map<String, Any?> = childSnapshot.children.associate {
-                                val key = it.key ?: ""
-                                val value = it.value
-                                key to value
-                            }
+                        Log.d("RAGEngine", "MATCH FOUND at ${data.key} -> value: $dataValue")
+
+                        val parentRef = childSnapshot.ref.parent ?: continue
+
+                        val parentSnapshot = parentRef.get().await()
+
+                        val parentData: Map<String, Any?> = parentSnapshot.children.associate {
+                            val key = it.key ?: ""
+                            val value = it.value
+                            key to value
+                        }
+
+                        // Create a hash using JSON string
+                        val parentHash = Gson().toJson(parentData)
+
+                        if (!seenIds.contains(parentHash)) {
                             matched.add(parentData)
-                            seenIds.add(buildingId)
+                            seenIds.add(parentHash)
+                            Log.d("RAGEngine", "Added parent node: ${parentRef.key}")
+                        } else {
+                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentRef.key}")
                         }
                     }
                 }
@@ -494,26 +515,28 @@
 
         // Return knowledge graph as adjacency list
         suspend fun getKnowledgeGraph(): Map<String, List<Edge>> {
-            val poiSnapshot = db.child("poi_nodes").get().await()
 
-            // Adjacency list: POI ID -> list of edges
+            val snapshot =
+                db.child("server_side").child("pre_collected_data").child("campus_map").child("adjacency_list").get().await()
+
             val adjacencyList = mutableMapOf<String, MutableList<Edge>>()
 
-            for (poi in poiSnapshot.children) {
-                val poiId = poi.key ?: continue
+            for (node in snapshot.children) {
 
-                // Initialize adjacency list for this POI
-                adjacencyList[poiId] = mutableListOf()
+                val from = node.key ?: continue
+                adjacencyList[from] = mutableListOf()
 
-                // Traverse "adj" children
-                val adjSnapshot = poi.child("adj")
-                for (adjChild in adjSnapshot.children) {
-                    val edgeId = adjChild.child("edge_id").getValue(String::class.java) ?: continue
-                    val to = adjChild.child("to").getValue(String::class.java) ?: continue
-                    val weight = adjChild.child("w").getValue(Double::class.java) ?: 0.0
+                for (neighbor in node.children) {
 
-                    val edge = Edge(edgeId = edgeId, to = to, weight = weight)
-                    adjacencyList[poiId]?.add(edge)
+                    val to = neighbor.getValue(String::class.java) ?: continue
+
+                    val edge = Edge(
+                        edgeId = "${from}_$to",
+                        to = to,
+                        weight = 1.0
+                    )
+
+                    adjacencyList[from]?.add(edge)
                 }
             }
 
