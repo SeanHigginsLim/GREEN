@@ -178,13 +178,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Building Data: $buildingData
 					
 					INSTRUCTIONS:
-					1. Read and understand the building data.
-					2. Use building data to get relevant building information. Only use the data that is related to the current building ${name} or ${poiId}.
-					3. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
-					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
-					5. Do not invent information that isn’t provided.
-					6. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
-					7. Start with the description immediately, don't add any other reply and be engaging.
+					1. Write short sectioned paragraphs.
+					2. Read and understand the building data.
+					3. Use building data to get relevant building information. Only use the data that is related to the current building ${name} or ${poiId}.
+					4. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
+					5. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
+					6. Do not invent information that isn’t provided.
+					7. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
+					8. Start with the description immediately, don't add any other reply and be engaging.
 					
 					EXAMPLE OUTPUT:
 						  Henry Sy Sr. Hall,
@@ -255,13 +256,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					Floor Data: $floorData
 					
 					INSTRUCTIONS:
-					1. Read and understand the floor data.
-					2. Use floor data to get relevant floor information. Only use the data that is related to the current building floor ${floor}.
-					3. Generate a short, friendly description of this floor — its amenities, labels, notes, and any notable details from the data.
-					4. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
-					5. Do not invent information that isn’t provided.
-					6. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
-					7. Start with the description immediately, don't add any other reply and be engaging.
+					1. Write short sectioned paragraphs.
+					2. Read and understand the floor data.
+					3. Use floor data to get relevant floor information. Only use the data that is related to the current building floor ${floor}.
+					4. Generate a short, friendly description of this floor — its amenities, labels, notes, and any notable details from the data.
+					5. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
+					6. Do not invent information that isn’t provided.
+					7. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
+					8. Start with the description immediately, don't add any other reply and be engaging.
 					
 					EXAMPLE OUTPUT:
 						  Henry Sy Sr. Hall Floor 12,
@@ -856,21 +858,23 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		
 					User Role: $userRoleName
 					Preferences: $allPreferences
-					Starting Location: $startingPoint
 		
 					POI Sequence: $poiJson
 					POI Data: $poiInfoOnly
 		
 					INSTRUCTIONS:
-					1. Write sectioned paragraphs.
-					2. Start from the beginning of the tour.
+					1. Write short sectioned paragraphs.
+					2. Start from the beginning of the tour overview.
 					3. Do NOT include headings, labels, greetings, or conclusions.
 					4. Do NOT repeat or restart the text.
 					5. Do NOT use ellipses (...).
-					6. Use only the data provided.
-					7. Output ONLY the tour narration text.
-					8. Don't tell me at the start of the sentence if this tour overview prompt template is used, just respond in natural language. 
-					9. Start with the tour overview immediately, don't add any other reply and be engaging.
+					6. Use POI Sequence as the list of places to visit in order.
+					7. All of the buildings in poi sequence must be mentioned in the tour.
+					8. The tour must be complete.
+					9. Use POI Data to get relevant POI information.
+					10. Output ONLY the tour narration text.
+					11. Don't tell me at the start of the sentence if this tour overview prompt template is used, just respond in natural language. 
+					12. Start with the tour overview immediately, don't add any other reply and be engaging.
 					
 					EXAMPLE:
 					  	Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall...
@@ -961,9 +965,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	
 				INSTRUCTIONS:
 				1. Write a short, accurate response to the user query
-				2. Use only the needed data provided above for generating the answer.
-				3. Don't tell me at the start of the sentence if this query prompt template is used, just respond in natural language. 
-				4. Start with the answer immediately, don't add any other reply and be engaging.
+				2. Write short sectioned paragraphs if response is too long.
+				3. Use only the needed data provided above for generating the answer.
+				4. Don't tell me at the start of the sentence if this query prompt template is used, just respond in natural language. 
+				5. Start with the answer immediately, don't add any other reply and be engaging.
 				
 				EXAMPLE:
 				  	The Henry Sy Sr. Hall is located along Taft Avenue and serves as DLSU’s modern academic tower.

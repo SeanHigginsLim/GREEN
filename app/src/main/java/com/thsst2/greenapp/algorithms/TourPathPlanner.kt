@@ -51,8 +51,6 @@ class TourPathPlanner(
 
         if (effectiveRelevantPOIs.isEmpty()) return emptyList()
 
-        // TODO: Add a small logic to select random amount of buildings from 3 to max.
-        //  The max is the maximum amount of buildings present in allowedIds
         val allowedIds = effectiveRelevantPOIs.map { it.poiId }.toSet()
         Log.d("TourPathPlanner", "allowedIds: $allowedIds")
         val effectiveGraph = if (isRandom) {
