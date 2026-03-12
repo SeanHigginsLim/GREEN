@@ -19,6 +19,10 @@ import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
@@ -412,6 +416,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		adapter = MyAdapter(messages) { suggestion ->
 			when (suggestion) {
 				"Change Floor" -> handleChangeFloorAction()
+				"Edit Tour" -> showEditTourOverlay()
 				"More Info" -> showNextMoreInfoParagraph()
 				"Next Stop" -> goToNextStop()
 			}
@@ -576,6 +581,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 
 		if (tourStarted && currentTourPathSequence.isNotEmpty()) {
+			suggestions.add("Edit Tour")
 			suggestions.add("Next Stop")
 		}
 
@@ -715,6 +721,157 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				}
 			}
 		}
+	}
+
+	private fun showEditTourOverlay() {
+		if (currentTourPathSequence.isEmpty()) {
+			Toast.makeText(this, "No active tour path.", Toast.LENGTH_SHORT).show()
+			return
+		}
+
+		val editablePath = currentTourPathSequence.toMutableList()
+
+		val dialogContainer = LinearLayout(this).apply {
+			orientation = LinearLayout.VERTICAL
+			setPadding(32, 24, 32, 16)
+		}
+
+		val titleView = TextView(this).apply {
+			text = "Edit Tour Order"
+			textSize = 18f
+			setTypeface(null, android.graphics.Typeface.BOLD)
+		}
+
+		val pathListContainer = LinearLayout(this).apply {
+			orientation = LinearLayout.VERTICAL
+		}
+
+		fun renderPathRows() {
+			pathListContainer.removeAllViews()
+
+			if (editablePath.isEmpty()) {
+				pathListContainer.addView(TextView(this).apply {
+					text = "No stops in tour. Add at least one location."
+					textSize = 14f
+					setPadding(0, 16, 0, 16)
+				})
+				return
+			}
+
+			editablePath.forEachIndexed { index, stopName ->
+				val row = LinearLayout(this).apply {
+					orientation = LinearLayout.HORIZONTAL
+					setPadding(0, 8, 0, 8)
+				}
+
+				val label = TextView(this).apply {
+					text = "${index + 1}. $stopName"
+					textSize = 14f
+					layoutParams = LinearLayout.LayoutParams(
+						0,
+						LinearLayout.LayoutParams.WRAP_CONTENT,
+						1f
+					)
+				}
+
+				val upBtn = Button(this).apply {
+					text = "⬆"
+					isEnabled = index > 0
+					setOnClickListener {
+						val item = editablePath.removeAt(index)
+						editablePath.add(index - 1, item)
+						renderPathRows()
+					}
+				}
+
+				val downBtn = Button(this).apply {
+					text = "⬇"
+					isEnabled = index < editablePath.lastIndex
+					setOnClickListener {
+						val item = editablePath.removeAt(index)
+						editablePath.add(index + 1, item)
+						renderPathRows()
+					}
+				}
+
+				val delBtn = Button(this).apply {
+					text = "✕"
+					setOnClickListener {
+						editablePath.removeAt(index)
+						renderPathRows()
+					}
+				}
+
+				row.addView(label)
+				row.addView(upBtn)
+				row.addView(downBtn)
+				row.addView(delBtn)
+				pathListContainer.addView(row)
+			}
+		}
+
+		val addButton = Button(this).apply {
+			text = "+ Add Location"
+			setOnClickListener {
+				lifecycleScope.launch {
+					val availableStops = withContext(Dispatchers.IO) {
+						db.poiDao().getAll()
+							.map { it.name }
+							.distinct()
+							.filterNot { it in editablePath }
+					}
+
+					if (availableStops.isEmpty()) {
+						Toast.makeText(this@AndroidSmallHomeActivity, "No more locations available.", Toast.LENGTH_SHORT).show()
+						return@launch
+					}
+
+					AlertDialog.Builder(this@AndroidSmallHomeActivity)
+						.setTitle("Add Location")
+						.setItems(availableStops.toTypedArray()) { _, which ->
+							editablePath.add(availableStops[which])
+							renderPathRows()
+						}
+						.setNegativeButton("Cancel", null)
+						.show()
+				}
+			}
+		}
+
+		val scrollView = ScrollView(this).apply {
+			addView(pathListContainer)
+			layoutParams = LinearLayout.LayoutParams(
+				LinearLayout.LayoutParams.MATCH_PARENT,
+				0,
+				1f
+			)
+		}
+
+		renderPathRows()
+
+		dialogContainer.addView(titleView)
+		dialogContainer.addView(addButton)
+		dialogContainer.addView(scrollView)
+
+		AlertDialog.Builder(this)
+			.setView(dialogContainer)
+			.setNegativeButton("Cancel", null)
+			.setPositiveButton("Save") { _, _ ->
+				if (editablePath.isEmpty()) {
+					Toast.makeText(this, "Add at least one stop before saving.", Toast.LENGTH_SHORT).show()
+					return@setPositiveButton
+				}
+
+				currentTourPathSequence = editablePath.toList()
+				messages.add(ChatMessage(
+					text = "Tour updated! New order: ${currentTourPathSequence.joinToString(" → ")}",
+					isUser = false,
+					suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
+				))
+				adapter.notifyItemInserted(messages.size - 1)
+				homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+			}
+			.show()
 	}
 
 	// USER MESSAGE HANDLER
