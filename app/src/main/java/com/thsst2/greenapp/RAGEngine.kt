@@ -550,6 +550,76 @@
         }
 
         // Return list of all buildings (For displaying geofences and distance measurement)
+        suspend fun getTourPlanBuildings(poiIds: List<String>): List<String> {
+            val buildingsSnapshot = db
+                .child("server_side")
+                .child("pre_collected_data")
+                .child("buildings")
+                .get()
+                .await()
+            val pois = mutableListOf<String>()
+
+            // Loop through all buildings
+            for (building in buildingsSnapshot.children) {
+                try {
+                    Log.d("RAGEngine", "${building.child("building_id").getValue(String::class.java)}")
+//                    val poiId = building.child("building_id").getValue(String::class.java) ?: continue
+                    val name = building.child("name").getValue(String::class.java) ?: ""
+                    if (poiIds.contains(name)) {
+                        val description = building.child("description").getValue(String::class.java) ?: ""
+//                    val declaredCulturalProperty = building.child("declared_cultural_property").getValue(String::class.java) ?: ""
+//                    val openingHours = building.child("hours").child("open").getValue(String::class.java) ?: ""
+//                    val closingHours = building.child("hours").child("close").getValue(String::class.java) ?: ""
+                        val yearBuilt = building.child("year_built").getValue(String::class.java) ?: ""
+                        val floors = building.child("floors").getValue(Int::class.java) ?: 0
+
+                        // Extract tags
+//                    val functionTags =
+//                        building.child("function_tags").children.mapNotNull { it.value as? String }
+//                    val locationTags =
+//                        building.child("location_tags").children.mapNotNull { it.value as? String }
+//                    val typeTags =
+//                        building.child("type_tags").children.mapNotNull { it.value as? String }
+
+                        // Combine all tag types into a single list
+//                    val category = functionTags + locationTags + typeTags
+
+                        // Extract coordinates
+//                    val geo = building.child("coordinates")
+//                    val lat = geo.child("lat").getValue(Double::class.java) ?: 0.0
+//                    val lng = geo.child("lng").getValue(Double::class.java) ?: 0.0
+
+                        // Extract radius for geofence
+//                    val rad = building.child("radius").getValue(Double::class.java) ?: 0.0
+
+                        // Extract floors
+                        val formattedInfo = "Building: $name; Description: $description; Year Built: $yearBuilt; Floors: $floors"
+                        pois.add(formattedInfo)
+
+                        // Create POI entity and add to list
+//                    val poi = PoiEntity(
+//                        poiId = poiId,
+//                        generatedPathId = null,
+//                        name = name,
+//                        description = description,
+//                        category = category,
+//                        latitude = lat,
+//                        longitude = lng,
+//                        radius = rad,
+//                        floors = floors
+//                    )
+//                    pois.add(poi)
+                        Log.d("RAGEngine", "Added to Tour Plan: $name")
+                    }
+                } catch (e: Exception) {
+                    Log.e("RAGEngine", "Error parsing building: ${e.message}")
+                }
+            }
+
+            return pois
+        }
+
+        // Return list of all buildings (For displaying geofences and distance measurement)
         suspend fun getBuildings(): List<PoiEntity> {
             val buildingsSnapshot = db
                 .child("server_side")

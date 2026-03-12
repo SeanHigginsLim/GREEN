@@ -1063,33 +1063,38 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				}
 
 				val poiJson = Gson().toJson(userTourPathHistory.pathSequence)
-				val poiData = db.localDataDao().getLocalData(userId)
-				val poiInfoOnly = poiData?.poiInfoJson ?: "[]"
+//				val localData = db.localDataDao().getLocalData(userId)
+//				val poiInfoOnly = poiData?.poiInfoJson ?: "[]"
+//				val cleanPoiJson = cleanPoiJson(poiInfoOnly)
+				val poiData = ragEngine.getTourPlanBuildings(userTourPathHistory.pathSequence)
+				val poiInfoOnly = Gson().toJson(poiData)
 				val cleanPoiJson = cleanPoiJson(poiInfoOnly)
 				val startingPoint = null // building starting point
 				val aiPrompt = """
 					### Persona
 					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
 
-					### Task
-					Generate a complete and engaging tour overview for the user.
+					### Instructions
+                    1. Write in short, sectioned paragraphs. Split each paragraph for each building.
+                    2. Describe the entire journey in order, starting from the first location.
+                    3. Mention EVERY building in the Tour Route list. Use the Building Details to add interesting facts.
+                    4. Maintain a warm, inviting persona. No "As an AI" or "Based on data".
+                    5. Do NOT use headings, bullet points, or meta-labels like "###".
+                    6. Start the narration immediately and stop as soon as the tour description ends.
+					7. Keep it as short and as simple as possible. This is a tour over view, not the tour yet.
 
-					### Context & Data
+                    ### Example
+                    Tour Route: ["Henry Sy Sr. Hall","St. La Salle Hall"]
+                    Building Details: [{"name": "St. La Salle Hall", "desc": "Historic building"}, {"name": "Yuchengco Hall", "desc": "Auditorium"}]
+                    Output: Welcome to DLSU! We start at St. La Salle Hall, a historic landmark that stands as a symbol of our long heritage. After admiring its architecture, we'll head over to Yuchengco Hall, which houses our grand auditorium. It's a centerpiece of our campus life!
+
+                    ### Current Request
 					User Role: $userRoleName
 					User Interests: $allPreferences
 					Tour Route: $poiJson
 					Building Details: $cleanPoiJson
 
-					### Instructions
-					1. Write in short, sectioned paragraphs.
-					2. Describe the entire journey in order, starting from the first location.
-					3. Mention EVERY building in the Tour Route list. Use the Building Details to add interesting facts about each.
-					4. Maintain a warm, inviting persona. No "As an AI" or "Based on the data".
-					5. Do NOT use headings, bullet points, or concluding greetings. Just the narration.
-					6. Avoid repetitive phrasing or ellipses (...).
-
-					### Example
-					Welcome to your DLSU Heritage Trail! We'll start our journey at St. La Salle Hall, the crown jewel of our campus heritage. From there, we'll make our way to the modern Henry Sy Sr. Hall, where the future of research meets our vibrant student life.
+                    ### Tour Overview:
 				""".trimIndent()
 
 				Log.d("HomeActivity", "User Role Name: $userRoleName")
@@ -1306,7 +1311,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		lifecycleScope.launch {
 			// Finalize and save performance metrics for this session
 			metricsCollector.finalizeSessionMetrics(sessionId)
-			
+
 			userLogDao.insert(
 				UserLogEntity(
 					userId = userId,
