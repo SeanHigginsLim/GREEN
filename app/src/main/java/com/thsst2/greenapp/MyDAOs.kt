@@ -210,6 +210,9 @@ interface SessionDao: BaseDao<SessionEntity> {
 
     @Query("DELETE FROM session")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM session WHERE userId = :userId ORDER BY sessionId DESC LIMIT 1")
+    suspend fun getLatestSessionForUser(userId: Long): SessionEntity?
 }
 
 // Session Log DAO

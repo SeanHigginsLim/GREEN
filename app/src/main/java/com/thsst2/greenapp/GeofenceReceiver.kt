@@ -86,8 +86,8 @@ class GeofenceReceiver : BroadcastReceiver() {
                 Locale.getDefault()
             ).format(Date(now))
 
-            val sessionId = getActiveSessionId(db)
-            Log.d("GeofenceReceiver", "Resolved sessionId = $sessionId")
+            val sessionId = getActiveSessionId(db, userId)
+            Log.d("GeofenceReceiver", "Resolved active sessionId=$sessionId for userId=$userId")
 
             val hasValidSession = sessionId != 0L
             if (!hasValidSession) {
@@ -258,9 +258,9 @@ class GeofenceReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun getActiveSessionId(db: MyAppDatabase): Long {
+    private suspend fun getActiveSessionId(db: MyAppDatabase, userId: Long): Long {
         return withContext(Dispatchers.IO) {
-            db.sessionDao().getAll().lastOrNull()?.sessionId ?: 0L
+            db.sessionDao().getLatestSessionForUser(userId)?.sessionId ?: 0L
         }
     }
 }
