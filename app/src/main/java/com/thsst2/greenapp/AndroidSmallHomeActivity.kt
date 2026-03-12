@@ -1145,7 +1145,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					if (response.isSuccessful) {
 						val botReply = response.body()?.response ?: "Answer:"
 						Log.d("LLM_RESPONSE", botReply)
-						addBotMessageWithProgressiveInfo(botReply)
+						messages.add(
+							ChatMessage(
+								text = botReply,
+								isUser = false,
+								suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
+							)
+						)
+						adapter.notifyItemInserted(messages.size - 1)
+						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
 						lifecycleScope.launch {
 							dialogueHistoryDao.insert(
