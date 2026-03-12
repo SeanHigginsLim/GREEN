@@ -132,6 +132,18 @@ class GeofenceReceiver : BroadcastReceiver() {
                 Geofence.GEOFENCE_TRANSITION_ENTER -> {
                     Log.d("GeofenceReceiver", "ENTER detected for ${matchedPoi.name}")
                     if (hasValidSession) {
+                        val localPoi = db.poiDao().getPoiById(matchedPoi.poiId)
+                        if (localPoi == null) {
+                            Log.e("GeofenceReceiver", "Missing PoiEntity for poiId=${matchedPoi.poiId}. Skipping ENTER inserts.")
+                            return@launch
+                        }
+
+                        val session = db.sessionDao().getLatestSessionForUser(userId)
+                        if (session == null) {
+                            Log.e("GeofenceReceiver", "Missing SessionEntity for userId=$userId. Skipping ENTER inserts.")
+                            return@launch
+                        }
+
                         geoDao.insert(
                             GeofenceTriggerEntity(
                                 userId = userId,
@@ -144,8 +156,8 @@ class GeofenceReceiver : BroadcastReceiver() {
 
                         visitDao.insert(
                             UserVisitedLocationEntity(
-                                poiId = matchedPoi.poiId,
-                                sessionId = sessionId,
+                                poiId = localPoi.poiId,
+                                sessionId = session.sessionId,
                                 timestamp = now,
                                 duration = 0L
                             )
@@ -155,7 +167,7 @@ class GeofenceReceiver : BroadcastReceiver() {
                             UserLocationEntity(
                                 userLocationId = 0,
                                 userId = userId,
-                                sessionId = sessionId,
+                                sessionId = session.sessionId,
                                 latitude = matchedPoi.latitude,
                                 longitude = matchedPoi.longitude,
                                 timestamp = now,

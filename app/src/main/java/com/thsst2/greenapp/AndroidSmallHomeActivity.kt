@@ -150,88 +150,88 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	private var isAsking = false
 
-//	private val buildingReceiver = object : BroadcastReceiver() {
-//		override fun onReceive(context: Context?, intent: Intent?) {
-//			val name = intent?.getStringExtra("buildingName") ?: return
-//			val poiId = intent?.getStringExtra("poiId") ?: return
-//			Log.d("BUILDING_ENTERED", "Building entered: $name")
-//			Log.d("BUILDING_ENTERED", "Building ID: $poiId")
-//
-//			val currentPoi = GeofenceReceiver.currentPoiInside
-//			MapState.selectedFloor = 1
-//			runOnUiThread {
-//				updateCurrentLocationOverlay(currentPoi, 1)
-//			}
-//
-//			messages.add(
-//				ChatMessage(
-//					text = "You entered $name",
-//					isUser = false
-//				)
-//			)
-//			adapter.notifyItemInserted(messages.size - 1)
-//			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-//			val building = List<String>(1) { poiId }
-//
-//			lifecycleScope.launch {
-//					val buildingData = ragEngine.getData(building, building)
-//					val cleanPoiJson = cleanPoiJson(buildingData)
-//					val aiPrompt = """
-//					### Persona
-//					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
-//
-//					### Task
-//					The user has just entered $name. Provide a brief, engaging introduction to this building based on the provided data.
-//
-//					### Context & Data
-//					Building: $name ($poiId)
-//					Building Details: $cleanPoiJson
-//
-//					### Constraints
-//					1. Output ONLY the narration. No meta-talk, no "Here is the info", no labels like "Description:".
-//					2. Be concise. Use short, sectioned paragraphs.
-//					3. Use only the provided building details. Do not hallucinate historical facts.
-//					4. Address the user directly as a visitor.
-//					5. Keep the tone warm and welcoming, like a student guide speaking to a guest.
-//
-//					### Example Output
-//					St. La Salle Hall,
-//					Welcome to the historic heart of our campus! St. La Salle Hall is our most iconic building, completed in 1921. It houses major administrative offices and beautiful neo-classical architecture that represents our long heritage here in Manila.
-//				""".trimIndent()
-//
-//					Log.d("LLM_PROMPT", aiPrompt)
-//					Log.d("LLM_BUILDING_DATA", buildingData)
-//
-//					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
-//						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
-//							if (response.isSuccessful) {
-//								val botReply = response.body()?.response ?: "Area Entered!"
-//								Log.d("LLM_RESPONSE", botReply)
-//								addBotMessageWithProgressiveInfo(botReply)
-//
-//								lifecycleScope.launch {
-//									dialogueHistoryDao.insert(
-//										DialogueHistoryEntity(
-//											userId = userId,
-//											userText = "geofence trigger",
-//											systemResponse = botReply,
-//											contextSnapshot = aiPrompt,
-//											turnNumber = messages.size
-//										)
-//									)
-//								}
-//							} else {
-//								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
-//							}
-//						}
-//
-//						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-//							Log.e("ChatApi", "Error: ${t.message}", t)
-//						}
-//					})
-//			}
-//		}
-//	}
+	private val buildingReceiver = object : BroadcastReceiver() {
+		override fun onReceive(context: Context?, intent: Intent?) {
+			val name = intent?.getStringExtra("buildingName") ?: return
+			val poiId = intent?.getStringExtra("poiId") ?: return
+			Log.d("BUILDING_ENTERED", "Building entered: $name")
+			Log.d("BUILDING_ENTERED", "Building ID: $poiId")
+
+			val currentPoi = GeofenceReceiver.currentPoiInside
+			MapState.selectedFloor = 1
+			runOnUiThread {
+				updateCurrentLocationOverlay(currentPoi, 1)
+			}
+
+			messages.add(
+				ChatMessage(
+					text = "You entered $name",
+					isUser = false
+				)
+			)
+			adapter.notifyItemInserted(messages.size - 1)
+			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+			val building = List<String>(1) { poiId }
+
+			lifecycleScope.launch {
+					val buildingData = ragEngine.getData(building, building)
+					val cleanPoiJson = cleanPoiJson(buildingData)
+					val aiPrompt = """
+					### Persona
+					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
+
+					### Task
+					The user has just entered $name. Provide a brief, engaging introduction to this building based on the provided data.
+
+					### Context & Data
+					Building: $name ($poiId)
+					Building Details: $cleanPoiJson
+
+					### Constraints
+					1. Output ONLY the narration. No meta-talk, no "Here is the info", no labels like "Description:".
+					2. Be concise. Use short, sectioned paragraphs.
+					3. Use only the provided building details. Do not hallucinate historical facts.
+					4. Address the user directly as a visitor.
+					5. Keep the tone warm and welcoming, like a student guide speaking to a guest.
+
+					### Example Output
+					St. La Salle Hall,
+					Welcome to the historic heart of our campus! St. La Salle Hall is our most iconic building, completed in 1921. It houses major administrative offices and beautiful neo-classical architecture that represents our long heritage here in Manila.
+				""".trimIndent()
+
+					Log.d("LLM_PROMPT", aiPrompt)
+					Log.d("LLM_BUILDING_DATA", buildingData)
+
+					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+							if (response.isSuccessful) {
+								val botReply = response.body()?.response ?: "Area Entered!"
+								Log.d("LLM_RESPONSE", botReply)
+								addBotMessageWithProgressiveInfo(botReply)
+
+								lifecycleScope.launch {
+									dialogueHistoryDao.insert(
+										DialogueHistoryEntity(
+											userId = userId,
+											userText = "geofence trigger",
+											systemResponse = botReply,
+											contextSnapshot = aiPrompt,
+											turnNumber = messages.size
+										)
+									)
+								}
+							} else {
+								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+							}
+						}
+
+						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+							Log.e("ChatApi", "Error: ${t.message}", t)
+						}
+					})
+			}
+		}
+	}
 
 	private val floorReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
@@ -379,14 +379,26 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		val user = UserEntity(
 			userId = userId
 		)
-		saveUserLocally(user)
 
 		val sessionProfile = SessionEntity(
 			userId = user.userId,
 			componentsUsed = null,
 			sessionStartedAt = System.currentTimeMillis().toString()
 		)
-		saveSessionLocally(sessionProfile)
+//
+		lifecycleScope.launch {
+			try {
+				withContext(Dispatchers.IO) {
+					Log.d("HomeActivity", "Saving user")
+					saveUserLocally(user)
+
+					Log.d("HomeActivity", "Saving session")
+					saveSessionLocally(sessionProfile)
+				}
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "User/session save failed: ${e.localizedMessage}", e)
+			}
+		}
 
 		// 🔹 NEW: Check if user has an existing profile
 		lifecycleScope.launch {
@@ -437,6 +449,21 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		homeBinding.recyclerViewChatReplies.adapter = adapter
 		homeBinding.recyclerViewChatReplies.layoutManager = LinearLayoutManager(this)
 
+
+		// show input box while keyboard is open
+		homeBinding.recyclerViewChatReplies.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, oldBottom ->
+			if (bottom < oldBottom) {
+				val lastPos = adapter.itemCount - 1
+				if (lastPos >= 0) {
+					// delay slightly to allow the layout to finish resizing
+					homeBinding.recyclerViewChatReplies.postDelayed({
+						homeBinding.recyclerViewChatReplies.scrollToPosition(lastPos)
+					}, 100)
+				}
+			}
+		}
+
+
 		updateCurrentLocationOverlay(null)
 
 		homeBinding.currentLocationOverlay.setOnClickListener {
@@ -449,15 +476,25 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Setup Retrofit
 		setupRetrofit()
 
-		// Setup location and geofencing
-		setupLocationAndGeofence()
+//		// Setup location and geofencing
+		lifecycleScope.launch {
+			try {
+				withContext(Dispatchers.IO) {
+					syncPoisToRoom()
+				}
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "POI sync failed: ${e.localizedMessage}", e)
+			}
 
-		val testIntent = Intent(this, GeofenceReceiver::class.java)
-		testIntent.action = "com.thsst2.greenapp.GEOFENCE_TRANSITION_ACTION"
-		sendBroadcast(testIntent)
+			setupLocationAndGeofence()
+		}
 
-//		LocalBroadcastManager.getInstance(this)
-//			.registerReceiver(buildingReceiver, IntentFilter("BUILDING_ENTERED"))
+//		val testIntent = Intent(this, GeofenceReceiver::class.java)
+//		testIntent.action = "com.thsst2.greenapp.GEOFENCE_TRANSITION_ACTION"
+//		sendBroadcast(testIntent)
+
+		LocalBroadcastManager.getInstance(this)
+			.registerReceiver(buildingReceiver, IntentFilter("BUILDING_ENTERED"))
 
 		LocalBroadcastManager.getInstance(this)
 			.registerReceiver(floorReceiver, IntentFilter("FLOOR_SELECTED"))
@@ -1279,18 +1316,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	}
 
 	// SESSION MANAGEMENT
-	private fun saveSessionLocally(session: SessionEntity) {
-		lifecycleScope.launch {
-			val repo = SessionRepository(db)
-			repo.insertSession(session, true)
-		}
+	private suspend fun saveSessionLocally(session: SessionEntity) {
+		val repo = SessionRepository(db)
+		repo.insertSession(session, true)
 	}
 
-	private fun saveUserLocally(user: UserEntity) {
-		lifecycleScope.launch {
-			val repo = UserRepository(db)
-			repo.insertUser(user, true)
-		}
+	private suspend fun saveUserLocally(user: UserEntity) {
+		val repo = UserRepository(db)
+		repo.insertUser(user, true)
 	}
 
 	private fun uploadSessionToFirestore(session: SessionEntity) {
@@ -1585,6 +1618,21 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			}
 		}
 	}
+	private suspend fun syncPoisToRoom() {
+		val remotePois = ragEngine.getBuildings()
+
+		if (remotePois.isEmpty()) {
+			Log.w("HomeActivity", "syncPoisToRoom: No POIs returned from RAGEngine")
+			return
+		}
+
+		db.poiDao().deleteAll()
+		remotePois.forEach { poi ->
+			db.poiDao().insert(poi)
+		}
+
+		Log.d("HomeActivity", "syncPoisToRoom: Inserted ${remotePois.size} POIs into Room")
+	}
 
 	override fun onRequestPermissionsResult(
 		requestCode: Int,
@@ -1824,7 +1872,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		Log.d("SESSION", "App backgrounded → ending session $sessionId")
 
-//		endTour(userId, sessionId)
+		endTour(userId, sessionId)
 	}
 
 
@@ -1834,7 +1882,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				fusedLocationClient.removeLocationUpdates(it)
 			}
 		}
-//		LocalBroadcastManager.getInstance(this).unregisterReceiver(buildingReceiver)
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(buildingReceiver)
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(floorReceiver)
 
 		super.onDestroy()

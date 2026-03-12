@@ -21,12 +21,14 @@
         <activity
             android:name=".AndroidSmallHomeActivity"
             android:exported="true"
-            android:theme="@style/Theme.GREENAPP">
+            android:theme="@style/Theme.GREENAPP"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
         <activity
