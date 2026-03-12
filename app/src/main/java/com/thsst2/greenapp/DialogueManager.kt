@@ -47,6 +47,12 @@ class DialogueManager(private val context: Context) {
         private const val STEP_START_CONFIRMATION = "start_confirmation"
     }
 
+    fun reset() {
+        currentContext = ConversationContext.GREETING
+        pendingStep = null
+        selectedTourTypeIsRandom = null
+    }
+
     suspend fun processMessage(userId: Long, input: String): DialogueResult = withContext(Dispatchers.IO) {
         val message = input.lowercase().trim()
         val intent = detectIntent(message)

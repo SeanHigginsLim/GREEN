@@ -17,7 +17,7 @@ class TourCoordinator(userId: Long, private val context: Context) {
     private val tourPathPlanner = TourPathPlanner(userId, context)
     private val FirebaseSync = FirebaseSync()
     private val tempPreferences = mutableListOf<String>()
-    private val metricsCollector = MetricsCollector(db)
+    private val metricsCollector = MetricsCollector(context)
 
     suspend fun startTourForUser(
         userId: Long, 
@@ -121,11 +121,6 @@ class TourCoordinator(userId: Long, private val context: Context) {
             Log.d("TourCoordinator", "list of all relevant preferences: $databaseMappedPreferences")
             val poiData = RAGEngine.getData(db.poiDao().getAll().map { it.poiId }, databaseMappedPreferences)
             logLargeString("TourCoordinator", "POI Data: $poiData")
-            // Simulate sync to Firebase
-//            FirebaseSync.syncEntity("generated_paths", generatedPathEntity)
-//            for (poi in relevantPOIs) {
-//                FirebaseSync.syncEntity("poi_entity", poi)
-//            }
 
             var userTourPathHistory: UserTourPathHistoryEntity? = null
             var pathSequence = emptyList<String>()
@@ -144,18 +139,24 @@ class TourCoordinator(userId: Long, private val context: Context) {
                 db.localDataDao().insert(localDataEntity)
             }
 
-            Log.d("TourCoordinator", "Saving User Tour Path History")
+            // CRITICAL FIX: Get the LATEST session ID and verify it is not 0
+            val activeSession = db.sessionDao().getSessionsByUser(userId).lastOrNull()
+            if (activeSession == null) {
+                Log.e("TourCoordinator", "Cannot save path history: No active session found for userId=$userId")
+                return@withContext null
+            }
+            val sessionId = activeSession.sessionId
+
+            Log.d("TourCoordinator", "Saving User Tour Path History for session $sessionId")
             userTourPathHistory = UserTourPathHistoryEntity(
-                sessionId = db.sessionDao().getSessionsByUser(userId).firstOrNull()?.sessionId ?: 0,
+                sessionId = sessionId,
                 pathSequence = pathSequence,
-                algorithmUsed = db.generatedPathDao().getGeneratedPathsByUser(userId).firstOrNull()?.routeAlgorithm ?: "Unknown",
+                algorithmUsed = generatedPathEntity.routeAlgorithm,
                 status = "Generated"
             )
-            Log.d("TourCoordinator", "User Tour Path History: $userTourPathHistory")
             db.userTourPathHistoryDao().insert(userTourPathHistory)
 
             // Track preference matching
-            val sessionId = db.sessionDao().getSessionsByUser(userId).firstOrNull()?.sessionId ?: 0
             metricsCollector.recordPreferenceMatching(
                 sessionId = sessionId,
                 totalPreferences = databaseMappedPreferences.size,

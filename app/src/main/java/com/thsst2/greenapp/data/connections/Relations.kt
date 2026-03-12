@@ -327,7 +327,7 @@ data class GeofenceTriggerWithPoi(
         parentColumn = "poiId",
         entityColumn = "poiId"
     )
-    val poi: PoiEntity
+    val poi: PoiEntity?
 )
 data class GeofenceTriggerWithUserLog(
     @Embedded val geofenceTrigger: GeofenceTriggerEntity,

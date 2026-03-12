@@ -419,7 +419,10 @@
                     val relevantTagMatch = relevantTags?.any { it.equals(dataValue, ignoreCase = true) } == true
 
                     if (relevantTagMatch) {
-                        val parentData: Map<String, Any?> = childSnapshot.children.associate {
+                        val parentRef = childSnapshot.ref.parent ?: continue
+                        val parentSnapshot = parentRef.get().await()
+
+                        val parentData: Map<String, Any?> = parentSnapshot.children.associate {
                             val key = it.key ?: ""
                             val value = it.value
                             key to value
@@ -431,6 +434,9 @@
                         if (!seenIds.contains(parentHash)) {
                             matched.add(parentData)
                             seenIds.add(parentHash)
+                            Log.d("RAGEngine", "Added parent node: ${parentRef.key}")
+                        } else {
+                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentRef.key}")
                         }
                     }
                 }

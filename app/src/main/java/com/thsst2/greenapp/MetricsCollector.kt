@@ -1,12 +1,13 @@
 package com.thsst2.greenapp
 
+import android.content.Context
 import com.thsst2.greenapp.data.PerformanceMetricsEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
 
-class MetricsCollector(private val db: MyAppDatabase) {
-    
+class MetricsCollector(private val context: Context) {
+    private val db = MyAppDatabase.getInstance(context)
     private val sessionMetrics = mutableMapOf<Long, SessionMetrics>()
     
     data class SessionMetrics(

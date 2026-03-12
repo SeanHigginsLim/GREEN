@@ -148,95 +148,105 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private var numChecks = 0
 	private var inGeofenceOrTransition = false
 
-	private val buildingReceiver = object : BroadcastReceiver() {
-		override fun onReceive(context: Context?, intent: Intent?) {
-			val name = intent?.getStringExtra("buildingName") ?: return
-			val poiId = intent?.getStringExtra("poiId") ?: return
+	private var isAsking = false
 
-			val currentPoi = GeofenceReceiver.currentPoiInside
-			MapState.selectedFloor = 1
-			runOnUiThread {
-				updateCurrentLocationOverlay(currentPoi, 1)
-			}
-
-			messages.add(
-				ChatMessage(
-					text = "You entered $name",
-					isUser = false
-				)
-			)
-			adapter.notifyItemInserted(messages.size - 1)
-			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-			val building = List<String>(1) { poiId }
-
-			lifecycleScope.launch {
-					val buildingData = ragEngine.getData(building, building)
-//					val poiData = db.localDataDao().getLocalData(userId)
-					val aiPrompt = """
-					You are an AI tour guide for De La Salle University.
-
-					TASK:	
-					When a user enters a geofenced building, display a short and informative introduction based only on the building’s data.
-					
-					INPUT:
-					Building Data: $buildingData
-					
-					INSTRUCTIONS:
-					1. Write short sectioned paragraphs.
-					2. Read and understand the building data.
-					3. Use building data to get relevant building information. Only use the data that is related to the current building ${name} or ${poiId}.
-					4. Generate a short, friendly description of this building — including its name, purpose, and any notable details from the data.
-					5. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
-					6. Do not invent information that isn’t provided.
-					7. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
-					8. Start with the description immediately, don't add any other reply and be engaging.
-					
-					EXAMPLE OUTPUT:
-						  Henry Sy Sr. Hall,
-						  Welcome to Henry Sy Sr. Hall — a 14-story academic complex that houses modern classrooms, research facilities, and student spaces overlooking the DLSU campus.
-				""".trimIndent()
-
-					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
-						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
-							if (response.isSuccessful) {
-								val botReply = response.body()?.response ?: "Area Entered!"
-								Log.d("LLM_RESPONSE", botReply)
-								addBotMessageWithProgressiveInfo(botReply)
-
-								lifecycleScope.launch {
-									dialogueHistoryDao.insert(
-										DialogueHistoryEntity(
-											userId = userId,
-											userText = "geofence trigger",
-											systemResponse = botReply,
-											contextSnapshot = aiPrompt,
-											turnNumber = messages.size
-										)
-									)
-								}
-							} else {
-								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
-							}
-						}
-
-						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-							Log.e("ChatApi", "Error: ${t.message}", t)
-						}
-					})
-			}
-		}
-	}
+//	private val buildingReceiver = object : BroadcastReceiver() {
+//		override fun onReceive(context: Context?, intent: Intent?) {
+//			val name = intent?.getStringExtra("buildingName") ?: return
+//			val poiId = intent?.getStringExtra("poiId") ?: return
+//			Log.d("BUILDING_ENTERED", "Building entered: $name")
+//			Log.d("BUILDING_ENTERED", "Building ID: $poiId")
+//
+//			val currentPoi = GeofenceReceiver.currentPoiInside
+//			MapState.selectedFloor = 1
+//			runOnUiThread {
+//				updateCurrentLocationOverlay(currentPoi, 1)
+//			}
+//
+//			messages.add(
+//				ChatMessage(
+//					text = "You entered $name",
+//					isUser = false
+//				)
+//			)
+//			adapter.notifyItemInserted(messages.size - 1)
+//			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+//			val building = List<String>(1) { poiId }
+//
+//			lifecycleScope.launch {
+//					val buildingData = ragEngine.getData(building, building)
+//					val cleanPoiJson = cleanPoiJson(buildingData)
+//					val aiPrompt = """
+//					### Persona
+//					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
+//
+//					### Task
+//					The user has just entered $name. Provide a brief, engaging introduction to this building based on the provided data.
+//
+//					### Context & Data
+//					Building: $name ($poiId)
+//					Building Details: $cleanPoiJson
+//
+//					### Constraints
+//					1. Output ONLY the narration. No meta-talk, no "Here is the info", no labels like "Description:".
+//					2. Be concise. Use short, sectioned paragraphs.
+//					3. Use only the provided building details. Do not hallucinate historical facts.
+//					4. Address the user directly as a visitor.
+//					5. Keep the tone warm and welcoming, like a student guide speaking to a guest.
+//
+//					### Example Output
+//					St. La Salle Hall,
+//					Welcome to the historic heart of our campus! St. La Salle Hall is our most iconic building, completed in 1921. It houses major administrative offices and beautiful neo-classical architecture that represents our long heritage here in Manila.
+//				""".trimIndent()
+//
+//					Log.d("LLM_PROMPT", aiPrompt)
+//					Log.d("LLM_BUILDING_DATA", buildingData)
+//
+//					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+//						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+//							if (response.isSuccessful) {
+//								val botReply = response.body()?.response ?: "Area Entered!"
+//								Log.d("LLM_RESPONSE", botReply)
+//								addBotMessageWithProgressiveInfo(botReply)
+//
+//								lifecycleScope.launch {
+//									dialogueHistoryDao.insert(
+//										DialogueHistoryEntity(
+//											userId = userId,
+//											userText = "geofence trigger",
+//											systemResponse = botReply,
+//											contextSnapshot = aiPrompt,
+//											turnNumber = messages.size
+//										)
+//									)
+//								}
+//							} else {
+//								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+//							}
+//						}
+//
+//						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+//							Log.e("ChatApi", "Error: ${t.message}", t)
+//						}
+//					})
+//			}
+//		}
+//	}
 
 	private val floorReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
 			val floor = intent?.getIntExtra("floorNumber", 0) ?: return
 			if (floor == 0) return // Invalid floor
 			val poiId = intent.getStringExtra("poiId") ?: return
+			Log.d("FLOOR_SELECTED", "Floor selected: $floor")
+			Log.d("FLOOR_SELECTED", "Building ID: $poiId")
 
 			val currentPoi = GeofenceReceiver.currentPoiInside
 			runOnUiThread {
 				updateCurrentLocationOverlay(currentPoi, floor)
 			}
+
+			Log.d("FLOOR_SELECTED", "currentPoi: $currentPoi")
 
 			messages.add(
 				ChatMessage(
@@ -250,30 +260,32 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 			lifecycleScope.launch {
 					val floorData = ragEngine.getFloorData(floor, poiId)
+					val cleanPoiJson = cleanPoiJson(floorData)
 					val aiPrompt = """
-					You are an AI tour guide for De La Salle University.
+					### Persona
+					You are G.R.E.E.N., the official AI tour guide for De La Salle University. You are helpful and love showing off the campus amenities.
 
-					TASK:	
-					When a user enters a geofenced building, display a short and informative introduction based only on the floor’s data.
-					
-					INPUT:
-					Floor Data: $floorData
-					
-					INSTRUCTIONS:
-					1. Write short sectioned paragraphs.
-					2. Read and understand the floor data.
-					3. Use floor data to get relevant floor information. Only use the data that is related to the current building floor ${floor}.
-					4. Generate a short, friendly description of this floor — its amenities, labels, notes, and any notable details from the data.
-					5. Keep the tone warm, concise, and welcoming (like a campus tour guide speaking to a visitor).
-					6. Do not invent information that isn’t provided.
-					7. Don't tell me at the start of the sentence if this geofence prompt template is used, just respond in natural language. 
-					8. Start with the description immediately, don't add any other reply and be engaging.
-					
-					EXAMPLE OUTPUT:
-						  Henry Sy Sr. Hall Floor 12,
-						  Welcome to the 12th floor. The 12th floor includes the library, escalators, and bathrooms. 
-						  Inside the library, there are multiple books to read, and a cozy place to stay.
+					### Task
+					The user has moved to Floor $floor of $poiId. Briefly describe what they can find here based on the floor data.
+
+					### Context & Data
+					Location: $poiId, Floor $floor
+					Floor Amenities & Details: $cleanPoiJson
+
+					### Constraints
+					1. Output ONLY the narration. No "Sure thing" or "Here is what's on this floor".
+					2. Be concise. Use short paragraphs.
+					3. Highlight specific amenities like restrooms, offices, or study areas found in the data.
+					4. Do not invent details not present in the Input.
+					5. Start with a friendly acknowledgment of their current floor.
+
+					### Example Output
+					Henry Sy Sr. Hall Floor 12,
+					You've reached the 12th floor! This level is a favorite for many students because it houses our main library services. You'll find plenty of quiet study nooks here, along with convenient elevator access and restrooms just around the corner.
 				""".trimIndent()
+
+					Log.d("LLM_PROMPT", aiPrompt)
+					Log.d("LLM_FLOOR_DATA", floorData)
 
 					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
 						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
@@ -337,7 +349,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		userInteractionTimeDao = db.userInteractionTimeDao()
 		userLogDao = db.userLogDao()
 		sessionLogDao = db.sessionLogDao()
-		metricsCollector = MetricsCollector(db)
+		metricsCollector = MetricsCollector(this)
 		numChecks
 
 		// Initialize map top fragment
@@ -418,6 +430,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				"Change Floor" -> handleChangeFloorAction()
 				"Edit Tour" -> showEditTourOverlay()
 				"More Info" -> showNextMoreInfoParagraph()
+				"Ask" -> { isAsking = true }
 				"Next Stop" -> goToNextStop()
 			}
 		}
@@ -443,8 +456,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		testIntent.action = "com.thsst2.greenapp.GEOFENCE_TRANSITION_ACTION"
 		sendBroadcast(testIntent)
 
-		LocalBroadcastManager.getInstance(this)
-			.registerReceiver(buildingReceiver, IntentFilter("BUILDING_ENTERED"))
+//		LocalBroadcastManager.getInstance(this)
+//			.registerReceiver(buildingReceiver, IntentFilter("BUILDING_ENTERED"))
 
 		LocalBroadcastManager.getInstance(this)
 			.registerReceiver(floorReceiver, IntentFilter("FLOOR_SELECTED"))
@@ -582,6 +595,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		if (tourStarted && currentTourPathSequence.isNotEmpty()) {
 			suggestions.add("Edit Tour")
+			suggestions.add("Ask")
 			suggestions.add("Next Stop")
 		}
 
@@ -670,17 +684,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			adapter.notifyItemInserted(messages.size - 1)
 			homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
-			tourStarted = false
-			lifecycleScope.launch {
-				val result = dialogueManager.processMessage(userId, "hi")  // start greeting phase
-				messages.add(
-					ChatMessage(
-						text = result.message,
-						isUser = false
-					)
-				)
-				adapter.notifyItemInserted(messages.size - 1)
-			}
+			resetTour()
 
 			return
 		}
@@ -872,6 +876,56 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 			}
 			.show()
+
+		resetTour()
+		Log.d("HomeActivity", "Tour path updated.")
+		Log.d("HomeActivity", "Tour path reset.")
+	}
+
+	private fun cleanPoiJson(rawJson: String): String {
+		val gson = Gson()
+		return try {
+			val listType = object : com.google.gson.reflect.TypeToken<List<Any>>() {}.type
+			val rawList: List<Any> = gson.fromJson(rawJson, listType)
+
+			// Recursive helper to walk through the JSON tree
+			fun clean(node: Any?): Any? {
+				return when (node) {
+					is Map<*, *> -> {
+						// BLACKLIST: Technical data that bloats the prompt but the AI doesn't need
+						val noise = setOf(
+							"edges", "coordinates", "graphVersion", "radius", "edgeId",
+							"from", "to", "metric", "w", "attrs", "accuracyRadius",
+							"history_id", "entity_id", "cultural_landmark_id",
+							"near_building_id", "sources", "lat", "lng",
+							"bidirectional", "max_floors", "campus_tags"
+						)
+
+						val cleaned = mutableMapOf<String, Any?>()
+						for ((key, value) in node) {
+							val k = key.toString()
+							// If it's a "noisy" key, skip it. If it's an index (0, 1, 2) or a "good" key, keep it.
+							if (k !in noise) {
+								cleaned[k] = clean(value)
+							}
+						}
+						if (cleaned.isEmpty()) null else cleaned
+					}
+					is List<*> -> {
+						val cleanedList = node.map { clean(it) }.filterNotNull()
+						if (cleanedList.isEmpty()) null else cleanedList
+					}
+					else -> node
+				}
+			}
+
+			// Clean the entire list
+			val finalOutput = rawList.mapNotNull { clean(it) }
+			gson.toJson(finalOutput)
+		} catch (e: Exception) {
+			Log.e("HomeActivity", "Error cleaning JSON: ${e.message}")
+			rawJson // Fallback to raw if it breaks
+		}
 	}
 
 	// USER MESSAGE HANDLER
@@ -951,11 +1005,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 
 		if (dmResult.message.isNotBlank()) {
-//			val suggestions = if (tourStarted) {
-//				listOf("More Info", "Next Stop", "Change Floor")
-//			} else {
-//				emptyList()
-//			}
+			val suggestions = if (tourStarted) {
+				listOf("More Info", "Next Stop", "Change Floor")
+			} else {
+				emptyList()
+			}
 			addBotMessageWithProgressiveInfo(dmResult.message)
 		}
 
@@ -1011,34 +1065,31 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val poiJson = Gson().toJson(userTourPathHistory.pathSequence)
 				val poiData = db.localDataDao().getLocalData(userId)
 				val poiInfoOnly = poiData?.poiInfoJson ?: "[]"
+				val cleanPoiJson = cleanPoiJson(poiInfoOnly)
 				val startingPoint = null // building starting point
 				val aiPrompt = """
-					You are an AI tour guide for De La Salle University.
-		
-					TASK: Generate a personalized tour overview for the user based on the following POIs and data.
-		
+					### Persona
+					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
+
+					### Task
+					Generate a complete and engaging tour overview for the user.
+
+					### Context & Data
 					User Role: $userRoleName
-					Preferences: $allPreferences
-		
-					POI Sequence: $poiJson
-					POI Data: $poiInfoOnly
-		
-					INSTRUCTIONS:
-					1. Write short sectioned paragraphs.
-					2. Start from the beginning of the tour overview.
-					3. Do NOT include headings, labels, greetings, or conclusions.
-					4. Do NOT repeat or restart the text.
-					5. Do NOT use ellipses (...).
-					6. Use POI Sequence as the list of places to visit in order.
-					7. All of the buildings in poi sequence must be mentioned in the tour.
-					8. The tour must be complete.
-					9. Use POI Data to get relevant POI information.
-					10. Output ONLY the tour narration text.
-					11. Don't tell me at the start of the sentence if this tour overview prompt template is used, just respond in natural language. 
-					12. Start with the tour overview immediately, don't add any other reply and be engaging.
-					
-					EXAMPLE:
-					  	Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall...
+					User Interests: $allPreferences
+					Tour Route: $poiJson
+					Building Details: $cleanPoiJson
+
+					### Instructions
+					1. Write in short, sectioned paragraphs.
+					2. Describe the entire journey in order, starting from the first location.
+					3. Mention EVERY building in the Tour Route list. Use the Building Details to add interesting facts about each.
+					4. Maintain a warm, inviting persona. No "As an AI" or "Based on the data".
+					5. Do NOT use headings, bullet points, or concluding greetings. Just the narration.
+					6. Avoid repetitive phrasing or ellipses (...).
+
+					### Example
+					Welcome to your DLSU Heritage Trail! We'll start our journey at St. La Salle Hall, the crown jewel of our campus heritage. From there, we'll make our way to the modern Henry Sy Sr. Hall, where the future of research meets our vibrant student life.
 				""".trimIndent()
 
 				Log.d("HomeActivity", "User Role Name: $userRoleName")
@@ -1046,6 +1097,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				Log.d("HomeActivity", "Starting Point: $startingPoint")
 				Log.d("HomeActivity", "POI Sequence: $poiJson")
 				logLargeString("HomeActivity", "POI Info Only: $poiInfoOnly")
+				logLargeString("HomeActivity", "Cleaned POI Info: $cleanPoiJson")
 				Log.d("HomeActivity", "POI Data: $poiData")
 				Log.d("HomeActivity", "aiPrompt: $aiPrompt")
 
@@ -1082,24 +1134,36 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					}
 				})
 			}
-		} else if (dmResult.intent == IntentType.ASK_INFO) {
+		} else if (isAsking) {
+			isAsking = false
 
 			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
 //			val poiData = db.localDataDao().getLocalData(userId)
 			val startingPoint = null
 			val allTags = ragEngine.getPreferencesListForProfilePage()
 			val aiTagPrompt = """
-				You are an AI that identifies relevant tags from a user's query.
+				### Task
+				You are a metadata classifier. Identify relevant tags from the user's query that match the available tags list.
 
-				USER QUERY: "$userMessage"
-		
-				AVAILABLE TAGS: $allTags
-		
-				TASK:
-				1. Read the user's query carefully.
-				2. Return only the tags that are relevant to this query.
-				3. Output the tags as a JSON array of strings, e.g. ["fn_academic", "acc_braille"]
+				### Available Tags
+				$allTags
+
+				### User Query
+				"$userMessage"
+
+				### Rules
+				1. Output ONLY a valid JSON array of strings.
+				2. If no tags match, output [].
+				3. Do not include any explanations or extra text.
+
+				### Examples
+				Query: "Are there elevators in Andrew Hall?" -> ["acc_elevator"]
+				Query: "I want to see old buildings." -> ["type_historic"]
 			""".trimIndent()
+
+			Log.d("HomeActivity", "aiTagPrompt: $aiTagPrompt")
+			Log.d("HomeActivity", "User Message: $userMessage")
+			Log.d("HomeActivity", "All Tags: $allTags")
 
 			val relevantTags: List<String> = try {
 				val tagResponse = chatApi.generate(ChatRequest(aiTagPrompt)).execute().body()?.response
@@ -1114,30 +1178,31 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 			// Filter POI data based on relevant tags
 			val filteredPoiData = ragEngine.filterPoiData(relevantTags)
+			val cleanPoiJson = cleanPoiJson(Gson().toJson(filteredPoiData))
+
 
 			val aiPrompt = """
-				You are an AI tour guide for De La Salle University.
-	
-				TASK: Answer the user query as accurate as you can
-				
-				User Query: $userMessage
+				### Persona
+				You are G.R.E.E.N., the official AI tour guide for De La Salle University.
+
+				### Task
+				Answer the user's question accurately using only the provided context.
+
+				### Context & Data
+				User Question: "$userMessage"
 				User Role: $userRoleName
-				Preferences: $allPreferences
-				Relevant Tags: $relevantTags
-				Starting Location: $startingPoint
-	
-				POI Sequence: $poiJson
-       			POI Data: ${Gson().toJson(filteredPoiData)}
-	
-				INSTRUCTIONS:
-				1. Write a short, accurate response to the user query
-				2. Write short sectioned paragraphs if response is too long.
-				3. Use only the needed data provided above for generating the answer.
-				4. Don't tell me at the start of the sentence if this query prompt template is used, just respond in natural language. 
-				5. Start with the answer immediately, don't add any other reply and be engaging.
-				
-				EXAMPLE:
-				  	The Henry Sy Sr. Hall is located along Taft Avenue and serves as DLSU’s modern academic tower.
+				Relevant Context: $cleanPoiJson
+
+				### Instructions
+				1. Provide a short, direct, and accurate answer.
+				2. Use a friendly, campus-guide tone.
+				3. If the answer isn't in the context, say you're not sure but would love to help with other campus info.
+				4. No meta-talk like "As an AI" or "Based on the context provided".
+				5. Output ONLY the answer text.
+
+				### Example
+				Question: "Where is the library?"
+				G.R.E.E.N.: Our main library is located inside the Henry Sy Sr. Hall. It's a great place to study with a fantastic view of the campus!
 			""".trimIndent()
 
 			chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
@@ -1177,6 +1242,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			})
 		}
 	}
+
 	private fun logLongText(tag: String, text: String) {
 		val chunkSize = 1000
 		var start = 0
@@ -1258,22 +1324,23 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 			val sessionLog = SessionLogEntity(
 				userId = userId,
-				performanceMetrics = db.performanceMetricsDao().getMetricsBySession(sessionId),
+				performanceMetrics = db.performanceMetricsDao().getAll(),
 				sessions = db.sessionDao().getSessionsByUser(userId),
-				userLocations = db.userLocationDao().getLocationsBySession(sessionId),
+				userLocations = db.userLocationDao().getAll(),
 				userLogs = db.userLogDao().getUserLogsByUser(userId),
-				userSkippedOrDislikedLocations = db.userSkippedOrDislikedLocationDao().getBySession(sessionId),
-				userTourPathHistories = db.userTourPathHistoryDao().getBySession(sessionId),
-				userVisitedLocations = db.userVisitedLocationDao().getBySession(sessionId),
+				userSkippedOrDislikedLocations = db.userSkippedOrDislikedLocationDao().getAll(),
+				userTourPathHistories = db.userTourPathHistoryDao().getAll(),
+				userVisitedLocations = db.userVisitedLocationDao().getAll(),
 			)
 
 			sessionLogDao.insert(sessionLog)
 
+			Log.d("HomeActivity", "Session log saved to Firebase. ${sessionLog.sessionLogId}")
 			lifecycleScope.launch(Dispatchers.IO) {
 				saveSessionLogToFirebase(sessionLog)
 			}
 		}
-		clearLocalSession()
+//		clearLocalSession()
 	}
 
 	// SAVE FIREBASE SESSION LOGS
@@ -1687,6 +1754,45 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
+	private fun resetTour() {
+		// Reset logic flags
+		tourStarted = false
+		currentTourPathSequence = emptyList()
+		currentTourStopIndex = -1
+		pendingMoreInfoParagraphs = emptyList()
+		nextParagraphIndex = 0
+
+		// Clear Chat
+		messages.clear()
+		adapter.notifyDataSetChanged()
+
+		// Reset Dialogue Manager
+		dialogueManager.reset()
+
+		// Clear Map Path
+		val mapFragment = supportFragmentManager.findFragmentById(R.id.home_map_fragment) as? SupportMapFragment
+		mapFragment?.getMapAsync { googleMap ->
+			// Clear and redraw markers
+			googleMap.clear()
+			lifecycleScope.launch {
+				val fetchedPois = ragEngine.getBuildings()
+				drawMarkers(googleMap, fetchedPois)
+			}
+		}
+
+		// Reset Overlay
+		updateCurrentLocationOverlay(null)
+
+		// Restart the initial greeting
+		lifecycleScope.launch {
+			val result = dialogueManager.processMessage(userId, "hi")
+			messages.add(ChatMessage(text = result.message, isUser = false))
+			adapter.notifyItemInserted(messages.size - 1)
+		}
+
+		Toast.makeText(this, "Tour has been reset.", Toast.LENGTH_SHORT).show()
+	}
+
 	override fun onNewIntent(intent: Intent) {
 		super.onNewIntent(intent)
 		setIntent(intent)
@@ -1713,7 +1819,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		Log.d("SESSION", "App backgrounded → ending session $sessionId")
 
-		endTour(userId, sessionId)
+//		endTour(userId, sessionId)
 	}
 
 
@@ -1723,7 +1829,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				fusedLocationClient.removeLocationUpdates(it)
 			}
 		}
-		LocalBroadcastManager.getInstance(this).unregisterReceiver(buildingReceiver)
+//		LocalBroadcastManager.getInstance(this).unregisterReceiver(buildingReceiver)
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(floorReceiver)
 
 		super.onDestroy()

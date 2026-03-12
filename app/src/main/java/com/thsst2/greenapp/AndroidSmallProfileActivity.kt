@@ -122,7 +122,8 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 			val selectedPrefs = prefsEntity?.interests
 
 			withContext(Dispatchers.Main) {
-				profileBinding.rdq3i5lpyvv4.text = selectedPrefs?.joinToString(", ")
+				val displayPrefs = selectedPrefs?.map { formatPreferenceForDisplay(it) }
+				profileBinding.rdq3i5lpyvv4.text = displayPrefs?.joinToString(", ")
 			}
 		}
 	}
@@ -176,16 +177,22 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 			allPreferences = ragEngine.getPreferencesListForProfilePage()
 			val prefsEntity = db.userPreferencesDao().getPreferencesByUser(userId)
 			val selectedPrefs = prefsEntity?.interests?.toMutableSet()
-			val allPrefsArray = allPreferences.toTypedArray()
-			val checkedItems = allPrefsArray.map { selectedPrefs?.contains(it) ?: false }.toBooleanArray()
+			val displayPrefs = allPreferences.map { formatPreferenceForDisplay(it) }
+			val allPrefsArray = displayPrefs.toTypedArray()
+			val checkedItems = allPrefsArray.map {
+				val original = formatPreferenceForStorage(it)
+				selectedPrefs?.contains(original) ?: false
+			}.toBooleanArray()
 			Log.d("In User Preferences", "Im here")
 
 			withContext(Dispatchers.Main) {
 				AlertDialog.Builder(this@AndroidSmallProfileActivity)
 					.setTitle("Select Preferences")
 					.setMultiChoiceItems(allPrefsArray, checkedItems) { _, which, isChecked ->
-						if (isChecked) selectedPrefs?.add(allPrefsArray[which]) ?: false
-						else selectedPrefs?.remove(allPrefsArray[which]) ?: false
+						val original = formatPreferenceForStorage(allPrefsArray[which])
+
+						if (isChecked) selectedPrefs?.add(original)
+						else selectedPrefs?.remove(original)
 					}
 					.setPositiveButton("Save") { _, _ ->
 						CoroutineScope(Dispatchers.IO).launch {
@@ -227,6 +234,14 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 		}
 	}
 
+	fun formatPreferenceForDisplay(pref: String): String {
+		return pref.replace(Regex("([a-z])([A-Z])"), "$1 $2")
+	}
+
+	fun formatPreferenceForStorage(pref: String): String {
+		return pref.replace(" ", "")
+	}
+
 	private fun logout() {
 		// 1. Sign out from Firebase
 		FirebaseAuth.getInstance().signOut()
@@ -254,25 +269,28 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 
 		CoroutineScope(Dispatchers.IO).launch {
 			db.withTransaction {
-				db.generatedPathDao().deleteAll()
-				db.userTourPathHistoryDao().deleteAll()
 				db.dialogueHistoryDao().deleteAll()
-				db.userQueryDao().deleteAll()
-				db.intentLogDao().deleteAll()
+				db.generatedPathDao().deleteAll()
 				db.geofenceTriggerDao().deleteAll()
+				db.intentLogDao().deleteAll()
+				db.localDataDao().deleteAll()
 				db.pathDeviationAlertDao().deleteAll()
-				db.userSkippedOrDislikedLocationDao().deleteAll()
 				db.performanceMetricsDao().deleteAll()
-//				db.userLocationDao().deleteAll()
-				db.userLogDao().deleteAll()
-				db.userInteractionTimeDao().deleteAll()
-				db.sessionDao().deleteAll()
-//				db.userDao().deleteAll()
 				db.poiDao().deleteAll()
 				db.responseJustificationDao().deleteAll()
+				db.sessionLogDao().deleteAll()
+				db.sessionLogDao().deleteAll()
+				db.transitionDao().deleteAll()
+//				db.userDao().deleteAll()
 				db.userFeedbackDao().deleteAll()
+				db.userInteractionTimeDao().deleteAll()
+//				db.userLocationDao().deleteAll()
+				db.userLogDao().deleteAll()
 //				db.userPreferencesDao().deleteAll()
+				db.userQueryDao().deleteAll()
 //				db.userRoleDao().deleteAll()
+				db.userSkippedOrDislikedLocationDao().deleteAll()
+				db.userTourPathHistoryDao().deleteAll()
 				db.userVisitedLocationDao().deleteAll()
 			}
 		}

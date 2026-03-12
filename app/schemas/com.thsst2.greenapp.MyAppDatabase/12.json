@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 12,
-    "identityHash": "92bd4f431fe0692238a999154b9e70f1",
+    "identityHash": "138000eabbe3535367965d35fd54e872",
     "entities": [
       {
         "tableName": "user",
@@ -367,7 +367,7 @@
       },
       {
         "tableName": "geofence_trigger",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`geofenceTriggerId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `poiId` TEXT NOT NULL, `entryTime` TEXT NOT NULL, `exitTime` TEXT NOT NULL, `triggerType` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`geofenceTriggerId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `poiId` TEXT, `entryTime` TEXT NOT NULL, `exitTime` TEXT NOT NULL, `triggerType` TEXT NOT NULL, FOREIGN KEY(`userId`) REFERENCES `user`(`userId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`poiId`) REFERENCES `poi`(`poiId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "geofenceTriggerId",
@@ -384,8 +384,7 @@
           {
             "fieldPath": "poiId",
             "columnName": "poiId",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "entryTime",
@@ -1420,7 +1419,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '92bd4f431fe0692238a999154b9e70f1')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '138000eabbe3535367965d35fd54e872')"
     ]
   }
 }
