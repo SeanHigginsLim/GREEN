@@ -483,6 +483,8 @@
                     for (data in childSnapshot.children) {
                         val dataValue = data.getValue(String::class.java) ?: continue
 
+                        Log.d("RAGEngine", "Checking value: '$dataValue' at ${data.key}")
+                        Log.d("RAGEngine", "Floor: $floor")
                         val floorNumberMatch = try {
                             dataValue.toInt() == floor.toInt() - 1
                         } catch (e: Exception) {
