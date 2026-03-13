@@ -58,15 +58,13 @@ class MetricsCollector(private val context: Context) {
         metrics.matchedPreferences = matchedPreferences
     }
     
-    suspend fun finalizeSessionMetrics(sessionId: Long, experienceRating: Long = 0) = withContext(Dispatchers.IO) {
+    suspend fun finalizeSessionMetrics(sessionId: Long) = withContext(Dispatchers.IO) {
         val metrics = sessionMetrics[sessionId] ?: return@withContext
         
         // Accuracy: route completion (0-100)
         val routeAccuracy = if (metrics.totalPoisPlanned > 0) {
             ((metrics.totalPoisVisited.toDouble() / metrics.totalPoisPlanned) * 100).toLong()
         } else 0L
-        
-        val completionRate = routeAccuracy
         
         // Speed: average response time
         val avgResponseTime = if (metrics.queryResponseTimes.isNotEmpty()) {
@@ -85,12 +83,10 @@ class MetricsCollector(private val context: Context) {
         val performanceMetrics = PerformanceMetricsEntity(
             sessionId = sessionId,
             routeAccuracyScore = routeAccuracy,
-            completionRate = completionRate,
             pathGenerationTimeMs = metrics.pathGenerationTime,
             avgResponseTimeMs = avgResponseTime,
             preferenceMatchScore = preferenceMatch,
-            visitedPreferredRatio = visitedPreferredRatio,
-            experienceRating = experienceRating
+            visitedPreferredRatio = visitedPreferredRatio
         )
         
         db.performanceMetricsDao().insert(performanceMetrics)

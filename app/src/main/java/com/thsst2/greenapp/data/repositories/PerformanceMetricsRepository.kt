@@ -24,11 +24,10 @@ class PerformanceMetricsRepository(private val db: MyAppDatabase) : BaseReposito
         
         return mapOf(
             "avgAccuracy" to allMetrics.map { it.routeAccuracyScore }.average(),
-            "avgCompletion" to allMetrics.map { it.completionRate }.average(),
             "avgSpeed" to allMetrics.map { it.pathGenerationTimeMs }.average(),
             "avgResponseTime" to allMetrics.map { it.avgResponseTimeMs }.average(),
             "avgPersonalization" to allMetrics.map { it.preferenceMatchScore }.average(),
-            "avgExperience" to allMetrics.map { it.experienceRating }.average()
+            "avgVisitedPreferred" to allMetrics.map { it.visitedPreferredRatio }.average()
         )
     }
 }

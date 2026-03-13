@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 14,
-    "identityHash": "f2ec7db555691dce1583d74391ef2f27",
+    "identityHash": "982e9a90a6347beb3b63d0d73b5f0e0c",
     "entities": [
       {
         "tableName": "user",
@@ -593,7 +593,7 @@
       },
       {
         "tableName": "performance_metrics",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`performanceMetricsId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `routeAccuracyScore` INTEGER NOT NULL, `completionRate` INTEGER NOT NULL, `pathGenerationTimeMs` INTEGER NOT NULL, `avgResponseTimeMs` INTEGER NOT NULL, `preferenceMatchScore` INTEGER NOT NULL, `visitedPreferredRatio` INTEGER NOT NULL, `experienceRating` INTEGER NOT NULL, `recordedAt` INTEGER NOT NULL, FOREIGN KEY(`sessionId`) REFERENCES `session`(`sessionId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`performanceMetricsId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `routeAccuracyScore` INTEGER NOT NULL, `pathGenerationTimeMs` INTEGER NOT NULL, `avgResponseTimeMs` INTEGER NOT NULL, `preferenceMatchScore` INTEGER NOT NULL, `visitedPreferredRatio` INTEGER NOT NULL, `recordedAt` INTEGER NOT NULL, FOREIGN KEY(`sessionId`) REFERENCES `session`(`sessionId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "performanceMetricsId",
@@ -610,12 +610,6 @@
           {
             "fieldPath": "routeAccuracyScore",
             "columnName": "routeAccuracyScore",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "completionRate",
-            "columnName": "completionRate",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -640,12 +634,6 @@
           {
             "fieldPath": "visitedPreferredRatio",
             "columnName": "visitedPreferredRatio",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "experienceRating",
-            "columnName": "experienceRating",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -1408,7 +1396,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f2ec7db555691dce1583d74391ef2f27')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '982e9a90a6347beb3b63d0d73b5f0e0c')"
     ]
   }
 }

@@ -753,6 +753,17 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		adapter.notifyItemInserted(messages.size - 1)
 		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
+		// Track POI visit for metrics
+		lifecycleScope.launch(Dispatchers.IO) {
+			val userPrefs = db.userPreferencesDao().getPreferencesByUser(userId)
+			val preferences = userPrefs?.interests ?: emptyList()
+			// Check if this POI matches user preferences (simplified check)
+			val wasPreferred = preferences.any { pref -> 
+				nextStopName.contains(pref, ignoreCase = true)
+			}
+			metricsCollector.recordPoiVisit(sessionId, nextStopName, wasPreferred)
+		}
+
 		val mapFragment =
 			supportFragmentManager.findFragmentById(R.id.home_map_fragment) as? SupportMapFragment
 
@@ -1030,8 +1041,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		adapter.notifyItemInserted(messages.size - 1)
 		homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 
-		// Let DialogueManager process the input
+		// Let DialogueManager process the input and track response time
+		val startTime = System.currentTimeMillis()
 		val dmResult = dialogueManager.processMessage(userId, userMessage)
+		val responseTime = System.currentTimeMillis() - startTime
+		
+		// Record query response time for metrics
+		lifecycleScope.launch(Dispatchers.IO) {
+			metricsCollector.recordQueryResponse(sessionId, responseTime)
+		}
 
 		when (dmResult.intent) {
 			IntentType.MORE_INFO -> {

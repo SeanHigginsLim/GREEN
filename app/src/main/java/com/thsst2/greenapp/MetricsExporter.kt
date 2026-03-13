@@ -21,11 +21,10 @@ class MetricsExporter(private val context: Context) {
     data class PerformanceMetricsData(
         val sessionId: Long,
         val accuracy: Long,
-        val completionRate: Long,
         val speedMs: Long,
         val avgResponseMs: Long,
         val personalizationScore: Long,
-        val experienceRating: Long,
+        val visitedPreferredRatio: Long,
         val timestamp: Long
     )
     
@@ -44,7 +43,7 @@ class MetricsExporter(private val context: Context) {
         val avgAccuracy: Double,
         val avgSpeed: Double,
         val avgPersonalization: Double,
-        val avgExperience: Double
+        val avgVisitedPreferred: Double
     )
     
     suspend fun exportMetrics(): String = withContext(Dispatchers.IO) {
@@ -53,11 +52,10 @@ class MetricsExporter(private val context: Context) {
                 PerformanceMetricsData(
                     sessionId = it.sessionId,
                     accuracy = it.routeAccuracyScore,
-                    completionRate = it.completionRate,
                     speedMs = it.pathGenerationTimeMs,
                     avgResponseMs = it.avgResponseTimeMs,
                     personalizationScore = it.preferenceMatchScore,
-                    experienceRating = it.experienceRating,
+                    visitedPreferredRatio = it.visitedPreferredRatio,
                     timestamp = it.recordedAt
                 )
             }
@@ -79,7 +77,7 @@ class MetricsExporter(private val context: Context) {
                 avgAccuracy = performanceMetrics.map { it.accuracy }.average(),
                 avgSpeed = performanceMetrics.map { it.speedMs }.average(),
                 avgPersonalization = performanceMetrics.map { it.personalizationScore }.average(),
-                avgExperience = performanceMetrics.map { it.experienceRating }.average()
+                avgVisitedPreferred = performanceMetrics.map { it.visitedPreferredRatio }.average()
             )
             
             val export = MetricsExport(performanceMetrics, userFeedback, summary)
