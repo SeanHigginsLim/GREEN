@@ -1217,70 +1217,87 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			Log.d("HomeActivity", "User Message: $userMessage")
 			Log.d("HomeActivity", "All Tags: $allTags")
 
-			val relevantTags: List<String> = try {
-				val tagResponse = chatApi.generate(ChatRequest(aiTagPrompt)).execute().body()?.response
-				Gson().fromJson(tagResponse, Array<String>::class.java).toList()
-			} catch (e: Exception) {
-				Log.e("ChatApi", "Tag extraction failed: ${e.message}")
-				emptyList()
-			}
-
-			Log.d("HomeActivity", "Tags Chosen: $relevantTags")
-
-
-			// Filter POI data based on relevant tags
-			val filteredPoiData = ragEngine.filterPoiData(relevantTags)
-			val cleanPoiJson = cleanPoiJson(Gson().toJson(filteredPoiData))
-
-			val aiPrompt = """
-				### Persona
-				You are G.R.E.E.N., the official AI tour guide for De La Salle University.
-
-				### Task
-				Answer the user's question accurately using only the provided context.
-
-				### Context & Data
-				User Question: "$userMessage"
-				User Role: $userRoleName
-				Relevant Context: $cleanPoiJson
-
-				### Instructions
-				1. Provide a short, direct, and accurate answer.
-				2. Use a friendly, campus-guide tone.
-				3. If the answer isn't in the context, say you're not sure but would love to help with other campus info.
-				4. No meta-talk like "As an AI" or "Based on the context provided".
-				5. Output ONLY the answer text.
-
-				### Example
-				Question: "Where is the library?"
-				G.R.E.E.N.: Our main library is located inside the Henry Sy Sr. Hall. It's a great place to study with a fantastic view of the campus!
-			""".trimIndent()
-
-			chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+			chatApi.generate(ChatRequest(aiTagPrompt)).enqueue(object : Callback<ChatResponse> {
 				override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 					if (response.isSuccessful) {
-						val botReply = response.body()?.response ?: "Answer:"
-						Log.d("LLM_RESPONSE", botReply)
-						messages.add(
-							ChatMessage(
-								text = botReply,
-								isUser = false,
-								suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
-							)
-						)
-						adapter.notifyItemInserted(messages.size - 1)
-						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+						val tagResponse = response.body()?.response ?: "[]"
+						val relevantTags: List<String> = try {
+							Gson().fromJson(tagResponse, Array<String>::class.java).toList()
+						} catch (e: Exception) {
+							Log.e("ChatApi", "Tag JSON parsing failed: ${e.message}")
+							emptyList()
+						}
+
+						Log.d("HomeActivity", "Tags Chosen: $relevantTags")
 
 						lifecycleScope.launch {
-							dialogueHistoryDao.insert(
-								DialogueHistoryEntity(
-									userId = userId,
-									userText = userMessage,
-									systemResponse = botReply,
-									contextSnapshot = aiPrompt,
-									turnNumber = messages.size
-								)
-							)
+							try {
+								// Filter POI data based on relevant tags
+								val filteredPoiData = ragEngine.filterPoiData(relevantTags)
+								val cleanPoiJson = cleanPoiJson(Gson().toJson(filteredPoiData))
+
+								val aiPrompt = """
+							### Persona
+							You are G.R.E.E.N., the official AI tour guide for De La Salle University.
+			
+							### Task
+							Answer the user's question accurately using only the provided context.
+			
+							### Context & Data
+							User Question: "$userMessage"
+							User Role: $userRoleName
+							Relevant Context: $cleanPoiJson
+			
+							### Instructions
+							1. Provide a short, direct, and accurate answer.
+							2. Use a friendly, campus-guide tone.
+							3. If the answer isn't in the context, say you're not sure but would love to help with other campus info.
+							4. No meta-talk like "As an AI" or "Based on the context provided".
+							5. Output ONLY the answer text.
+			
+							### Example
+							Question: "Where is the library?"
+							G.R.E.E.N.: Our main library is located inside the Henry Sy Sr. Hall. It's a great place to study with a fantastic view of the campus!
+						""".trimIndent()
+
+								chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+									override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+										if (response.isSuccessful) {
+											val botReply = response.body()?.response ?: "Answer:"
+											Log.d("LLM_RESPONSE", botReply)
+											messages.add(
+												ChatMessage(
+													text = botReply,
+													isUser = false,
+													suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
+												)
+											)
+											adapter.notifyItemInserted(messages.size - 1)
+											homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+
+											lifecycleScope.launch {
+												dialogueHistoryDao.insert(
+													DialogueHistoryEntity(
+														userId = userId,
+														userText = userMessage,
+														systemResponse = botReply,
+														contextSnapshot = aiPrompt,
+														turnNumber = messages.size
+													)
+												)
+											}
+										} else {
+											Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+										}
+									}
+
+									override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+										Log.e("ChatApi", "Error: ${t.message}", t)
+									}
+								})
+							} catch (e: Exception) {
+								Log.e("HomeActivity", "Error processing tags: ${e.message}")
+							}
 						}
 					} else {
 						Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
