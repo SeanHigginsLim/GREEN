@@ -344,11 +344,9 @@
                     val poiMatch = poiIds.any { it.equals(dataValue, ignoreCase = true) }
 
                     if (preferenceMatch || poiMatch) {
-                        Log.d("RAGEngine", "MATCH FOUND at ${data.key} -> value: $dataValue")
+//                        Log.d("RAGEngine", "MATCH FOUND at ${data.key} -> value: $dataValue")
 
-                        val parentRef = childSnapshot.ref.parent ?: continue
-
-                        val parentSnapshot = parentRef.get().await()
+                        val parentSnapshot = childSnapshot
 
                         val parentData: Map<String, Any?> = parentSnapshot.children.associate {
                             val key = it.key ?: ""
@@ -362,14 +360,15 @@
                         if (!seenIds.contains(parentHash)) {
                             matched.add(parentData)
                             seenIds.add(parentHash)
-                            Log.d("RAGEngine", "Added parent node: ${parentRef.key}")
+                            Log.d("RAGEngine", "Added parent node: ${childSnapshot.key}")
                         } else {
-                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentRef.key}")
+                            Log.d("RAGEngine", "Duplicate parent node skipped: ${childSnapshot.key}")
                         }
                     }
                 }
             }
 
+//            Log.d("RAGEngine", "Matched nodes: $matched")
             return matched
         }
 
@@ -419,8 +418,7 @@
                     val relevantTagMatch = relevantTags?.any { it.equals(dataValue, ignoreCase = true) } == true
 
                     if (relevantTagMatch) {
-                        val parentRef = childSnapshot.ref.parent ?: continue
-                        val parentSnapshot = parentRef.get().await()
+                        val parentSnapshot = childSnapshot
 
                         val parentData: Map<String, Any?> = parentSnapshot.children.associate {
                             val key = it.key ?: ""
@@ -434,9 +432,9 @@
                         if (!seenIds.contains(parentHash)) {
                             matched.add(parentData)
                             seenIds.add(parentHash)
-                            Log.d("RAGEngine", "Added parent node: ${parentRef.key}")
+                            Log.d("RAGEngine", "Added parent node: ${parentSnapshot.key}")
                         } else {
-                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentRef.key}")
+                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentSnapshot.key}")
                         }
                     }
                 }
@@ -472,33 +470,19 @@
 
             // Iterate over children
             for (childSnapshot in snapshot.children) {
-                val poiIdMatch = childSnapshot.children.any { data ->
-                    val dataValue = data.getValue(String::class.java)
-                    data.key == "poiId" && dataValue == poiId
-                }
+                val dbPoiId = childSnapshot.child("building_id").getValue(String::class.java)
 
                 // Check for poiId match
-                if (poiIdMatch) {
-                    // Now loop through the children to match the floor number
-                    for (data in childSnapshot.children) {
-                        val dataValue = data.getValue(String::class.java) ?: continue
+                if (poiId == dbPoiId) {
+                    val floorsSnapshot = childSnapshot.child("floors")
+                    for (floorChild in floorsSnapshot.children) {
+                        val dataValue = floorChild.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
 
-                        Log.d("RAGEngine", "Checking value: '$dataValue' at ${data.key}")
+                        Log.d("RAGEngine", "Checking value: '$dataValue' at ${floorChild.key}")
                         Log.d("RAGEngine", "Floor: $floor")
-                        val floorNumberMatch = try {
-                            dataValue.toInt() == floor.toInt() - 1
-                        } catch (e: Exception) {
-                            false
-                        }
-
-                        // Check for floor number match if poiId matches
-                        if (floorNumberMatch) {
-                            // Return the snapshot's data as a map
-                            return childSnapshot.children.associate {
-                                val key = it.key ?: ""
-                                val value = it.value
-                                key to value
-                            }
+                        if (dataValue == floor.toInt()) {
+                            // Return all key/value pairs under this floor
+                            return floorChild.children.associate { it.key.orEmpty() to it.value }
                         }
                     }
                     return null
