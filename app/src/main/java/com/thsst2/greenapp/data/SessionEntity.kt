@@ -16,7 +16,7 @@ import androidx.room.PrimaryKey
     ]
 )
 data class SessionEntity (
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey
     val sessionId: Long = 0,
     val userId: Long,
     val componentsUsed: String?,                 // e.g. ["Chat","Map","Trivia"]

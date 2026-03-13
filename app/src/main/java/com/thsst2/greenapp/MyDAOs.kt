@@ -213,6 +213,9 @@ interface SessionDao: BaseDao<SessionEntity> {
 
     @Query("SELECT * FROM session WHERE userId = :userId ORDER BY sessionId DESC LIMIT 1")
     suspend fun getLatestSessionForUser(userId: Long): SessionEntity?
+
+    @Query("UPDATE session SET sessionEndedAt = :endedAt WHERE sessionId = :sessionId")
+    suspend fun setSessionEndedAt(sessionId: Long, endedAt: String)
 }
 
 // Session Log DAO

@@ -377,7 +377,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		sessionId = UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE
 		Log.d("SESSION_ID", "Generated sessionId = $sessionId")
 
-		tourCoordinator = TourCoordinator(userId, this)
+		//tourCoordinator = TourCoordinator(userId, this)
+		tourCoordinator = TourCoordinator(userId, this, metricsCollector)
 		lifecycleScope.launch {
 			try {
 				Log.d("HomeActivity", "Saving user")
@@ -1386,22 +1387,31 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	// TOUR END
 	private fun endTour(userId: Long, sessionId: Long) {
 		lifecycleScope.launch {
+			Log.d("END_TOUR", "Starting endTour for sessionId=$sessionId")
+
 			// Finalize and save performance metrics for this session
 			metricsCollector.finalizeSessionMetrics(sessionId)
+
+			// Mark session as ended
+			db.sessionDao().setSessionEndedAt(
+				sessionId = sessionId,
+				endedAt = System.currentTimeMillis().toString()
+			)
+			Log.d("END_TOUR", "Marked session as ended for sessionId=$sessionId")
 
 			userLogDao.insert(
 				UserLogEntity(
 					userId = userId,
-                    generatedPaths = db.generatedPathDao().getGeneratedPathsByUser(userId),
-                    geofenceTriggers = db.geofenceTriggerDao().getGeofenceTriggersByUser(userId),
-                    pathDeviationAlerts = db.pathDeviationAlertDao().getPathDeviationAlertsByUser(userId),
-                    dialogueHistories = db.dialogueHistoryDao().getDialogueHistoryByUser(userId),
-                    intentLogs = db.intentLogDao().getIntentLogsByUser(userId),
+					generatedPaths = db.generatedPathDao().getGeneratedPathsByUser(userId),
+					geofenceTriggers = db.geofenceTriggerDao().getGeofenceTriggersByUser(userId),
+					pathDeviationAlerts = db.pathDeviationAlertDao().getPathDeviationAlertsByUser(userId),
+					dialogueHistories = db.dialogueHistoryDao().getDialogueHistoryByUser(userId),
+					intentLogs = db.intentLogDao().getIntentLogsByUser(userId),
 					sessionId = sessionId,
-                    userQueries = db.userQueryDao().getUserQueriesByUser(userId),
-                    userFeedback = db.userFeedbackDao().getFeedbackByUserLog(userId),
-                    userInteractionTimes = db.userInteractionTimeDao().getInteractionTimesByUserLog(userId),
-                )
+					userQueries = db.userQueryDao().getUserQueriesByUser(userId),
+					userFeedback = db.userFeedbackDao().getFeedbackByUserLog(userId),
+					userInteractionTimes = db.userInteractionTimeDao().getInteractionTimesByUserLog(userId),
+				)
 			)
 
 			val sessionLog = SessionLogEntity(
@@ -1422,7 +1432,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				saveSessionLogToFirebase(sessionLog)
 			}
 		}
-//		clearLocalSession()
 	}
 
 	// SAVE FIREBASE SESSION LOGS
