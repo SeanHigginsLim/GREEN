@@ -141,6 +141,7 @@ class TourCoordinator(userId: Long, private val context: Context) {
 
             // CRITICAL FIX: Get the LATEST session ID and verify it is not 0
             val activeSession = db.sessionDao().getSessionsByUser(userId).lastOrNull()
+            Log.d("TourCoordinator", "session db: ${db.sessionDao().getAll()}")
             if (activeSession == null) {
                 Log.e("TourCoordinator", "Cannot save path history: No active session found for userId=$userId")
                 return@withContext null

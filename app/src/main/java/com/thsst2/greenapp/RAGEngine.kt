@@ -572,7 +572,7 @@
 //                    val declaredCulturalProperty = building.child("declared_cultural_property").getValue(String::class.java) ?: ""
 //                    val openingHours = building.child("hours").child("open").getValue(String::class.java) ?: ""
 //                    val closingHours = building.child("hours").child("close").getValue(String::class.java) ?: ""
-                        val yearBuilt = building.child("year_built").getValue(String::class.java) ?: ""
+                        val yearBuilt = building.child("year_built").getValue(Int::class.java) ?: ""
                         val floors = building.child("floors").getValue(Int::class.java) ?: 0
 
                         // Extract tags

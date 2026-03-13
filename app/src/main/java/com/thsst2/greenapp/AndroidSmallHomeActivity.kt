@@ -374,31 +374,43 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		userId = currentUser.uid.hashCode().toLong()
 		Log.d("USER_ID", "Generated userId = $userId (from uid = ${currentUser.uid})")
 		sessionId = UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE
+		Log.d("SESSION_ID", "Generated sessionId = $sessionId")
+
 		tourCoordinator = TourCoordinator(userId, this)
-
-		val user = UserEntity(
-			userId = userId
-		)
-
-		val sessionProfile = SessionEntity(
-			userId = user.userId,
-			componentsUsed = null,
-			sessionStartedAt = System.currentTimeMillis().toString()
-		)
-//
 		lifecycleScope.launch {
 			try {
-				withContext(Dispatchers.IO) {
-					Log.d("HomeActivity", "Saving user")
-					saveUserLocally(user)
+				Log.d("HomeActivity", "Saving user")
+				val user = UserEntity(
+					userId = userId
+				)
+				db.userDao().insert(user)
 
-					Log.d("HomeActivity", "Saving session")
-					saveSessionLocally(sessionProfile)
-				}
+				Log.d("HomeActivity", "Saving session")
+				val sessionProfile = SessionEntity(
+					sessionId = sessionId,
+					userId = user.userId,
+					componentsUsed = null,
+					sessionStartedAt = System.currentTimeMillis().toString()
+				)
+				db.sessionDao().insert(sessionProfile)
 			} catch (e: Exception) {
 				Log.e("HomeActivity", "User/session save failed: ${e.localizedMessage}", e)
 			}
 		}
+//
+//		lifecycleScope.launch {
+//			try {
+//				withContext(Dispatchers.IO) {
+//					Log.d("HomeActivity", "Saving user")
+//					saveUserLocally(user)
+//
+//					Log.d("HomeActivity", "Saving session")
+//					saveSessionLocally(sessionProfile)
+//				}
+//			} catch (e: Exception) {
+//				Log.e("HomeActivity", "User/session save failed: ${e.localizedMessage}", e)
+//			}
+//		}
 
 		// 🔹 NEW: Check if user has an existing profile
 		lifecycleScope.launch {
@@ -1108,30 +1120,32 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val cleanPoiJson = cleanPoiJson(poiInfoOnly)
 				val startingPoint = null // building starting point
 				val aiPrompt = """
-					### Persona
-					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
-
-					### Instructions
-                    1. Write in short, sectioned paragraphs. Split each paragraph for each building.
-                    2. Describe the entire journey in order, starting from the first location.
-                    3. Mention EVERY building in the Tour Route list. Use the Building Details to add interesting facts.
-                    4. Maintain a warm, inviting persona. No "As an AI" or "Based on data".
-                    5. Do NOT use headings, bullet points, or meta-labels like "###".
-                    6. Start the narration immediately and stop as soon as the tour description ends.
-					7. Keep it as short and as simple as possible. This is a tour over view, not the tour yet.
-
-                    ### Example
-                    Tour Route: ["Henry Sy Sr. Hall","St. La Salle Hall"]
-                    Building Details: [{"name": "St. La Salle Hall", "desc": "Historic building"}, {"name": "Yuchengco Hall", "desc": "Auditorium"}]
-                    Output: Welcome to DLSU! We start at St. La Salle Hall, a historic landmark that stands as a symbol of our long heritage. After admiring its architecture, we'll head over to Yuchengco Hall, which houses our grand auditorium. It's a centerpiece of our campus life!
-
-                    ### Current Request
+					You are an AI tour guide for De La Salle University.
+		
+					TASK: Generate a personalized tour overview for the user based on the following POIs and data.
+		
 					User Role: $userRoleName
-					User Interests: $allPreferences
-					Tour Route: $poiJson
-					Building Details: $cleanPoiJson
-
-                    ### Tour Overview:
+					Preferences: $allPreferences
+		
+					POI Sequence: $poiJson
+					POI Data: $poiInfoOnly
+		
+					INSTRUCTIONS:
+					1. Write short sectioned paragraphs.
+					2. Start from the beginning of the tour overview.
+					3. Do NOT include headings, labels, greetings, or conclusions.
+					4. Do NOT repeat or restart the text.
+					5. Do NOT use ellipses (...).
+					6. Use POI Sequence as the list of places to visit in order.
+					7. All of the buildings in poi sequence must be mentioned in the tour.
+					8. The tour must be complete.
+					9. Use POI Data to get relevant POI information.
+					10. Output ONLY the tour narration text.
+					11. Don't tell me at the start of the sentence if this tour overview prompt template is used, just respond in natural language. 
+					12. Start with the tour overview immediately, don't add any other reply and be engaging.
+					
+					EXAMPLE:
+					  	Welcome to your DLSU Heritage Trail! You'll begin at St. La Salle Hall...
 				""".trimIndent()
 
 				Log.d("HomeActivity", "User Role Name: $userRoleName")
@@ -1867,12 +1881,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	override fun onStop() {
 		super.onStop()
 
-		if (sessionEnded) return
-		sessionEnded = true
+		if (isFinishing && !sessionEnded) {
+			sessionEnded = true
 
-		Log.d("SESSION", "App backgrounded → ending session $sessionId")
+			Log.d("SESSION", "App backgrounded → ending session $sessionId")
 
-		endTour(userId, sessionId)
+			endTour(userId, sessionId)
+		}
 	}
 
 
@@ -1886,5 +1901,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(floorReceiver)
 
 		super.onDestroy()
+
+		if (!sessionEnded && userId != -1L && sessionId != -1L) {
+			sessionEnded = true
+			Log.d("SESSION", "Activity destroyed → final session save $sessionId")
+			endTour(userId, sessionId)
+		}
 	}
 }
