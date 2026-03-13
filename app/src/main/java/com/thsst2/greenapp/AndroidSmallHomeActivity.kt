@@ -177,27 +177,27 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					val buildingData = ragEngine.getData(building, building)
 					val cleanPoiJson = cleanPoiJson(buildingData)
 					val aiPrompt = """
-					### Persona
-					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
-
-					### Task
-					The user has just entered $name. Provide a brief, engaging introduction to this building based on the provided data.
-
-					### Context & Data
-					Building: $name ($poiId)
-					Building Details: $cleanPoiJson
-
-					### Constraints
-					1. Output ONLY the narration. No meta-talk, no "Here is the info", no labels like "Description:".
-					2. Be concise. Use short, sectioned paragraphs.
-					3. Use only the provided building details. Do not hallucinate historical facts.
-					4. Address the user directly as a visitor.
-					5. Keep the tone warm and welcoming, like a student guide speaking to a guest.
-
-					### Example Output
-					St. La Salle Hall,
-					Welcome to the historic heart of our campus! St. La Salle Hall is our most iconic building, completed in 1921. It houses major administrative offices and beautiful neo-classical architecture that represents our long heritage here in Manila.
-				""".trimIndent()
+						### Persona
+						You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
+	
+						### Task
+						The user has just entered $name. Provide a brief, engaging introduction to this building based on the provided data.
+	
+						### Context & Data
+						Building: $name ($poiId)
+						Building Details: $cleanPoiJson
+	
+						### Constraints
+						1. Output ONLY the narration. No meta-talk, no "Here is the info", no labels like "Description:".
+						2. Be concise. Use short, sectioned paragraphs.
+						3. Use only the provided building details. Do not hallucinate historical facts.
+						4. Address the user directly as a visitor.
+						5. Keep the tone warm and welcoming, like a student guide speaking to a guest.
+	
+						### Example Output
+						St. La Salle Hall,
+						Welcome to the historic heart of our campus! St. La Salle Hall is our most iconic building, completed in 1921. It houses major administrative offices and beautiful neo-classical architecture that represents our long heritage here in Manila.
+					""".trimIndent()
 
 					Log.d("LLM_PROMPT", aiPrompt)
 					Log.d("LLM_BUILDING_DATA", buildingData)
@@ -260,6 +260,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 			lifecycleScope.launch {
 					val floorData = ragEngine.getFloorData(floor, poiId)
+					Log.d("FLOOR_DATA", floorData)
 					val cleanPoiJson = cleanPoiJson(floorData)
 					val aiPrompt = """
 					### Persona
@@ -1120,30 +1121,27 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val cleanPoiJson = cleanPoiJson(poiInfoOnly)
 				val startingPoint = null // building starting point
 				val aiPrompt = """
-					### Persona
-					You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
-
-					### Instructions
-                    1. Write in short, sectioned paragraphs. Split each paragraph for each building.
-                    2. Describe the entire journey in order, starting from the first location.
-                    3. Mention EVERY building in the Tour Route list. Use the Building Details to add interesting facts.
-                    4. Maintain a warm, inviting persona. No "As an AI" or "Based on data".
-                    5. Do NOT use headings, bullet points, or meta-labels like "###".
-                    6. Start the narration immediately and stop as soon as the tour description ends.
-					7. Keep it as short and as simple as possible. This is a tour over view, not the tour yet.
-
-                    ### Example
-                    Tour Route: ["Henry Sy Sr. Hall","St. La Salle Hall"]
-                    Building Details: [{"name": "St. La Salle Hall", "desc": "Historic building"}, {"name": "Yuchengco Hall", "desc": "Auditorium"}]
-                    Output: Welcome to DLSU! We start at St. La Salle Hall, a historic landmark that stands as a symbol of our long heritage. After admiring its architecture, we'll head over to Yuchengco Hall, which houses our grand auditorium. It's a centerpiece of our campus life!
-
-                    ### Current Request
+					Generate a short tour overview for the following route at DLSU.  
+					Rules:
+					1. Start the tour at the first building and describe the journey through the campus in order.
+					2. Mention each building along the route.
+					3. Each building should have 1 paragraph of 1–2 sentences.
+					4. Do not use bold, headings, or bullet points.
+					5. Separate each building paragraph with a single blank line.
+					6. Do not add notes, commentary, or extra text. Only describe the tour.
+					
+					Example:
+					Tour Route: ["St. La Salle Hall", "Henry Sy Sr. Hall"]
+					Building Details: [{"name":"St. La Salle Hall","desc":"Historic building"}, {"name":"Henry Sy Sr. Hall","desc":"Library and academic services"}]
+					Output:
+					We begin the tour at St. La Salle Hall, a historic landmark central to campus life. From there, we walk to Henry Sy Sr. Hall, which houses the library and academic services, providing a vibrant space for learning and study.
+					
 					User Role: $userRoleName
 					User Interests: $allPreferences
 					Tour Route: $poiJson
 					Building Details: $cleanPoiJson
-
-                    ### Tour Overview:
+					
+					Output the tour overview only, in the order of the tour, with each building in a separate paragraph:
 				""".trimIndent()
 
 				Log.d("HomeActivity", "User Role Name: $userRoleName")
@@ -1233,7 +1231,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			// Filter POI data based on relevant tags
 			val filteredPoiData = ragEngine.filterPoiData(relevantTags)
 			val cleanPoiJson = cleanPoiJson(Gson().toJson(filteredPoiData))
-
 
 			val aiPrompt = """
 				### Persona
