@@ -344,11 +344,9 @@
                     val poiMatch = poiIds.any { it.equals(dataValue, ignoreCase = true) }
 
                     if (preferenceMatch || poiMatch) {
-                        Log.d("RAGEngine", "MATCH FOUND at ${data.key} -> value: $dataValue")
+//                        Log.d("RAGEngine", "MATCH FOUND at ${data.key} -> value: $dataValue")
 
-                        val parentRef = childSnapshot.ref.parent ?: continue
-
-                        val parentSnapshot = parentRef.get().await()
+                        val parentSnapshot = childSnapshot
 
                         val parentData: Map<String, Any?> = parentSnapshot.children.associate {
                             val key = it.key ?: ""
@@ -362,15 +360,15 @@
                         if (!seenIds.contains(parentHash)) {
                             matched.add(parentData)
                             seenIds.add(parentHash)
-                            Log.d("RAGEngine", "Added parent node: ${parentRef.key}")
+                            Log.d("RAGEngine", "Added parent node: ${childSnapshot.key}")
                         } else {
-                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentRef.key}")
+                            Log.d("RAGEngine", "Duplicate parent node skipped: ${childSnapshot.key}")
                         }
                     }
                 }
             }
 
-            Log.d("RAGEngine", "Matched nodes: $matched")
+//            Log.d("RAGEngine", "Matched nodes: $matched")
             return matched
         }
 
@@ -420,8 +418,7 @@
                     val relevantTagMatch = relevantTags?.any { it.equals(dataValue, ignoreCase = true) } == true
 
                     if (relevantTagMatch) {
-                        val parentRef = childSnapshot.ref.parent ?: continue
-                        val parentSnapshot = parentRef.get().await()
+                        val parentSnapshot = childSnapshot
 
                         val parentData: Map<String, Any?> = parentSnapshot.children.associate {
                             val key = it.key ?: ""
@@ -435,9 +432,9 @@
                         if (!seenIds.contains(parentHash)) {
                             matched.add(parentData)
                             seenIds.add(parentHash)
-                            Log.d("RAGEngine", "Added parent node: ${parentRef.key}")
+                            Log.d("RAGEngine", "Added parent node: ${parentSnapshot.key}")
                         } else {
-                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentRef.key}")
+                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentSnapshot.key}")
                         }
                     }
                 }
