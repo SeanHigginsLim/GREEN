@@ -880,12 +880,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			text = "+ Add Location"
 			setOnClickListener {
 				lifecycleScope.launch {
-					val availableStops = withContext(Dispatchers.IO) {
-						db.poiDao().getAll()
-							.map { it.name }
-							.distinct()
-							.filterNot { it in editablePath }
+					val allBuildings = withContext(Dispatchers.IO) {
+						// Fetch ALL buildings from Firebase, not just preference-matched ones in local DB
+						RAGEngine().getBuildings()
 					}
+					
+					val availableStops = allBuildings
+						.filterNot { it.name in editablePath }
+						.sortedBy { it.name }
 
 					if (availableStops.isEmpty()) {
 						Toast.makeText(this@AndroidSmallHomeActivity, "No more locations available.", Toast.LENGTH_SHORT).show()
@@ -894,8 +896,25 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 					AlertDialog.Builder(this@AndroidSmallHomeActivity)
 						.setTitle("Add Location")
-						.setItems(availableStops.toTypedArray()) { _, which ->
-							editablePath.add(availableStops[which])
+						.setItems(availableStops.map { it.name }.toTypedArray()) { _, which ->
+							val selectedPoi = availableStops[which]
+							editablePath.add(selectedPoi.name)
+							
+							// Save POI to local database so navigation/geofencing works
+							lifecycleScope.launch(Dispatchers.IO) {
+								try {
+									// Check if POI already exists in database
+									val existingPoi = db.poiDao().getPoiById(selectedPoi.poiId)
+									if (existingPoi == null) {
+										// Save new POI to local database
+										db.poiDao().insert(selectedPoi)
+										Log.d("EditTour", "Saved manually added POI: ${selectedPoi.name}")
+									}
+								} catch (e: Exception) {
+									Log.e("EditTour", "Failed to save POI: ${e.message}")
+								}
+							}
+							
 							renderPathRows()
 						}
 						.setNegativeButton("Cancel", null)
