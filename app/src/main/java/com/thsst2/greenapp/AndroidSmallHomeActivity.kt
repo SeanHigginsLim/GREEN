@@ -1993,7 +1993,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 //		if (isFinishing && !sessionEnded) {
 			sessionEnded = true
+
 			Log.d("SESSION", "App backgrounded → ending session $sessionId")
+
 			endTour(userId, sessionId)
 //		}
 	}
