@@ -85,6 +85,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlin.Long
 import kotlin.math.sqrt
+import androidx.activity.OnBackPressedCallback
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -585,6 +586,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				adapter.notifyItemInserted(messages.size - 1)
 			}
 		}
+		onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+			override fun handleOnBackPressed() {
+				if (tourStarted && !sessionEnded) {
+					showEndTourDialog(true)
+				} else {
+					finish()
+				}
+			}
+		})
 	}
 
 	private fun loadImages() {
@@ -1361,7 +1371,13 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	// NAVIGATION BAR
 	private fun setupNavigationBar() {
-		homeBinding.homeButton.setOnClickListener { recreate() }
+		homeBinding.homeButton.setOnClickListener {
+			if (tourStarted && !sessionEnded) {
+				showEndTourDialog(false)
+			} else {
+				recreate()
+			}
+		}
 		homeBinding.triviaButton.setOnClickListener {
 			val intent = Intent(this, AndroidSmallTriviaActivity::class.java)
 			intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -1870,6 +1886,42 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
+	private fun showEndTourDialog(closeActivity: Boolean = false) {
+		if (!tourStarted || sessionEnded) {
+			if (closeActivity) finish()
+			else resetTour()
+			return
+		}
+
+		AlertDialog.Builder(this)
+			.setTitle("End Tour")
+			.setMessage("Are you sure you want to end your current tour?")
+			.setPositiveButton("End Tour") { _, _ ->
+				lifecycleScope.launch {
+					try {
+						sessionEnded = true
+						Log.d("SESSION", "User confirmed end tour for sessionId=$sessionId")
+
+						endTour(userId, sessionId)
+
+						Log.d("SESSION", "endTour completed for sessionId=$sessionId")
+
+						if (closeActivity) {
+							finish()
+						} else {
+							resetTour()
+						}
+
+					} catch (e: Exception) {
+						sessionEnded = false
+						Log.e("SESSION", "Failed to end tour: ${e.localizedMessage}", e)
+					}
+				}
+			}
+			.setNegativeButton("Cancel", null)
+			.show()
+	}
+
 	fun logLargeString(tag: String, content: String) {
 		if (content.length > 4000) {
 			Log.d(tag, content.substring(0, 4000))
@@ -1939,13 +1991,11 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	override fun onStop() {
 		super.onStop()
 
-		if (isFinishing && !sessionEnded) {
+//		if (isFinishing && !sessionEnded) {
 			sessionEnded = true
-
 			Log.d("SESSION", "App backgrounded → ending session $sessionId")
-
 			endTour(userId, sessionId)
-		}
+//		}
 	}
 
 
