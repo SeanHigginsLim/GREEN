@@ -1240,7 +1240,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
 //			val poiData = db.localDataDao().getLocalData(userId)
 			val startingPoint = null
-			val allTags = ragEngine.getPreferencesListForProfilePage()
+			val allTags = ragEngine.getTags()
 			val aiTagPrompt = """
 				### Task
 				You are a metadata classifier. Identify relevant tags from the user's query that match the available tags list.
@@ -1259,6 +1259,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				### Examples
 				Query: "Are there elevators in Andrew Hall?" -> ["acc_elevator"]
 				Query: "I want to see old buildings." -> ["type_historic"]
+				
+				### Output Format
+				Return ONLY the JSON array. Do not include markdown code blocks (like ```json).
+				
+				Correct Output: ["acc_elevator", "loc_building"]
+				Incorrect Output: The tags are ["acc_elevator"]
+				
+				JSON Array:
 			""".trimIndent()
 
 			Log.d("HomeActivity", "aiTagPrompt: $aiTagPrompt")
@@ -1270,9 +1278,24 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					if (response.isSuccessful) {
 						val tagResponse = response.body()?.response ?: "[]"
 						val relevantTags: List<String> = try {
-							Gson().fromJson(tagResponse, Array<String>::class.java).toList()
+							// Find the first occurrence of [...]
+							val regex = Regex("\\[(.*?)\\]")
+							val match = regex.find(tagResponse)
+
+							if (match != null) {
+								var jsonPart = match.value
+
+								// Add quotes if the LLM returned [tag1, tag2] instead of ["tag1", "tag2"]
+								if (!jsonPart.contains("\"")) {
+									jsonPart = jsonPart.replace(Regex("([a-zA-Z0-9_]+)"), "\"$1\"")
+								}
+
+								Gson().fromJson(jsonPart, Array<String>::class.java).toList()
+							} else {
+								emptyList()
+							}
 						} catch (e: Exception) {
-							Log.e("ChatApi", "Tag JSON parsing failed: ${e.message}")
+							Log.e("ChatApi", "Tag extraction failed: ${e.message}")
 							emptyList()
 						}
 

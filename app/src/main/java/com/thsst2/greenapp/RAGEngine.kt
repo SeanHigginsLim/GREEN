@@ -63,6 +63,31 @@
             return matchedTagIds
         }
 
+        // Return list of tags
+        suspend fun getTags(): List<String> {
+            val snapshot = db.child("server_side").child("annotation_tags").get().await()
+            val tagIds = mutableListOf<String>()
+
+            for (category in snapshot.children) {
+                for (item in category.children) {
+                    // Dig into the object
+                    for (dataField in item.children) {
+                        val fieldName = dataField.key ?: ""
+
+                        // Match any key ending in "_id"
+                        if (fieldName.endsWith("_id")) {
+                            val value = dataField.getValue(String::class.java)
+                            if (value != null) {
+                                tagIds.add(value)
+                            }
+                        }
+                    }
+                }
+            }
+
+            return tagIds.distinct()
+        }
+
         // Return list of preference choices
         suspend fun getPreferencesListForProfilePage(): List<String> {
             val annotationTagsSnapshot = db
