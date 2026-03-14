@@ -205,8 +205,15 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 							)
 							db.userPreferencesDao().insert(userPreferencesEntity)
 
+							val prefsEntity = db.userPreferencesDao().getPreferencesByUser(userId)
+							
 							withContext(Dispatchers.Main) {
-								loadPreferencesTextView()
+								val selectedPrefs = prefsEntity?.interests
+					
+								withContext(Dispatchers.Main) {
+									val displayPrefs = selectedPrefs?.map { formatPreferenceForDisplay(it) }
+									profileBinding.rdq3i5lpyvv4.text = displayPrefs?.joinToString(", ")
+								}
 
 								if (openedFromChatbotFlow) {
 									val returnIntent = Intent(this@AndroidSmallProfileActivity, AndroidSmallHomeActivity::class.java)
