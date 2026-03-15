@@ -368,16 +368,37 @@
                     // Check if this data matches any POI ID
                     val poiMatch = poiIds.any { it.equals(dataValue, ignoreCase = true) }
 
-                    if (preferenceMatch || poiMatch) {
+                    if (poiMatch) {
 //                        Log.d("RAGEngine", "MATCH FOUND at ${data.key} -> value: $dataValue")
 
-                        val parentSnapshot = childSnapshot
+                        val parentSnapshot = data.ref.parent?.get()?.await()
 
-                        val parentData: Map<String, Any?> = parentSnapshot.children.associate {
+                        val parentData: Map<String, Any?> = parentSnapshot?.children?.associate {
                             val key = it.key ?: ""
                             val value = it.value
                             key to value
+                        } ?: emptyMap()
+
+                        // Create a hash using JSON string
+                        val parentHash = Gson().toJson(parentData)
+
+                        if (!seenIds.contains(parentHash)) {
+                            matched.add(parentData)
+                            seenIds.add(parentHash)
+                            Log.d("RAGEngine", "Added parent node: ${childSnapshot.key}")
+                        } else {
+                            Log.d("RAGEngine", "Duplicate parent node skipped: ${childSnapshot.key}")
                         }
+                    } else if (preferenceMatch) {
+                        Log.d("RAGEngine", "MATCH FOUND at ${data.key} -> value: $dataValue")
+
+                        val parentSnapshot = data.ref.parent?.parent?.get()?.await()
+
+                        val parentData: Map<String, Any?> = parentSnapshot?.children?.associate {
+                            val key = it.key ?: ""
+                            val value = it.value
+                            key to value
+                        } ?: emptyMap()
 
                         // Create a hash using JSON string
                         val parentHash = Gson().toJson(parentData)
@@ -406,7 +427,7 @@
             )
 
             // Number of matched nodes
-            Log.d("RAGEngine", "Matched nodes count: ${matchedData.size}")
+            Log.d("RAGEngine_FILTER_POI_DATA", "Matched nodes count: ${matchedData.size}")
 
             val jsonResult = gson.toJson(matchedData)
             return jsonResult
@@ -435,36 +456,44 @@
 
                 // Check current snapshot for matching data
                 for (data in childSnapshot.children) {
-                    //val dataValue = data.getValue(String::class.java) ?: continue
-                    val rawValue = data.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
-                    val dataValue = rawValue.toString()
+                    val dataValue = data.value?.toString() ?: continue
 
                     // Check if this data matches any user preference
                     val relevantTagMatch = relevantTags?.any { it.equals(dataValue, ignoreCase = true) } == true
+//                    Log.d("RAGEngine", "Checking value: '$dataValue' at ${data.key}")
+//                    Log.d("RAGEngine", "Relevant Tags: $relevantTags")
+                    Log.d("RAGEngine", "Relevant Tag Match: $relevantTagMatch")
 
                     if (relevantTagMatch) {
-                        val parentSnapshot = childSnapshot
-
-                        val parentData: Map<String, Any?> = parentSnapshot.children.associate {
-                            val key = it.key ?: ""
-                            val value = it.value
-                            key to value
+                        val parentSnapshot = if (data.key == "building_id" || data.key == "near_building_id" || data.key == "entity_id") {
+                            data.ref.parent?.get()?.await()      // go up 1 level
+                        } else {
+                            data.ref.parent?.parent?.get()?.await()   // go up 2 levels
                         }
 
-                        // Create a hash using JSON string
-                        val parentHash = Gson().toJson(parentData)
+                        if (parentSnapshot != null && parentSnapshot.exists()) {
+                            val parentData: Map<String, Any?> = parentSnapshot.children.associate {
+                                val key = it.key ?: ""
+                                val value = it.value
+                                key to value
+                            }
 
-                        if (!seenIds.contains(parentHash)) {
-                            matched.add(parentData)
-                            seenIds.add(parentHash)
-                            Log.d("RAGEngine", "Added parent node: ${parentSnapshot.key}")
-                        } else {
-                            Log.d("RAGEngine", "Duplicate parent node skipped: ${parentSnapshot.key}")
+                            // Create a hash using JSON string
+                            val parentHash = Gson().toJson(parentData)
+
+                            if (!seenIds.contains(parentHash)) {
+                                matched.add(parentData)
+                                seenIds.add(parentHash)
+                                Log.d("RAGEngine", "Added parent node: ${parentSnapshot.key}")
+                            } else {
+                                Log.d("RAGEngine", "Duplicate parent node skipped: ${parentSnapshot.key}")
+                            }
                         }
                     }
                 }
             }
 
+            Log.d("RAGEngine_MATCHED", "Matched nodes: $matched")
             return matched
         }
 
@@ -503,8 +532,8 @@
                     for (floorChild in floorsSnapshot.children) {
                         val dataValue = floorChild.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
 
-                        Log.d("RAGEngine", "Checking value: '$dataValue' at ${floorChild.key}")
-                        Log.d("RAGEngine", "Floor: $floor")
+//                        Log.d("RAGEngine", "Checking value: '$dataValue' at ${floorChild.key}")
+//                        Log.d("RAGEngine", "Floor: $floor")
                         if (dataValue == floor.toInt()) {
                             // Return all key/value pairs under this floor
                             return floorChild.children.associate { it.key.orEmpty() to it.value }

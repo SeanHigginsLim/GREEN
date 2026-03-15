@@ -649,6 +649,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	private fun buildSuggestionsForCurrentState(hasMoreInfo: Boolean): List<String> {
 		val suggestions = mutableListOf<String>()
+//		suggestions.add("Ask") // comment out after testing
 
 		if (hasMoreInfo) {
 			suggestions.add("More Info")
@@ -1237,8 +1238,8 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		} else if (isAsking) {
 			isAsking = false
 
-			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
-//			val poiData = db.localDataDao().getLocalData(userId)
+//			val poiJson = Gson().toJson(db.userTourPathHistoryDao().getById(userId)?.pathSequence)
+////			val poiData = db.localDataDao().getLocalData(userId)
 			val startingPoint = null
 			val allTags = ragEngine.getTags()
 			val aiTagPrompt = """
@@ -1277,6 +1278,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 					if (response.isSuccessful) {
 						val tagResponse = response.body()?.response ?: "[]"
+						Log.d("HomeActivity", "Tag Response: $tagResponse")
 						val relevantTags: List<String> = try {
 							// Find the first occurrence of [...]
 							val regex = Regex("\\[(.*?)\\]")
@@ -1305,37 +1307,48 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 							try {
 								// Filter POI data based on relevant tags
 								val filteredPoiData = ragEngine.filterPoiData(relevantTags)
-								val cleanPoiJson = cleanPoiJson(Gson().toJson(filteredPoiData))
-
+								val cleanPoiJson = cleanPoiJson(filteredPoiData)
 								val aiPrompt = """
-							### Persona
-							You are G.R.E.E.N., the official AI tour guide for De La Salle University.
-			
-							### Task
-							Answer the user's question accurately using only the provided context.
-			
-							### Context & Data
-							User Question: "$userMessage"
-							User Role: $userRoleName
-							Relevant Context: $cleanPoiJson
-			
-							### Instructions
-							1. Provide a short, direct, and accurate answer.
-							2. Use a friendly, campus-guide tone.
-							3. If the answer isn't in the context, say you're not sure but would love to help with other campus info.
-							4. No meta-talk like "As an AI" or "Based on the context provided".
-							5. Output ONLY the answer text.
-			
-							### Example
-							Question: "Where is the library?"
-							G.R.E.E.N.: Our main library is located inside the Henry Sy Sr. Hall. It's a great place to study with a fantastic view of the campus!
-						""".trimIndent()
+									### Persona
+									You are G.R.E.E.N., the official AI tour guide for De La Salle University.
+									
+									### Task
+									Answer the user's question accurately using only the provided context, dynamically.
+									
+									### Context & Data
+									User Question: "$userMessage"
+									User Role: $userRoleName
+									
+									Context JSON:
+									$cleanPoiJson
+									
+									### Instructions
+									1. Provide a short, direct, and friendly answer.
+									2. If the user mentions a partial or full name of a building or facility, match it to the closest name in the context.
+									3. For other types of questions, use only the data in the JSON context. Do not invent facts not present there.
+									4. If the answer is not in the context, respond with: "I'm not sure, but I can help you with other campus information."
+									5. Output ONLY the answer text — no JSON, code blocks, or extra explanations.
+									
+									### Example
+									Question: "Where is the library?"
+									G.R.E.E.N.: Our main library is located inside the Henry Sy Sr. Hall. It's a great place to study with a fantastic view of the campus!	
+									Question: "Does Andrew Hall have elevators?"
+									G.R.E.E.N.: Yes, Br. Andrew Gonzalez Hall has elevators available for accessibility.
+									
+									Question: "Is there a cafeteria nearby?"
+									G.R.E.E.N.: I'm not sure, but I can help you with other campus information.
+								""".trimIndent()
+
+                                Log.d("HomeActivityQuestion", "aiPrompt: $aiPrompt")
+                                Log.d("HomeActivityQuestion", "User Message: $userMessage")
+								Log.d("HomeActivityQuestion", "Filter POI Data: $filteredPoiData")
+                                Log.d("HomeActivityQuestion", "Cleaned POI Info: $cleanPoiJson")
 
 								chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
 									override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 										if (response.isSuccessful) {
 											val botReply = response.body()?.response ?: "Answer:"
-											Log.d("LLM_RESPONSE", botReply)
+											Log.d("LLM_RESPONSE_TO_QUESTION", botReply)
 											messages.add(
 												ChatMessage(
 													text = botReply,
