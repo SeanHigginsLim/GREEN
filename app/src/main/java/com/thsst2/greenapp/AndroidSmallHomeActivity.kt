@@ -1074,7 +1074,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		// Let DialogueManager process the input and track response time
 		val startTime = System.currentTimeMillis()
-		val dmResult = dialogueManager.processMessage(userId, userMessage)
+		val dmResult = if (tourStarted) null else dialogueManager.processMessage(userId, userMessage)
 		val responseTime = System.currentTimeMillis() - startTime
 		
 		// Record query response time for metrics
@@ -1082,7 +1082,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			metricsCollector.recordQueryResponse(sessionId, responseTime)
 		}
 
-		when (dmResult.intent) {
+		when (dmResult?.intent) {
 			IntentType.MORE_INFO -> {
 				showNextMoreInfoParagraph()
 				return
@@ -1103,7 +1103,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			}
 		}
 
-		if (dmResult.message.isNotBlank()) {
+		if (dmResult?.message?.isNotBlank() == true) {
 			val suggestions = if (tourStarted) {
 				listOf("More Info", "Next Stop", "Change Floor")
 			} else {
@@ -1113,7 +1113,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 
 		// Open profile preferences edit box
-		if (dmResult.openProfileForPrefs) {
+		if (dmResult?.openProfileForPrefs == true){
 			val intent = Intent(this@AndroidSmallHomeActivity, AndroidSmallProfileActivity::class.java)
 			intent.putExtra("open_prefs_dialog", true)
 			startActivity(intent)
@@ -1121,7 +1121,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 
 		// If user wants a tour, call TourCoordinator
-		if (dmResult.context == ConversationContext.TOUR_READY && !tourStarted) {
+		if (dmResult?.context == ConversationContext.TOUR_READY && !tourStarted){
 			tourStarted = true
 
 			Log.d("HomeActivity", "Intent: ${dmResult.intent}")
