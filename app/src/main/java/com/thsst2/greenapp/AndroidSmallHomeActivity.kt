@@ -86,7 +86,9 @@ import kotlinx.coroutines.tasks.await
 import kotlin.Long
 import kotlin.math.sqrt
 import androidx.activity.OnBackPressedCallback
+import androidx.room.withTransaction
 import com.thsst2.greenapp.data.PerformanceMetricsEntity
+import kotlinx.coroutines.CoroutineScope
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -1138,16 +1140,16 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		val startTime = System.currentTimeMillis()
 		val dmResult = if (tourStarted) null else dialogueManager.processMessage(userId, userMessage)
 
-		val metrics = PerformanceMetricsEntity(
-			sessionId = sessionId,
-			routeAccuracyScore = null,
-			pathGenerationTimeMs = null,
-			avgResponseTimeMs = null,
-			preferenceMatchScore = null,
-			visitedPreferredRatio = null
-		)
-
-		performanceMetricsDao.insert(metrics)
+//		val metrics = PerformanceMetricsEntity(
+//			sessionId = sessionId,
+//			routeAccuracyScore = null,
+//			pathGenerationTimeMs = null,
+//			avgResponseTimeMs = null,
+//			preferenceMatchScore = null,
+//			visitedPreferredRatio = null
+//		)
+//
+//		performanceMetricsDao.insert(metrics)
 
 		when (dmResult?.intent) {
 			IntentType.MORE_INFO -> {
@@ -1616,6 +1618,34 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			Log.d("HomeActivity", "Session log saved to Firebase. ${sessionLog.sessionLogId}")
 			lifecycleScope.launch(Dispatchers.IO) {
 				saveSessionLogToFirebase(sessionLog)
+			}
+
+			CoroutineScope(Dispatchers.IO).launch {
+				db.withTransaction {
+					db.dialogueHistoryDao().deleteAll()
+					db.generatedPathDao().deleteAll()
+					db.geofenceTriggerDao().deleteAll()
+					db.intentLogDao().deleteAll()
+					db.localDataDao().deleteAll()
+					db.pathDeviationAlertDao().deleteAll()
+					db.performanceMetricsDao().deleteAll()
+					db.poiDao().deleteAll()
+					db.responseJustificationDao().deleteAll()
+					db.sessionLogDao().deleteAll()
+					db.sessionLogDao().deleteAll()
+					db.transitionDao().deleteAll()
+//				db.userDao().deleteAll()
+					db.userFeedbackDao().deleteAll()
+					db.userInteractionTimeDao().deleteAll()
+//				db.userLocationDao().deleteAll()
+					db.userLogDao().deleteAll()
+//				db.userPreferencesDao().deleteAll()
+					db.userQueryDao().deleteAll()
+//				db.userRoleDao().deleteAll()
+					db.userSkippedOrDislikedLocationDao().deleteAll()
+					db.userTourPathHistoryDao().deleteAll()
+					db.userVisitedLocationDao().deleteAll()
+				}
 			}
 		}
 	}
