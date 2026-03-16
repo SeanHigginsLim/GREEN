@@ -10,7 +10,7 @@ interface BaseDao<T> {
     suspend fun insert(entity: T): Long
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun update(entity: T)
+    suspend fun update(entity: T) : Int
 
     @Delete
     suspend fun delete(entity: T)
@@ -156,6 +156,9 @@ interface PerformanceMetricsDao: BaseDao<PerformanceMetricsEntity> {
 
     @Query("SELECT * FROM performance_metrics WHERE sessionId = :sessionId")
     suspend fun getMetricsBySession(sessionId: Long): List<PerformanceMetricsEntity>
+
+    @Query("SELECT * FROM performance_metrics WHERE sessionId = :sessionId")
+    suspend fun getMetricsBySessionId(sessionId: Long): PerformanceMetricsEntity?
 
     @Query("SELECT * FROM performance_metrics")
     suspend fun getAll(): List<PerformanceMetricsEntity>

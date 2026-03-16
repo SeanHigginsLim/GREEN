@@ -86,6 +86,7 @@ import kotlinx.coroutines.tasks.await
 import kotlin.Long
 import kotlin.math.sqrt
 import androidx.activity.OnBackPressedCallback
+import com.thsst2.greenapp.data.PerformanceMetricsEntity
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -153,6 +154,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	private val buildingReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
+			val startTime = System.currentTimeMillis()
 			val name = intent?.getStringExtra("buildingName") ?: return
 			val poiId = intent?.getStringExtra("poiId") ?: return
 			Log.d("BUILDING_ENTERED", "Building entered: $name")
@@ -221,6 +223,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 										)
 									)
 								}
+
+								val responseTime = System.currentTimeMillis() - startTime
+								// Record query response time for metrics
+								lifecycleScope.launch(Dispatchers.IO) {
+									metricsCollector.recordQueryResponse(sessionId, responseTime)
+								}
 							} else {
 								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
 							}
@@ -248,6 +256,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	private val floorReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
+			val startTime = System.currentTimeMillis()
 			val floor = intent?.getIntExtra("floorNumber", 0) ?: return
 			if (floor == 0) return // Invalid floor
 			val poiId = intent.getStringExtra("poiId") ?: return
@@ -318,6 +327,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 											turnNumber = messages.size
 										)
 									)
+								}
+
+								val responseTime = System.currentTimeMillis() - startTime
+								// Record query response time for metrics
+								lifecycleScope.launch(Dispatchers.IO) {
+									metricsCollector.recordQueryResponse(sessionId, responseTime)
 								}
 							} else {
 								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
@@ -633,28 +648,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	}
 
 	// LOADED MODEL USING GOOGLE COLAB
-//	private fun setupRetrofit() {
-//		val okHttpClient = OkHttpClient.Builder()
-//			.connectTimeout(30, TimeUnit.SECONDS)
-//			.readTimeout(120, TimeUnit.SECONDS)
-//			.writeTimeout(120, TimeUnit.SECONDS)
-//			.build()
-//
-//		val ngrokApiUrl = "https://preharmonious-saul-spectrologically.ngrok-free.dev"
-//		val retrofit = Retrofit.Builder()
-//			.baseUrl("$ngrokApiUrl/")
-//			.client(okHttpClient)
-//			.addConverterFactory(GsonConverterFactory.create())
-//			.build()
-//		chatApi = retrofit.create(ChatApi::class.java)
-//
-//		// Setup message input
-//		setupMessageInput()
-//	}
-
-	// LOADED MODEL USING GCP VIRTUAL MACHINE
-	// Uncomment to use VM and comment out the setupRetrofit() above
-	// NOTE: vmApiUrl may change
 	private fun setupRetrofit() {
 		val okHttpClient = OkHttpClient.Builder()
 			.connectTimeout(30, TimeUnit.SECONDS)
@@ -662,17 +655,39 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			.writeTimeout(120, TimeUnit.SECONDS)
 			.build()
 
-		val vmApiUrl = "http://35.221.229.69:8000" // this may change
+		val ngrokApiUrl = "https://preharmonious-saul-spectrologically.ngrok-free.dev"
 		val retrofit = Retrofit.Builder()
-			.baseUrl("$vmApiUrl/")
+			.baseUrl("$ngrokApiUrl/")
 			.client(okHttpClient)
 			.addConverterFactory(GsonConverterFactory.create())
 			.build()
-
 		chatApi = retrofit.create(ChatApi::class.java)
 
+		// Setup message input
 		setupMessageInput()
 	}
+
+	// LOADED MODEL USING GCP VIRTUAL MACHINE
+	// Uncomment to use VM and comment out the setupRetrofit() above
+	// NOTE: vmApiUrl may change
+//	private fun setupRetrofit() {
+//		val okHttpClient = OkHttpClient.Builder()
+//			.connectTimeout(30, TimeUnit.SECONDS)
+//			.readTimeout(120, TimeUnit.SECONDS)
+//			.writeTimeout(120, TimeUnit.SECONDS)
+//			.build()
+//
+//		val vmApiUrl = "http://35.221.229.69:8000" // this may change
+//		val retrofit = Retrofit.Builder()
+//			.baseUrl("$vmApiUrl/")
+//			.client(okHttpClient)
+//			.addConverterFactory(GsonConverterFactory.create())
+//			.build()
+//
+//		chatApi = retrofit.create(ChatApi::class.java)
+//
+//		setupMessageInput()
+//	}
 
 	private fun setupMessageInput() {
 		val editText = homeBinding.r0zz50xix97ik
@@ -820,7 +835,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			val wasPreferred = preferences.any { pref -> 
 				nextStopName.contains(pref, ignoreCase = true)
 			}
-			metricsCollector.recordPoiVisit(sessionId, nextStopName, wasPreferred)
+			metricsCollector.recordPoiVisit(sessionId, wasPreferred)
 		}
 
 		val mapFragment =
@@ -1122,12 +1137,17 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		// Let DialogueManager process the input and track response time
 		val startTime = System.currentTimeMillis()
 		val dmResult = if (tourStarted) null else dialogueManager.processMessage(userId, userMessage)
-		val responseTime = System.currentTimeMillis() - startTime
-		
-		// Record query response time for metrics
-		lifecycleScope.launch(Dispatchers.IO) {
-			metricsCollector.recordQueryResponse(sessionId, responseTime)
-		}
+
+		val metrics = PerformanceMetricsEntity(
+			sessionId = sessionId,
+			routeAccuracyScore = null,
+			pathGenerationTimeMs = null,
+			avgResponseTimeMs = null,
+			preferenceMatchScore = null,
+			visitedPreferredRatio = null
+		)
+
+		performanceMetricsDao.insert(metrics)
 
 		when (dmResult?.intent) {
 			IntentType.MORE_INFO -> {
@@ -1271,6 +1291,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 										turnNumber = messages.size
 									)
 								)
+							}
+
+							val responseTime = System.currentTimeMillis() - startTime
+							// Record query response time for metrics
+							lifecycleScope.launch(Dispatchers.IO) {
+								metricsCollector.recordQueryResponse(sessionId, responseTime)
 							}
 						} else {
 							Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
@@ -1428,6 +1454,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 														turnNumber = messages.size
 													)
 												)
+											}
+
+											val responseTime = System.currentTimeMillis() - startTime
+											// Record query response time for metrics
+											lifecycleScope.launch(Dispatchers.IO) {
+												metricsCollector.recordQueryResponse(sessionId, responseTime)
 											}
 										} else {
 											Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")

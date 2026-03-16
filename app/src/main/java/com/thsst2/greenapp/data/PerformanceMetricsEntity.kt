@@ -21,15 +21,15 @@ data class PerformanceMetricsEntity(
     val sessionId: Long,
     
     // Accuracy metrics (0-100 scale)
-    val routeAccuracyScore: Long,        // How accurately the route followed planned path
+    val routeAccuracyScore: Long?,        // How accurately the route followed planned path
     
     // Speed metrics (milliseconds)
-    val pathGenerationTimeMs: Long,       // Time to generate the tour path
-    val avgResponseTimeMs: Long,          // Average response time for user queries
+    val pathGenerationTimeMs: Long?,       // Time to generate the tour path
+    val avgResponseTimeMs: Long?,          // Average response time for user queries
     
     // Personalization effectiveness (0-100 scale)
-    val preferenceMatchScore: Long,       // How well POIs matched user preferences
-    val visitedPreferredRatio: Long,      // Ratio of preferred POIs visited vs planned
+    val preferenceMatchScore: Long?,       // How well POIs matched user preferences
+    val visitedPreferredRatio: Long?,      // Ratio of preferred POIs visited vs planned
     
     val recordedAt: Long = System.currentTimeMillis()
 )

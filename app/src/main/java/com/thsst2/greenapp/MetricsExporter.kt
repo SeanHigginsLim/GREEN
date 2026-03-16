@@ -20,11 +20,11 @@ class MetricsExporter(private val context: Context) {
     
     data class PerformanceMetricsData(
         val sessionId: Long,
-        val accuracy: Long,
-        val speedMs: Long,
-        val avgResponseMs: Long,
-        val personalizationScore: Long,
-        val visitedPreferredRatio: Long,
+        val accuracy: Long?,
+        val speedMs: Long?,
+        val avgResponseMs: Long?,
+        val personalizationScore: Long?,
+        val visitedPreferredRatio: Long?,
         val timestamp: Long
     )
     
@@ -71,13 +71,13 @@ class MetricsExporter(private val context: Context) {
                     timestamp = it.timestamp
                 )
             }
-            
+
             val summary = MetricsSummary(
                 totalSessions = performanceMetrics.size,
-                avgAccuracy = performanceMetrics.map { it.accuracy }.average(),
-                avgSpeed = performanceMetrics.map { it.speedMs }.average(),
-                avgPersonalization = performanceMetrics.map { it.personalizationScore }.average(),
-                avgVisitedPreferred = performanceMetrics.map { it.visitedPreferredRatio }.average()
+                avgAccuracy = performanceMetrics.map { it.accuracy?.toDouble() ?: 0.0 }.average(),
+                avgSpeed = performanceMetrics.map { it.speedMs?.toDouble() ?: 0.0 }.average(),
+                avgPersonalization = performanceMetrics.map { it.personalizationScore?.toDouble() ?: 0.0 }.average(),
+                avgVisitedPreferred = performanceMetrics.map { it.visitedPreferredRatio?.toDouble() ?: 0.0 }.average()
             )
             
             val export = MetricsExport(performanceMetrics, userFeedback, summary)
