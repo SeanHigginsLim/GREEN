@@ -228,6 +228,18 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
 							Log.e("ChatApi", "Error: ${t.message}", t)
+
+							runOnUiThread {
+								messages.add(
+									ChatMessage(
+										text = "The AI server is currently unavailable. Please try again.",
+										isUser = false,
+										suggestions = buildSuggestionsForCurrentState(false)
+									)
+								)
+								adapter.notifyItemInserted(messages.size - 1)
+								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+							}
 						}
 					})
 			}
@@ -314,6 +326,18 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
 							Log.e("ChatApi", "Error: ${t.message}", t)
+
+							runOnUiThread {
+								messages.add(
+									ChatMessage(
+										text = "The AI server is currently unavailable. Please try again.",
+										isUser = false,
+										suggestions = buildSuggestionsForCurrentState(false)
+									)
+								)
+								adapter.notifyItemInserted(messages.size - 1)
+								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+							}
 						}
 					})
 			}
@@ -608,6 +632,29 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		urls.forEach { Glide.with(this).load(it.second).into(it.first) }
 	}
 
+	// LOADED MODEL USING GOOGLE COLAB
+//	private fun setupRetrofit() {
+//		val okHttpClient = OkHttpClient.Builder()
+//			.connectTimeout(30, TimeUnit.SECONDS)
+//			.readTimeout(120, TimeUnit.SECONDS)
+//			.writeTimeout(120, TimeUnit.SECONDS)
+//			.build()
+//
+//		val ngrokApiUrl = "https://preharmonious-saul-spectrologically.ngrok-free.dev"
+//		val retrofit = Retrofit.Builder()
+//			.baseUrl("$ngrokApiUrl/")
+//			.client(okHttpClient)
+//			.addConverterFactory(GsonConverterFactory.create())
+//			.build()
+//		chatApi = retrofit.create(ChatApi::class.java)
+//
+//		// Setup message input
+//		setupMessageInput()
+//	}
+
+	// LOADED MODEL USING GCP VIRTUAL MACHINE
+	// Uncomment to use VM and comment out the setupRetrofit() above
+	// NOTE: vmApiUrl may change
 	private fun setupRetrofit() {
 		val okHttpClient = OkHttpClient.Builder()
 			.connectTimeout(30, TimeUnit.SECONDS)
@@ -615,15 +662,15 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			.writeTimeout(120, TimeUnit.SECONDS)
 			.build()
 
-		val ngrokApiUrl = "https://preharmonious-saul-spectrologically.ngrok-free.dev"
+		val vmApiUrl = "http://35.221.229.69:8000" // this may change
 		val retrofit = Retrofit.Builder()
-			.baseUrl("$ngrokApiUrl/")
+			.baseUrl("$vmApiUrl/")
 			.client(okHttpClient)
 			.addConverterFactory(GsonConverterFactory.create())
 			.build()
+
 		chatApi = retrofit.create(ChatApi::class.java)
 
-		// Setup message input
 		setupMessageInput()
 	}
 
@@ -1232,6 +1279,18 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 					override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
 						Log.e("ChatApi", "Error: ${t.message}", t)
+
+						runOnUiThread {
+							messages.add(
+								ChatMessage(
+									text = "The AI server is currently unavailable. Please try again.",
+									isUser = false,
+									suggestions = buildSuggestionsForCurrentState(false)
+								)
+							)
+							adapter.notifyItemInserted(messages.size - 1)
+							homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+						}
 					}
 				})
 			}
@@ -1377,6 +1436,18 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 									override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
 										Log.e("ChatApi", "Error: ${t.message}", t)
+
+										runOnUiThread {
+											messages.add(
+												ChatMessage(
+													text = "The AI server is currently unavailable. Please try again.",
+													isUser = false,
+													suggestions = buildSuggestionsForCurrentState(false)
+												)
+											)
+											adapter.notifyItemInserted(messages.size - 1)
+											homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+										}
 									}
 								})
 							} catch (e: Exception) {
@@ -1390,6 +1461,18 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 				override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
 					Log.e("ChatApi", "Error: ${t.message}", t)
+
+					runOnUiThread {
+						messages.add(
+							ChatMessage(
+								text = "The AI server is currently unavailable. Please try again.",
+								isUser = false,
+								suggestions = buildSuggestionsForCurrentState(false)
+							)
+						)
+						adapter.notifyItemInserted(messages.size - 1)
+						homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+					}
 				}
 			})
 		}
