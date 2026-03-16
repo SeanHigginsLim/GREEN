@@ -154,7 +154,7 @@ interface PerformanceMetricsDao: BaseDao<PerformanceMetricsEntity> {
     @Query("SELECT * FROM performance_metrics WHERE performanceMetricsId = :id")
     suspend fun getPerformanceMetricsById(id: Long): PerformanceMetricsEntity?
 
-    @Query("SELECT * FROM performance_metrics WHERE sessionId = :sessionId")
+    @Query("SELECT * FROM performance_metrics WHERE sessionId = :sessionId LIMIT 1")
     suspend fun getMetricsBySession(sessionId: Long): List<PerformanceMetricsEntity>
 
     @Query("SELECT * FROM performance_metrics WHERE sessionId = :sessionId")

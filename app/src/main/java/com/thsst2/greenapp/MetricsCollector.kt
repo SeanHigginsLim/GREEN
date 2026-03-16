@@ -31,6 +31,7 @@ class MetricsCollector(private val context: Context) {
     /** RECORD PATH GENERATION */
     suspend fun recordPathGeneration(sessionId: Long, pathLength: Int, processingTimeMs: Long, preferredPoisCount: Int = 0) =
         withContext(Dispatchers.IO) {
+            Log.d("MetricsCollector_RECORD_PATH_GENERATION", "Updating metrics for session $sessionId")
             val acc = sessionAccumulators.getOrPut(sessionId) { SessionAccumulator() }
             acc.totalPathTimeMs += processingTimeMs
             acc.pathCount++
@@ -43,6 +44,7 @@ class MetricsCollector(private val context: Context) {
 
     /** RECORD QUERY RESPONSE */
     suspend fun recordQueryResponse(sessionId: Long, responseTimeMs: Long) = withContext(Dispatchers.IO) {
+        Log.d("MetricsCollector_RECORD_QUERY_RESPONSE", "Updating metrics for session $sessionId")
         val acc = sessionAccumulators.getOrPut(sessionId) { SessionAccumulator() }
         acc.totalResponseTimeMs += responseTimeMs
         acc.responseCount++
@@ -54,6 +56,7 @@ class MetricsCollector(private val context: Context) {
 
     /** RECORD POI VISIT */
     suspend fun recordPoiVisit(sessionId: Long, wasPreferred: Boolean = false) = withContext(Dispatchers.IO) {
+        Log.d("MetricsCollector_RECORD_POI_VISIT", "Updating metrics for session $sessionId")
         val acc = sessionAccumulators.getOrPut(sessionId) { SessionAccumulator() }
         acc.totalPoisVisited++
         if (wasPreferred) acc.totalPreferredVisited++
@@ -65,6 +68,7 @@ class MetricsCollector(private val context: Context) {
     /** RECORD PREFERENCE MATCHING */
     suspend fun recordPreferenceMatching(sessionId: Long, totalPreferences: Int, matchedPreferences: Int) =
         withContext(Dispatchers.IO) {
+            Log.d("MetricsCollector_RECORD_PREFERENCE_MATCHING", "Updating metrics for session $sessionId")
             val acc = sessionAccumulators.getOrPut(sessionId) { SessionAccumulator() }
             acc.totalPreferences += totalPreferences
             acc.matchedPreferences += matchedPreferences
@@ -77,6 +81,7 @@ class MetricsCollector(private val context: Context) {
 
     /** FINALIZE SESSION METRICS */
     suspend fun finalizeSessionMetrics(sessionId: Long) = withContext(Dispatchers.IO) {
+        Log.d("MetricsCollector_FINALIZE_SESSION_METRICS", "Updating metrics for session $sessionId")
         val acc = sessionAccumulators[sessionId] ?: return@withContext
         updatePerformanceMetricsDb(sessionId, acc, finalize = true)
         sessionAccumulators.remove(sessionId)
@@ -85,6 +90,7 @@ class MetricsCollector(private val context: Context) {
 
     /** INTERNAL FUNCTION TO INSERT OR UPDATE PERFORMANCE METRICS */
     private suspend fun updatePerformanceMetricsDb(sessionId: Long, acc: SessionAccumulator, finalize: Boolean = false) {
+        Log.d("MetricsCollector_UPDATE_PERFORMANCE_METRICS", "Updating metrics for session $sessionId")
         // Compute averages
         val avgPathTime = if (acc.pathCount > 0) acc.totalPathTimeMs / acc.pathCount else 0L
         val avgResponse = if (acc.responseCount > 0) acc.totalResponseTimeMs / acc.responseCount else 0L

@@ -13,7 +13,8 @@ import kotlin.String
 class TourCoordinator(
     userId: Long,
     private val context: Context,
-    private val metricsCollector: MetricsCollector
+    private val metricsCollector: MetricsCollector,
+    sessionId: Long,
 ) {
 
     private val db = MyAppDatabase.getInstance(context)
@@ -21,6 +22,7 @@ class TourCoordinator(
     private val tourPathPlanner = TourPathPlanner(userId, context)
     private val FirebaseSync = FirebaseSync()
     private val tempPreferences = mutableListOf<String>()
+    private val activeSession = sessionId
     //private val metricsCollector = MetricsCollector(context)
 
     suspend fun startTourForUser(
@@ -144,17 +146,17 @@ class TourCoordinator(
             }
 
             // CRITICAL FIX: Get the LATEST session ID and verify it is not 0
-            val activeSession = db.sessionDao().getSessionsByUser(userId).lastOrNull()
-            Log.d("TourCoordinator", "session db: ${db.sessionDao().getAll()}")
-            if (activeSession == null) {
-                Log.e("TourCoordinator", "Cannot save path history: No active session found for userId=$userId")
-                return@withContext null
-            }
-            val sessionId = activeSession.sessionId
+//            val activeSession = db.sessionDao().getSessionsByUser(userId).lastOrNull()
+//            Log.d("TourCoordinator", "session db: ${db.sessionDao().getAll()}")
+//            if (activeSession == null) {
+//                Log.e("TourCoordinator", "Cannot save path history: No active session found for userId=$userId")
+//                return@withContext null
+//            }
+//            val sessionId = activeSession.sessionId
 
-            Log.d("TourCoordinator", "Saving User Tour Path History for session $sessionId")
+            Log.d("TourCoordinator", "Saving User Tour Path History for session $activeSession")
             userTourPathHistory = UserTourPathHistoryEntity(
-                sessionId = sessionId,
+                sessionId = activeSession,
                 pathSequence = pathSequence,
                 algorithmUsed = generatedPathEntity.routeAlgorithm,
                 status = "Generated"
@@ -163,7 +165,7 @@ class TourCoordinator(
 
             // Track preference matching
             metricsCollector.recordPreferenceMatching(
-                sessionId = sessionId,
+                sessionId = activeSession,
                 totalPreferences = databaseMappedPreferences.size,
                 matchedPreferences = relevantPOIs.size.coerceAtMost(databaseMappedPreferences.size)
             )
@@ -171,7 +173,7 @@ class TourCoordinator(
             // Record path generation metrics
             val processingTime = System.currentTimeMillis() - startTime
             metricsCollector.recordPathGeneration(
-                sessionId = sessionId,
+                sessionId = activeSession,
                 pathLength = path.size,
                 processingTimeMs = processingTime,
                 preferredPoisCount = relevantPOIs.size

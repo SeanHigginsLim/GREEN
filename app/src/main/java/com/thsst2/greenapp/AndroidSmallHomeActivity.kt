@@ -420,7 +420,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		Log.d("SESSION_ID", "Generated sessionId = $sessionId")
 
 		//tourCoordinator = TourCoordinator(userId, this)
-		tourCoordinator = TourCoordinator(userId, this, metricsCollector)
+		tourCoordinator = TourCoordinator(userId, this, metricsCollector, sessionId)
 		lifecycleScope.launch {
 			try {
 				Log.d("HomeActivity", "Saving user")
