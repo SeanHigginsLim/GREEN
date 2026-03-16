@@ -176,12 +176,12 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 		CoroutineScope(Dispatchers.IO).launch {
 			allPreferences = ragEngine.getPreferencesListForProfilePage()
 			val prefsEntity = db.userPreferencesDao().getPreferencesByUser(userId)
-			val selectedPrefs = prefsEntity?.interests?.toMutableSet()
+			val selectedPrefs = prefsEntity?.interests?.toMutableSet() ?: mutableSetOf()
 			val displayPrefs = allPreferences.map { formatPreferenceForDisplay(it) }
 			val allPrefsArray = displayPrefs.toTypedArray()
 			val checkedItems = allPrefsArray.map {
 				val original = formatPreferenceForStorage(it)
-				selectedPrefs?.contains(original) ?: false
+                selectedPrefs.contains(original)
 			}.toBooleanArray()
 			Log.d("In User Preferences", "Im here")
 
@@ -191,15 +191,15 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 					.setMultiChoiceItems(allPrefsArray, checkedItems) { _, which, isChecked ->
 						val original = formatPreferenceForStorage(allPrefsArray[which])
 
-						if (isChecked) selectedPrefs?.add(original)
-						else selectedPrefs?.remove(original)
+						if (isChecked) selectedPrefs.add(original)
+						else selectedPrefs.remove(original)
 					}
 					.setPositiveButton("Save") { _, _ ->
 						CoroutineScope(Dispatchers.IO).launch {
 							db.userPreferencesDao().deleteAll()
 							val userPreferencesEntity = UserPreferencesEntity(
 								userId = userId,
-								interests = selectedPrefs?.toList() ?: emptyList(),
+								interests = selectedPrefs.toList(),
 								disinterests = null,
 								tourPace = null
 							)
