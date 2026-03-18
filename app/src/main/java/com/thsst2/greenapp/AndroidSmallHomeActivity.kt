@@ -87,6 +87,7 @@ import kotlin.Long
 import kotlin.math.sqrt
 import androidx.activity.OnBackPressedCallback
 import androidx.room.withTransaction
+import com.google.gson.JsonParser
 import com.thsst2.greenapp.data.PerformanceMetricsEntity
 import kotlinx.coroutines.CoroutineScope
 
@@ -163,9 +164,9 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			Log.d("BUILDING_ENTERED", "Building ID: $poiId")
 
 			val currentPoi = GeofenceReceiver.currentPoiInside
-			MapState.selectedFloor = 1
+			MapState.selectedFloor = 0
 			runOnUiThread {
-				updateCurrentLocationOverlay(currentPoi, 1)
+				updateCurrentLocationOverlay(currentPoi, 0)
 			}
 
 			messages.add(
@@ -259,8 +260,10 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private val floorReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context?, intent: Intent?) {
 			val startTime = System.currentTimeMillis()
-			val floor = intent?.getIntExtra("floorNumber", 0) ?: return
-			if (floor == 0) return // Invalid floor
+
+			if (intent == null || !intent.hasExtra("floorNumber")) return
+			val floor = intent.getIntExtra("floorNumber", 0)
+
 			val poiId = intent.getStringExtra("poiId") ?: return
 			Log.d("FLOOR_SELECTED", "Floor selected: $floor")
 			Log.d("FLOOR_SELECTED", "Building ID: $poiId")
@@ -274,7 +277,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 			messages.add(
 				ChatMessage(
-					text = "You selected floor $floor",
+					text = if (floor == 0) "You selected the Ground Floor" else "You selected Floor $floor",
 					isUser = false
 				)
 			)
@@ -286,15 +289,16 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 					val floorData = ragEngine.getFloorData(floor, poiId)
 					Log.d("FLOOR_DATA", floorData)
 					val cleanPoiJson = cleanPoiJson(floorData)
+					val floorLabel = if (floor == 0) "Ground Floor" else "Floor $floor"
 					val aiPrompt = """
 					### Persona
 					You are G.R.E.E.N., the official AI tour guide for De La Salle University. You are helpful and love showing off the campus amenities.
 
 					### Task
-					The user has moved to Floor $floor of $poiId. Briefly describe what they can find here based on the floor data.
+					The user has moved to $floorLabel of $poiId. Briefly describe what they can find here based on the floor data.
 
 					### Context & Data
-					Location: $poiId, Floor $floor
+					Location: $poiId, Floor $floorLabel
 					Floor Amenities & Details: $cleanPoiJson
 
 					### Constraints
@@ -524,7 +528,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		homeBinding.currentLocationOverlay.setOnClickListener {
 			val currentPoi = GeofenceReceiver.currentPoiInside
-			if (currentPoi != null && (currentPoi.floors ?: 1) > 1) {
+			if (currentPoi != null) {
 				showFloorSelectionDialog(currentPoi)
 			}
 		}
@@ -783,12 +787,12 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	}
 	private fun handleChangeFloorAction() {
 		val currentPoi = GeofenceReceiver.currentPoiInside
-		if (currentPoi != null && (currentPoi.floors ?: 1) > 1) {
+		if (currentPoi != null) {
 			showFloorSelectionDialog(currentPoi)
 		} else {
 			Toast.makeText(
 				this,
-				"No multi-floor building is currently selected.",
+				"No building is currently selected.",
 				Toast.LENGTH_SHORT
 			).show()
 		}
@@ -1041,8 +1045,14 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 	private fun cleanPoiJson(rawJson: String): String {
 		val gson = Gson()
 		return try {
-			val listType = object : com.google.gson.reflect.TypeToken<List<Any>>() {}.type
-			val rawList: List<Any> = gson.fromJson(rawJson, listType)
+			val jsonElement = JsonParser.parseString(rawJson)
+			val rawData: Any = if (jsonElement.isJsonArray) {
+				val listType = object : com.google.gson.reflect.TypeToken<List<Any>>() {}.type
+				gson.fromJson(rawJson, listType)
+			} else {
+				val mapType = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
+				gson.fromJson(rawJson, mapType)
+			}
 
 			// Recursive helper to walk through the JSON tree
 			fun clean(node: Any?): Any? {
@@ -1076,7 +1086,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			}
 
 			// Clean the entire list
-			val finalOutput = rawList.mapNotNull { clean(it) }
+			val finalOutput = clean(rawData)
 			gson.toJson(finalOutput)
 		} catch (e: Exception) {
 			Log.e("HomeActivity", "Error cleaning JSON: ${e.message}")
@@ -2002,44 +2012,61 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			return
 		}
 
-		val displayFloor = floor ?: 1
-		val canChangeFloor = (poi.floors ?: 1) > 1
+		val displayFloor = floor ?: MapState.selectedFloor
+		val floorLabel = if (displayFloor == 0) "Ground Floor" else "Floor $displayFloor"
+		val canChangeFloor = true
 
 		homeBinding.currentLocationOverlay.text = if (canChangeFloor) {
-			"${poi.name} • Floor $displayFloor ▼"
+			"${poi.name} • $floorLabel ▼"
 		} else {
-			"${poi.name} • Floor $displayFloor"
+			"${poi.name} • $floorLabel"
 		}
 
-		homeBinding.currentLocationOverlay.isClickable = canChangeFloor
-		homeBinding.currentLocationOverlay.alpha = if (canChangeFloor) 1f else 0.85f
+		homeBinding.currentLocationOverlay.isClickable = true
+		homeBinding.currentLocationOverlay.alpha = 1f
 	}
 
 	private fun showFloorSelectionDialog(poi: PoiEntity) {
-		val maxFloor = poi.floors ?: 1
-		val floors = (1..maxFloor).map { "Floor $it" }.toTypedArray()
-
-		AlertDialog.Builder(this)
-			.setTitle("Select floor in ${poi.name}")
-			.setItems(floors) { _, which ->
-				val selectedFloor = which + 1
-
-				runOnUiThread {
-					updateCurrentLocationOverlay(poi, selectedFloor)
-				}
-
-				saveFloorSelection(poi, selectedFloor)
-				MapState.selectedFloor = selectedFloor
-
-				val intent = Intent("FLOOR_SELECTED")
-				intent.putExtra("floorNumber", selectedFloor)
-				intent.putExtra("poiId", poi.poiId)
-				LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+		lifecycleScope.launch {
+			val availableFloorNumbers = try {
+				ragEngine.getAvailableFloorNumbers(poi.poiId)
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "Failed to load floor numbers: ${e.message}", e)
+				emptyList()
 			}
-			.setNegativeButton("Cancel", null)
-			.show()
-	}
 
+			if (availableFloorNumbers.isEmpty()) {
+				Toast.makeText(
+					this@AndroidSmallHomeActivity,
+					"No floor data available for ${poi.name}.",
+					Toast.LENGTH_SHORT
+				).show()
+				return@launch
+			}
+
+			val floorLabels = availableFloorNumbers.map { floorNumber ->
+				if (floorNumber == 0) "Ground Floor" else "Floor $floorNumber"
+			}.toTypedArray()
+
+			AlertDialog.Builder(this@AndroidSmallHomeActivity)
+				.setTitle("Select floor in ${poi.name}")
+				.setItems(floorLabels) { _, which ->
+					val selectedFloor = availableFloorNumbers[which]
+
+					updateCurrentLocationOverlay(poi, selectedFloor)
+					saveFloorSelection(poi, selectedFloor)
+					MapState.selectedFloor = selectedFloor
+
+					val intent = Intent("FLOOR_SELECTED")
+					intent.putExtra("floorNumber", selectedFloor)
+					intent.putExtra("poiId", poi.poiId)
+					LocalBroadcastManager.getInstance(this@AndroidSmallHomeActivity)
+						.sendBroadcast(intent)
+				}
+				.setNegativeButton("Cancel", null)
+				.show()
+		}
+	}
 	private fun saveFloorSelection(poi: PoiEntity, floor: Int) {
 		lifecycleScope.launch(Dispatchers.IO) {
 			val sessionId = db.sessionDao().getAll().lastOrNull()?.sessionId ?: return@launch
