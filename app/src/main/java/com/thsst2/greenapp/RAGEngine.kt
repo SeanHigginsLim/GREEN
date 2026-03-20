@@ -357,8 +357,9 @@
                 // Check current snapshot for matching data
                 for (data in childSnapshot.children) {
                     //val dataValue = data.getValue(String::class.java) ?: continue
-                    val rawValue = data.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
-                    val dataValue = rawValue.toString()
+//                    val rawValue = data.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
+//                    val dataValue = rawValue.toString()
+                    val dataValue = data.getValue(Any::class.java)?.toString() ?: continue
 
 //                    Log.d("RAGEngine", "Checking value: '$dataValue' at ${data.key}")
 
