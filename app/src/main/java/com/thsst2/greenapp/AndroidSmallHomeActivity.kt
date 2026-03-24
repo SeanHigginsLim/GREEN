@@ -1094,6 +1094,24 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
+	private fun extractJsonPayload(rawText: String): String {
+		val startObj = rawText.indexOf('{')
+		val endObj = rawText.lastIndexOf('}')
+
+		val startArr = rawText.indexOf('[')
+		val endArr = rawText.lastIndexOf(']')
+
+		return when {
+			startObj != -1 && endObj != -1 && endObj > startObj -> {
+				rawText.substring(startObj, endObj + 1)
+			}
+			startArr != -1 && endArr != -1 && endArr > startArr -> {
+				rawText.substring(startArr, endArr + 1)
+			}
+			else -> rawText.trim()
+		}
+	}
+
 	// USER MESSAGE HANDLER
 	private suspend fun handleUserMessage(userMessage: String, userId: Long) {
 		// Save UserQuery + IntentLog
@@ -1248,28 +1266,46 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val poiInfoOnly = Gson().toJson(poiData)
 				val cleanPoiJson = cleanPoiJson(poiInfoOnly)
 				val startingPoint = null // building starting point
-				val aiPrompt = """
-					Generate a short tour overview for the following route at DLSU.  
-					Rules:
-					1. Start the tour at the first building and describe the journey through the campus in order.
-					2. Mention each building along the route.
-					3. Each building should have 1 paragraph of 1–2 sentences.
-					4. Do not use bold, headings, or bullet points.
-					5. Separate each building paragraph with a single blank line.
-					6. Do not add notes, commentary, or extra text. Only describe the tour.
-					
-					Example:
-					Tour Route: ["St. La Salle Hall", "Henry Sy Sr. Hall"]
-					Building Details: [{"name":"St. La Salle Hall","desc":"Historic building"}, {"name":"Henry Sy Sr. Hall","desc":"Library and academic services"}]
-					Output:
-					We begin the tour at St. La Salle Hall, a historic landmark central to campus life. From there, we walk to Henry Sy Sr. Hall, which houses the library and academic services, providing a vibrant space for learning and study.
-					
+
+				// =========================
+				// STAGE 1: PLANNING
+				// =========================
+				val tourPlanPrompt = """
+					### Role
+					You are an internal planning assistant for a campus tour AI.
+				
+					### Task
+					Create a structured plan for a tour overview using the route and building details.
+				
+					### Input
 					User Role: $userRoleName
 					User Interests: $allPreferences
-					Tour Route: $poiJson
-					Building Details: $cleanPoiJson
-					
-					Output the tour overview only, in the order of the tour, with each building in a separate paragraph:
+					Tour Route:
+					$poiJson
+				
+					Building Details:
+					$cleanPoiJson
+				
+					### Rules
+					1. Follow the route order exactly.
+					2. Include each building exactly once.
+					3. For each building, extract only 2 to 3 relevant facts from the provided details.
+					4. Prefer facts that are useful for a campus visitor.
+					5. Do not invent details not found in the input.
+					6. Do not write the final narration.
+					7. Output ONLY a valid JSON array.
+					8. Do not include markdown, explanations, or extra text.
+				
+					### Output Format
+					[
+					  {
+						"building": "Building Name",
+						"facts": [
+						  "fact 1",
+						  "fact 2"
+						]
+					  }
+					]
 				""".trimIndent()
 
 				Log.d("HomeActivity", "User Role Name: $userRoleName")
@@ -1279,44 +1315,113 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				logLargeString("HomeActivity", "POI Info Only: $poiInfoOnly")
 				logLargeString("HomeActivity", "Cleaned POI Info: $cleanPoiJson")
 				Log.d("HomeActivity", "POI Data: $poiData")
-				Log.d("HomeActivity", "aiPrompt: $aiPrompt")
+				Log.d("HomeActivity", "tourPlanPrompt: $tourPlanPrompt")
 
-				chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+				chatApi.generate(ChatRequest(tourPlanPrompt)).enqueue(object : Callback<ChatResponse> {
 					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 						if (response.isSuccessful) {
-							val botReply = response.body()?.response ?: "Tour overview ready."
-							//Log.d("LLM_RESPONSE", botReply)
-							Log.d("LLM_LENGTH", "Length = ${botReply.length}")
-							Log.d("LLM_ENDING", "Ending = ${botReply.takeLast(80)}")
-							logLongText("LLM_RESPONSE", botReply)
+							val rawPlan = response.body()?.response ?: "[]"
+							val tourPlanJson = extractJsonPayload(rawPlan)
 
+							Log.d("LLM_TOUR_PLAN_RAW", rawPlan)
+							logLargeString("LLM_TOUR_PLAN_JSON", tourPlanJson)
 
-							addBotMessageWithProgressiveInfo(botReply)
+							// =========================
+							// STAGE 2: FINAL RESPONSE
+							// =========================
+							val tourFinalPrompt = """
+								### Persona
+								You are G.R.E.E.N., the official AI tour guide for De La Salle University.
+								
+								### Task
+								Generate a guided tour narration that walks the user through the campus step-by-step.
+								
+								### Structured Plan
+								$tourPlanJson
+								
+								### CRITICAL INSTRUCTIONS
+								- This is a TOUR, not a list of descriptions.
+								- You must describe movement between locations.
+								- Use a narrative flow like a real tour guide.
+								
+								### REQUIRED STYLE
+								- Start with: "We begin our tour at..."
+								- For every next building, use transitions like:
+								  - "Next, we head to..."
+								  - "From there, we continue to..."
+								  - "Our next stop is..."
+								- Maintain a sense of progression through the campus.
+								
+								### RULES
+								1. Follow the building order exactly.
+								2. Mention each building exactly once.
+								3. Write exactly ${userTourPathHistory.pathSequence.size} paragraphs.
+								4. Each paragraph must describe only one building.
+								5. Each paragraph must contain exactly 1 to 2 sentences.
+								6. Separate paragraphs with exactly one blank line.
+								7. Use only the facts in the structured plan.
+								8. Do NOT add headings, titles, or labels.
+								9. Do NOT explain your reasoning.
+								10. Output ONLY the narration.
+								
+								""".trimIndent()
 
-							lifecycleScope.launch {
-								dialogueHistoryDao.insert(
-									DialogueHistoryEntity(
-										userId = userId,
-										userText = userMessage,
-										systemResponse = botReply,
-										contextSnapshot = aiPrompt,
-										turnNumber = messages.size
-									)
-								)
-							}
+							Log.d("HomeActivity", "tourFinalPrompt: $tourFinalPrompt")
 
-							val responseTime = System.currentTimeMillis() - startTime
-							// Record query response time for metrics
-							lifecycleScope.launch(Dispatchers.IO) {
-								metricsCollector.recordQueryResponse(sessionId, responseTime)
-							}
+							chatApi.generate(ChatRequest(tourFinalPrompt)).enqueue(object : Callback<ChatResponse> {
+								override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+									if (response.isSuccessful) {
+										val botReply = response.body()?.response ?: "Tour overview ready."
+										Log.d("LLM_LENGTH", "Length = ${botReply.length}")
+										Log.d("LLM_ENDING", "Ending = ${botReply.takeLast(80)}")
+										logLongText("LLM_RESPONSE", botReply)
+
+										addBotMessageWithProgressiveInfo(botReply)
+
+										lifecycleScope.launch {
+											dialogueHistoryDao.insert(
+												DialogueHistoryEntity(
+													userId = userId,
+													userText = userMessage,
+													systemResponse = botReply,
+													contextSnapshot = tourFinalPrompt,
+													turnNumber = messages.size
+												)
+											)
+										}
+
+										val responseTime = System.currentTimeMillis() - startTime
+										lifecycleScope.launch(Dispatchers.IO) {
+											metricsCollector.recordQueryResponse(sessionId, responseTime)
+										}
+									} else {
+										Log.e("ChatApi", "Failed final tour prompt: ${response.errorBody()?.string()}")
+									}
+								}
+
+								override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+									Log.e("ChatApi", "Final tour prompt error: ${t.message}", t)
+
+									runOnUiThread {
+										messages.add(
+											ChatMessage(
+												text = "The AI server is currently unavailable. Please try again.",
+												isUser = false,
+												suggestions = buildSuggestionsForCurrentState(false)
+											)
+										)
+										adapter.notifyItemInserted(messages.size - 1)
+										homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+									}
+								}
+							})
 						} else {
-							Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+							Log.e("ChatApi", "Failed tour plan prompt: ${response.errorBody()?.string()}")
 						}
 					}
 
 					override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-						Log.e("ChatApi", "Error: ${t.message}", t)
+						Log.e("ChatApi", "Tour plan prompt error: ${t.message}", t)
 
 						runOnUiThread {
 							messages.add(
