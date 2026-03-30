@@ -131,7 +131,8 @@
 				android:layout_marginBottom="7dp"
 				android:layout_marginHorizontal="30dp"
 				android:elevation="4dp"
-				android:orientation="horizontal">
+				android:orientation="horizontal"
+				android:layout_marginTop="10dp">
 				<ImageView
 					android:id="@+id/rjr0kuafq29l"
 					android:layout_width="44dp"
@@ -163,16 +164,39 @@
 						android:text="CAMPUS TRIVIA"
 					/>
 					<TextView
-						android:id="@+id/r9ert92fvrho"
+						android:id="@+id/triviaText"
 						android:textColor="#6D7680"
 						android:textSize="10sp"
 						android:layout_marginHorizontal="1dp"
 						android:layout_height="wrap_content"
 						android:layout_width="match_parent"
 						android:layout_weight="1"
-						android:text="The St. La Salle Hall is declared a Cultural Property of the Philippines!"
-					/>
+						android:text="Loading trivia..."
+						/>
+
 				</LinearLayout>
+
+			</LinearLayout>
+			<LinearLayout
+				android:id="@+id/shareTriviaButton"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginHorizontal="30dp"
+				android:layout_marginBottom="10dp"
+				android:background="@drawable/cr2b57c84d"
+				android:gravity="center"
+				android:paddingVertical="8dp"
+				android:clickable="true"
+				android:focusable="true"
+				android:orientation="vertical">
+
+				<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="Share a trivia!"
+					android:textColor="#FFFFFF"
+					android:textSize="14sp"
+					android:textStyle="bold"/>
 			</LinearLayout>
 			<TextView
 				android:id="@+id/rzp8mx1hks0k"
@@ -202,87 +226,91 @@
 				android:layout_marginBottom="16dp"
 				android:layout_marginStart="30dp"
 				android:orientation="horizontal">
+
 				<LinearLayout
 					android:id="@+id/r0lpwxojamo9l"
 					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:background="@drawable/cr4bffffff"
-					android:paddingVertical="7dp"
+					android:layout_height="128dp"
 					android:layout_marginEnd="12dp"
+					android:background="@drawable/cr4bffffff"
 					android:elevation="4dp"
-					android:orientation="vertical">
+					android:orientation="vertical"
+					android:paddingVertical="7dp">
+
 					<ImageView
 						android:id="@+id/rjim834nbvr"
 						android:layout_width="83dp"
 						android:layout_height="76dp"
-						android:layout_marginBottom="7dp"
 						android:layout_marginHorizontal="8dp"
-						android:scaleType="fitXY"
-					/>
+						android:layout_marginBottom="7dp"
+						android:scaleType="fitXY" />
+
 					<TextView
 						android:id="@+id/ri2c5m4mk3lq"
-						android:textColor="#3F3F3F"
-						android:textSize="8sp"
-						android:layout_marginBottom="3dp"
-						android:layout_marginStart="8dp"
-						android:layout_height="wrap_content"
 						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_marginStart="8dp"
+						android:layout_marginBottom="3dp"
 						android:text="Br. Bloemen Hall"
-					/>
+						android:textColor="#3F3F3F"
+						android:textSize="8sp" />
+
 					<LinearLayout
 						android:id="@+id/rgpflf44gh9p"
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
-						android:background="@drawable/cr25b3f3f3f"
-						android:paddingHorizontal="6dp"
 						android:layout_marginStart="8dp"
-						android:orientation="vertical">
+						android:background="@drawable/cr25b3f3f3f"
+						android:orientation="vertical"
+						android:paddingHorizontal="6dp">
+
 						<TextView
 							android:id="@+id/ru2932myszu"
-							android:textColor="#FFFFFF"
-							android:textSize="6sp"
-							android:layout_height="wrap_content"
 							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
 							android:text="Food"
-						/>
+							android:textColor="#FFFFFF"
+							android:textSize="6sp" />
 					</LinearLayout>
 				</LinearLayout>
+
 				<LinearLayout
 					android:id="@+id/rrwuj809lhk8"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:background="@drawable/cr4bffffff"
-					android:paddingTop="90dp"
-					android:paddingBottom="14dp"
+					android:layout_width="93dp"
+					android:layout_height="128dp"
 					android:layout_marginEnd="12dp"
+					android:background="@drawable/cr4bffffff"
 					android:elevation="4dp"
-					android:orientation="vertical">
+					android:orientation="vertical"
+					android:paddingTop="90dp"
+					android:paddingBottom="14dp">
+
 					<TextView
 						android:id="@+id/rgns2uvs5myu"
-						android:textColor="#3F3F3F"
-						android:textSize="8sp"
-						android:layout_marginBottom="1dp"
-						android:layout_marginStart="7dp"
-						android:layout_height="wrap_content"
 						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_marginStart="7dp"
+						android:layout_marginBottom="1dp"
 						android:text="Henry Sy Sr. Hall"
-					/>
+						android:textColor="#3F3F3F"
+						android:textSize="8sp" />
+
 					<LinearLayout
 						android:id="@+id/r7szwhqulxia"
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
-						android:background="@drawable/cr25b3f3f3f"
-						android:paddingHorizontal="3dp"
 						android:layout_marginStart="7dp"
-						android:orientation="vertical">
+						android:background="@drawable/cr25b3f3f3f"
+						android:orientation="vertical"
+						android:paddingHorizontal="3dp">
+
 						<TextView
 							android:id="@+id/r6x450yg8g4n"
-							android:textColor="#FFFFFF"
-							android:textSize="6sp"
-							android:layout_height="wrap_content"
 							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
 							android:text="Academic"
-						/>
+							android:textColor="#FFFFFF"
+							android:textSize="6sp" />
 					</LinearLayout>
 				</LinearLayout>
 				<LinearLayout
@@ -290,48 +318,50 @@
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:orientation="vertical">
+
 					<LinearLayout
 						android:id="@+id/rt332mcml7bh"
 						android:layout_width="wrap_content"
-						android:layout_height="wrap_content"
+						android:layout_height="128dp"
 						android:background="@drawable/cr4bffffff"
-						android:paddingVertical="9dp"
 						android:elevation="4dp"
-						android:orientation="vertical">
+						android:orientation="vertical"
+						android:paddingVertical="9dp">
+
 						<ImageView
 							android:id="@+id/r8jqrksqg5si"
 							android:layout_width="79dp"
 							android:layout_height="72dp"
-							android:layout_marginBottom="4dp"
 							android:layout_marginHorizontal="7dp"
-							android:scaleType="fitXY"
-						/>
+							android:layout_marginBottom="4dp"
+							android:scaleType="fitXY" />
+
 						<TextView
 							android:id="@+id/r91bbiht7ljl"
-							android:textColor="#3F3F3F"
-							android:textSize="8sp"
-							android:layout_marginBottom="2dp"
-							android:layout_marginStart="7dp"
-							android:layout_height="wrap_content"
 							android:layout_width="54dp"
+							android:layout_height="wrap_content"
+							android:layout_marginStart="7dp"
+							android:layout_marginBottom="2dp"
 							android:text="Enrique Razon Sports Center"
-						/>
+							android:textColor="#3F3F3F"
+							android:textSize="8sp" />
+
 						<LinearLayout
 							android:id="@+id/rq10u3dmn5te"
 							android:layout_width="wrap_content"
 							android:layout_height="wrap_content"
-							android:background="@drawable/cr25b3f3f3f"
-							android:paddingHorizontal="5dp"
 							android:layout_marginStart="6dp"
-							android:orientation="vertical">
+							android:background="@drawable/cr25b3f3f3f"
+							android:orientation="vertical"
+							android:paddingHorizontal="5dp">
+
 							<TextView
 								android:id="@+id/ricnshqupy2"
-								android:textColor="#FFFFFF"
-								android:textSize="6sp"
-								android:layout_height="wrap_content"
 								android:layout_width="wrap_content"
+								android:layout_height="wrap_content"
 								android:text="Sports"
-							/>
+								android:textColor="#FFFFFF"
+								android:textSize="6sp" />
 						</LinearLayout>
 					</LinearLayout>
 					<LinearLayout

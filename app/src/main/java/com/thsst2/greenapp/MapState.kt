@@ -8,5 +8,5 @@ object MapState {
     var pathLatLngs: List<LatLng> = emptyList()
     var currentUserLatLng: LatLng? = null
     var currentPoiInside: PoiEntity? = null
-    var selectedFloor: Int? = null
+    var selectedFloor: Int = 0
 }

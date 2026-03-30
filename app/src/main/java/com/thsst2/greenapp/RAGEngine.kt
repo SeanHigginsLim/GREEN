@@ -357,8 +357,9 @@
                 // Check current snapshot for matching data
                 for (data in childSnapshot.children) {
                     //val dataValue = data.getValue(String::class.java) ?: continue
-                    val rawValue = data.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
-                    val dataValue = rawValue.toString()
+//                    val rawValue = data.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
+//                    val dataValue = rawValue.toString()
+                    val dataValue = data.getValue(Any::class.java)?.toString() ?: continue
 
 //                    Log.d("RAGEngine", "Checking value: '$dataValue' at ${data.key}")
 
@@ -501,19 +502,16 @@
         suspend fun getFloorData(floor: Number, poiId: String): String {
             Log.d("RAGEngine", "Fetching data for Floor: $floor")
             Log.d("RAGEngine", "Fetching data for Point of Interest: $poiId")
+
             val matchedData = recursiveGetFloorData(
                 ref = db.child("server_side").child("pre_collected_data").child("floor_functions"),
                 floor = floor,
                 poiId = poiId
             )
 
-            // Number of matched nodes
-            Log.d("RAGEngine", "Matched nodes count: ${matchedData?.size}")
-
             val jsonResult = gson.toJson(matchedData)
             return jsonResult
         }
-
         suspend fun recursiveGetFloorData(
             ref: DatabaseReference,
             floor: Number,
@@ -530,12 +528,10 @@
                 if (poiId == dbPoiId) {
                     val floorsSnapshot = childSnapshot.child("floors")
                     for (floorChild in floorsSnapshot.children) {
-                        val dataValue = floorChild.getValue(Any::class.java)?.toString()?.toIntOrNull() ?: continue
+                        val floorNumber = floorChild.child("floor_number").getValue(Int::class.java)
+                            ?: continue
 
-//                        Log.d("RAGEngine", "Checking value: '$dataValue' at ${floorChild.key}")
-//                        Log.d("RAGEngine", "Floor: $floor")
-                        if (dataValue == floor.toInt()) {
-                            // Return all key/value pairs under this floor
+                        if (floorNumber == floor.toInt()) {
                             return floorChild.children.associate { it.key.orEmpty() to it.value }
                         }
                     }
@@ -551,6 +547,35 @@
             }
 
             return null
+        }
+        suspend fun getAvailableFloorNumbers(poiId: String): List<Int> {
+            val snapshot = db
+                .child("server_side")
+                .child("pre_collected_data")
+                .child("floor_functions")
+                .get()
+                .await()
+
+            val floorNumbers = mutableListOf<Int>()
+
+            for (buildingSnapshot in snapshot.children) {
+                val dbPoiId = buildingSnapshot.child("building_id").getValue(String::class.java)
+                    ?: continue
+
+                if (dbPoiId == poiId) {
+                    val floorsSnapshot = buildingSnapshot.child("floors")
+
+                    for (floorChild in floorsSnapshot.children) {
+                        val floorNumber = floorChild.child("floor_number").getValue(Int::class.java)
+                        if (floorNumber != null) {
+                            floorNumbers.add(floorNumber)
+                        }
+                    }
+                    break
+                }
+            }
+
+            return floorNumbers.distinct().sorted()
         }
 
         data class Edge(
