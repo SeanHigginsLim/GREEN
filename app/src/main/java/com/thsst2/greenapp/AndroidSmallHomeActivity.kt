@@ -179,79 +179,124 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			val building = List<String>(1) { poiId }
 
 			lifecycleScope.launch {
-					val buildingData = ragEngine.getData(building, building)
-					val cleanPoiJson = cleanPoiJson(buildingData)
-					val aiPrompt = """
-						### Persona
-						You are G.R.E.E.N., the official AI tour guide for De La Salle University (DLSU). You are friendly, proud of your campus, and always speak in a warm, welcoming tone.
-	
-						### Task
-						The user has just entered $name. Provide a brief, engaging introduction to this building based on the provided data.
-	
-						### Context & Data
-						Building: $name ($poiId)
-						Building Details: $cleanPoiJson
-	
-						### Constraints
-						1. Output ONLY the narration. No meta-talk, no "Here is the info", no labels like "Description:".
-						2. Be concise. Use short, sectioned paragraphs.
-						3. Use only the provided building details. Do not hallucinate historical facts.
-						4. Address the user directly as a visitor.
-						5. Keep the tone warm and welcoming, like a student guide speaking to a guest.
-	
-						### Example Output
-						St. La Salle Hall,
-						Welcome to the historic heart of our campus! St. La Salle Hall is our most iconic building, completed in 1921. It houses major administrative offices and beautiful neo-classical architecture that represents our long heritage here in Manila.
-					""".trimIndent()
+				val buildingData = ragEngine.getData(building, building)
+				val cleanPoiJson = cleanPoiJson(buildingData)
 
-					Log.d("LLM_PROMPT", aiPrompt)
-					Log.d("LLM_BUILDING_DATA", buildingData)
+				Log.d("LLM_BUILDING_DATA", buildingData)
 
-					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
-						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
-							if (response.isSuccessful) {
-								val botReply = response.body()?.response ?: "Area Entered!"
-								Log.d("LLM_RESPONSE", botReply)
-								addBotMessageWithProgressiveInfo(botReply)
+				// =========================
+				// STAGE 1: PLANNING
+				// =========================
+				val buildingPlanPrompt = """
+					### Role
+					You are an internal planning assistant for a campus tour AI.
+			
+					### Task
+					Read the building data and extract only the most relevant facts needed for a short visitor-friendly building introduction.
+			
+					### Input
+					Building: $name ($poiId)
+					Building Data:
+					$cleanPoiJson
+			
+					### Rules
+					1. Use only the provided data.
+					2. Select only facts directly useful for introducing the building.
+					3. Do not invent details.
+					4. Output ONLY a valid JSON object.
+					5. No explanations.
+			
+					### Output Format
+					{
+					  "building_name": "string",
+					  "key_facts": ["fact 1", "fact 2"]
+					}
+				""".trimIndent()
 
-								lifecycleScope.launch {
-									dialogueHistoryDao.insert(
-										DialogueHistoryEntity(
-											userId = userId,
-											userText = "geofence trigger",
-											systemResponse = botReply,
-											contextSnapshot = aiPrompt,
-											turnNumber = messages.size
-										)
-									)
+				Log.d("LLM_PLAN_PROMPT", buildingPlanPrompt)
+
+				chatApi.generate(ChatRequest(buildingPlanPrompt)).enqueue(object : Callback<ChatResponse> {
+
+					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+						if (response.isSuccessful) {
+
+							val rawPlan = response.body()?.response ?: "{}"
+							val buildingPlanJson = extractJsonPayload(rawPlan)
+
+							Log.d("LLM_PLAN_RAW", rawPlan)
+							Log.d("LLM_PLAN_JSON", buildingPlanJson)
+
+							// =========================
+							// STAGE 2: FINAL RESPONSE
+							// =========================
+							val buildingFinalPrompt = """
+								### Persona
+								You are G.R.E.E.N., the official AI tour guide for De La Salle University.
+			
+								### Task
+								Provide a short, engaging introduction to this building.
+			
+								### Structured Plan
+								$buildingPlanJson
+			
+								### Rules
+								1. Use only the facts in the structured plan.
+								2. Do not explain your reasoning.
+								3. Do not include planning text.
+								4. Write exactly 2 short paragraphs.
+								5. Separate paragraphs with one blank line.
+								6. Output ONLY the narration.
+			
+							""".trimIndent()
+
+							Log.d("LLM_FINAL_PROMPT", buildingFinalPrompt)
+
+							chatApi.generate(ChatRequest(buildingFinalPrompt)).enqueue(object : Callback<ChatResponse> {
+
+								override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+									if (response.isSuccessful) {
+
+										val botReply = response.body()?.response ?: "Area Entered!"
+										Log.d("LLM_RESPONSE", botReply)
+
+										addBotMessageWithProgressiveInfo(botReply)
+
+										lifecycleScope.launch {
+											dialogueHistoryDao.insert(
+												DialogueHistoryEntity(
+													userId = userId,
+													userText = "geofence trigger",
+													systemResponse = botReply,
+													contextSnapshot = buildingFinalPrompt,
+													turnNumber = messages.size
+												)
+											)
+										}
+
+										val responseTime = System.currentTimeMillis() - startTime
+										lifecycleScope.launch(Dispatchers.IO) {
+											metricsCollector.recordQueryResponse(sessionId, responseTime)
+										}
+
+									} else {
+										Log.e("ChatApi", "Final failed: ${response.errorBody()?.string()}")
+									}
 								}
 
-								val responseTime = System.currentTimeMillis() - startTime
-								// Record query response time for metrics
-								lifecycleScope.launch(Dispatchers.IO) {
-									metricsCollector.recordQueryResponse(sessionId, responseTime)
+								override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+									Log.e("ChatApi", "Final error: ${t.message}", t)
 								}
-							} else {
-								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
-							}
-						}
+							})
 
-						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-							Log.e("ChatApi", "Error: ${t.message}", t)
-
-							runOnUiThread {
-								messages.add(
-									ChatMessage(
-										text = "The AI server is currently unavailable. Please try again.",
-										isUser = false,
-										suggestions = buildSuggestionsForCurrentState(false)
-									)
-								)
-								adapter.notifyItemInserted(messages.size - 1)
-								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-							}
+						} else {
+							Log.e("ChatApi", "Plan failed: ${response.errorBody()?.string()}")
 						}
-					})
+					}
+
+					override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+						Log.e("ChatApi", "Plan error: ${t.message}", t)
+					}
+				})
 			}
 		}
 	}
@@ -283,80 +328,144 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 			val building = List<String>(1) { poiId }
 
 			lifecycleScope.launch {
-					val floorData = ragEngine.getFloorData(floor, poiId)
-					Log.d("FLOOR_DATA", floorData)
-					val cleanPoiJson = cleanPoiJson(floorData)
-					val aiPrompt = """
-					### Persona
-					You are G.R.E.E.N., the official AI tour guide for De La Salle University. You are helpful and love showing off the campus amenities.
+				val floorData = ragEngine.getFloorData(floor, poiId)
+				Log.d("FLOOR_DATA", floorData)
+				val cleanPoiJson = cleanPoiJson(floorData)
 
+				// =========================
+				// STAGE 1: PLANNING
+				// =========================
+				val floorPlanPrompt = """
+					### Role
+					You are an internal planning assistant for a campus tour AI.
+			
 					### Task
-					The user has moved to Floor $floor of $poiId. Briefly describe what they can find here based on the floor data.
-
-					### Context & Data
-					Location: $poiId, Floor $floor
-					Floor Amenities & Details: $cleanPoiJson
-
-					### Constraints
-					1. Output ONLY the narration. No "Sure thing" or "Here is what's on this floor".
-					2. Be concise. Use short paragraphs.
-					3. Highlight specific amenities like restrooms, offices, or study areas found in the data.
-					4. Do not invent details not present in the Input.
-					5. Start with a friendly acknowledgment of their current floor.
-
-					### Example Output
-					Henry Sy Sr. Hall Floor 12,
-					You've reached the 12th floor! This level is a favorite for many students because it houses our main library services. You'll find plenty of quiet study nooks here, along with convenient elevator access and restrooms just around the corner.
+					Analyze the floor data and extract the most relevant visitor-facing information for this floor.
+			
+					### Input
+					Building ID: $poiId
+					Floor Number: $floor
+					Floor Data:
+					$cleanPoiJson
+			
+					### Rules
+					1. Use only the provided floor data.
+					2. Extract only amenities, facilities, services, or notable details explicitly present in the data.
+					3. Do not invent anything not in the input.
+					4. Output ONLY a valid JSON object.
+					5. Do not include markdown, explanations, or extra text.
+			
+					### Output Format
+					{
+					  "building_id": "string",
+					  "floor_number": 0,
+					  "amenities": ["amenity 1", "amenity 2"],
+					  "notable_details": ["detail 1", "detail 2"]
+					}
 				""".trimIndent()
 
-					Log.d("LLM_PROMPT", aiPrompt)
-					Log.d("LLM_FLOOR_DATA", floorData)
+				Log.d("LLM_FLOOR_PLAN_PROMPT", floorPlanPrompt)
+				Log.d("LLM_FLOOR_DATA", floorData)
 
-					chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
-						override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
-							if (response.isSuccessful) {
-								val botReply = response.body()?.response ?: "Area Entered!"
-								Log.d("LLM_RESPONSE", botReply)
-								addBotMessageWithProgressiveInfo(botReply)
+				chatApi.generate(ChatRequest(floorPlanPrompt)).enqueue(object : Callback<ChatResponse> {
+					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+						if (response.isSuccessful) {
+							val rawPlan = response.body()?.response ?: "{}"
+							val floorPlanJson = extractJsonPayload(rawPlan)
 
-								lifecycleScope.launch {
-									dialogueHistoryDao.insert(
-										DialogueHistoryEntity(
-											userId = userId,
-											userText = "geofence trigger",
-											systemResponse = botReply,
-											contextSnapshot = aiPrompt,
-											turnNumber = messages.size
+							Log.d("LLM_FLOOR_PLAN_RAW", rawPlan)
+							Log.d("LLM_FLOOR_PLAN_JSON", floorPlanJson)
+
+							// =========================
+							// STAGE 2: FINAL RESPONSE
+							// =========================
+							val floorFinalPrompt = """
+								### Persona
+								You are G.R.E.E.N., the official AI tour guide for De La Salle University. You are helpful and love showing off the campus amenities.
+			
+								### Task
+								Generate a short floor description for the user.
+			
+								### Structured Plan
+								$floorPlanJson
+			
+								### Rules
+								1. Use only the facts in the structured plan.
+								2. Mention only amenities or details explicitly present in the structured plan.
+								3. Do not explain your reasoning.
+								4. Do not include planning text.
+								5. Write exactly 2 short paragraphs.
+								6. Separate the paragraphs with exactly one blank line.
+								7. Output ONLY the final narration text.
+							""".trimIndent()
+
+							Log.d("LLM_FLOOR_FINAL_PROMPT", floorFinalPrompt)
+
+							chatApi.generate(ChatRequest(floorFinalPrompt)).enqueue(object : Callback<ChatResponse> {
+								override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+									if (response.isSuccessful) {
+										val botReply = response.body()?.response ?: "Area Entered!"
+										Log.d("LLM_RESPONSE", botReply)
+										addBotMessageWithProgressiveInfo(botReply)
+
+										lifecycleScope.launch {
+											dialogueHistoryDao.insert(
+												DialogueHistoryEntity(
+													userId = userId,
+													userText = "geofence trigger",
+													systemResponse = botReply,
+													contextSnapshot = floorFinalPrompt,
+													turnNumber = messages.size
+												)
+											)
+										}
+
+										val responseTime = System.currentTimeMillis() - startTime
+										lifecycleScope.launch(Dispatchers.IO) {
+											metricsCollector.recordQueryResponse(sessionId, responseTime)
+										}
+									} else {
+										Log.e("ChatApi", "Failed final floor prompt: ${response.errorBody()?.string()}")
+									}
+								}
+
+								override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+									Log.e("ChatApi", "Final floor prompt error: ${t.message}", t)
+
+									runOnUiThread {
+										messages.add(
+											ChatMessage(
+												text = "The AI server is currently unavailable. Please try again.",
+												isUser = false,
+												suggestions = buildSuggestionsForCurrentState(false)
+											)
 										)
-									)
+										adapter.notifyItemInserted(messages.size - 1)
+										homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+									}
 								}
-
-								val responseTime = System.currentTimeMillis() - startTime
-								// Record query response time for metrics
-								lifecycleScope.launch(Dispatchers.IO) {
-									metricsCollector.recordQueryResponse(sessionId, responseTime)
-								}
-							} else {
-								Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
-							}
+							})
+						} else {
+							Log.e("ChatApi", "Failed floor plan prompt: ${response.errorBody()?.string()}")
 						}
+					}
 
-						override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-							Log.e("ChatApi", "Error: ${t.message}", t)
+					override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+						Log.e("ChatApi", "Floor plan prompt error: ${t.message}", t)
 
-							runOnUiThread {
-								messages.add(
-									ChatMessage(
-										text = "The AI server is currently unavailable. Please try again.",
-										isUser = false,
-										suggestions = buildSuggestionsForCurrentState(false)
-									)
+						runOnUiThread {
+							messages.add(
+								ChatMessage(
+									text = "The AI server is currently unavailable. Please try again.",
+									isUser = false,
+									suggestions = buildSuggestionsForCurrentState(false)
 								)
-								adapter.notifyItemInserted(messages.size - 1)
-								homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
-							}
+							)
+							adapter.notifyItemInserted(messages.size - 1)
+							homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
 						}
-					})
+					}
+				})
 			}
 		}
 	}
@@ -1084,6 +1193,24 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 		}
 	}
 
+	private fun extractJsonPayload(rawText: String): String {
+		val startObj = rawText.indexOf('{')
+		val endObj = rawText.lastIndexOf('}')
+
+		val startArr = rawText.indexOf('[')
+		val endArr = rawText.lastIndexOf(']')
+
+		return when {
+			startObj != -1 && endObj != -1 && endObj > startObj -> {
+				rawText.substring(startObj, endObj + 1)
+			}
+			startArr != -1 && endArr != -1 && endArr > startArr -> {
+				rawText.substring(startArr, endArr + 1)
+			}
+			else -> rawText.trim()
+		}
+	}
+
 	// USER MESSAGE HANDLER
 	private suspend fun handleUserMessage(userMessage: String, userId: Long) {
 		// Save UserQuery + IntentLog
@@ -1238,29 +1365,54 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				val poiInfoOnly = Gson().toJson(poiData)
 				val cleanPoiJson = cleanPoiJson(poiInfoOnly)
 				val startingPoint = null // building starting point
-				val aiPrompt = """
-					Generate a short tour overview for the following route at DLSU.  
-					Rules:
-					1. Start the tour at the first building and describe the journey through the campus in order.
-					2. Mention each building along the route.
-					3. Each building should have 1 paragraph of 1–2 sentences.
-					4. Do not use bold, headings, or bullet points.
-					5. Separate each building paragraph with a single blank line.
-					6. Do not add notes, commentary, or extra text. Only describe the tour.
+
+				// =========================
+				// STAGE 1: PLANNING
+				// =========================
+				val tourPlanPrompt = """
+					### SYSTEM
+					You are a JSON generator.
 					
-					Example:
-					Tour Route: ["St. La Salle Hall", "Henry Sy Sr. Hall"]
-					Building Details: [{"name":"St. La Salle Hall","desc":"Historic building"}, {"name":"Henry Sy Sr. Hall","desc":"Library and academic services"}]
-					Output:
-					We begin the tour at St. La Salle Hall, a historic landmark central to campus life. From there, we walk to Henry Sy Sr. Hall, which houses the library and academic services, providing a vibrant space for learning and study.
+					### TASK
+					Extract structured tour data from the input.
 					
+					### INPUT
 					User Role: $userRoleName
 					User Interests: $allPreferences
-					Tour Route: $poiJson
-					Building Details: $cleanPoiJson
 					
-					Output the tour overview only, in the order of the tour, with each building in a separate paragraph:
-				""".trimIndent()
+					Tour Route:
+					$poiJson
+					
+					Building Details:
+					$cleanPoiJson
+					
+					### STRICT RULES
+					1. Output ONLY valid JSON.
+					2. Do NOT write explanations.
+					3. Do NOT write sentences.
+					4. Do NOT include any text outside JSON.
+					5. If you fail to follow this, the output is invalid.
+					
+					### INSTRUCTIONS
+					- Follow the route order exactly.
+					- Include each building exactly once.
+					- Extract 1 to 2 short facts per building.
+					- Use ONLY the provided data.
+					- Do NOT invent information.
+					
+					### EXAMPLE OUTPUT
+					[
+					  {
+						"building": "St. La Salle Hall",
+						"facts": [
+						  "Historic campus landmark",
+						  "Central academic and administrative building"
+						]
+					  }
+					]
+					
+					### OUTPUT
+					""".trimIndent()
 
 				Log.d("HomeActivity", "User Role Name: $userRoleName")
 				Log.d("HomeActivity", "All Preferences: $allPreferences")
@@ -1269,44 +1421,113 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				logLargeString("HomeActivity", "POI Info Only: $poiInfoOnly")
 				logLargeString("HomeActivity", "Cleaned POI Info: $cleanPoiJson")
 				Log.d("HomeActivity", "POI Data: $poiData")
-				Log.d("HomeActivity", "aiPrompt: $aiPrompt")
+				Log.d("HomeActivity", "tourPlanPrompt: $tourPlanPrompt")
 
-				chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+				chatApi.generate(ChatRequest(tourPlanPrompt)).enqueue(object : Callback<ChatResponse> {
 					override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 						if (response.isSuccessful) {
-							val botReply = response.body()?.response ?: "Tour overview ready."
-							//Log.d("LLM_RESPONSE", botReply)
-							Log.d("LLM_LENGTH", "Length = ${botReply.length}")
-							Log.d("LLM_ENDING", "Ending = ${botReply.takeLast(80)}")
-							logLongText("LLM_RESPONSE", botReply)
+							val rawPlan = response.body()?.response ?: "[]"
+							val tourPlanJson = extractJsonPayload(rawPlan)
 
+							Log.d("LLM_TOUR_PLAN_RAW", rawPlan)
+							logLargeString("LLM_TOUR_PLAN_JSON", tourPlanJson)
 
-							addBotMessageWithProgressiveInfo(botReply)
+							// =========================
+							// STAGE 2: FINAL RESPONSE
+							// =========================
+							val tourFinalPrompt = """
+								### Persona
+								You are G.R.E.E.N., the official AI tour guide for De La Salle University.
+								
+								### Task
+								Generate a guided tour narration that walks the user through the campus step-by-step.
+								
+								### Structured Plan
+								$tourPlanJson
+								
+								### CRITICAL INSTRUCTIONS
+								- This is a TOUR, not a list of descriptions.
+								- You must describe movement between locations.
+								- Use a narrative flow like a real tour guide.
+								
+								### REQUIRED STYLE
+								- Start with: "We begin our tour at..."
+								- For every next building, use transitions like:
+								  - "Next, we head to..."
+								  - "From there, we continue to..."
+								  - "Our next stop is..."
+								- Maintain a sense of progression through the campus.
+								
+								### RULES
+								1. Follow the building order exactly.
+								2. Mention each building exactly once.
+								3. Write exactly ${userTourPathHistory.pathSequence.size} paragraphs.
+								4. Each paragraph must describe only one building.
+								5. Each paragraph must contain exactly 1 to 2 sentences.
+								6. Separate paragraphs with exactly one blank line.
+								7. Use only the facts in the structured plan.
+								8. Do NOT add headings, titles, or labels.
+								9. Do NOT explain your reasoning.
+								10. Output ONLY the narration.
+								
+							""".trimIndent()
 
-							lifecycleScope.launch {
-								dialogueHistoryDao.insert(
-									DialogueHistoryEntity(
-										userId = userId,
-										userText = userMessage,
-										systemResponse = botReply,
-										contextSnapshot = aiPrompt,
-										turnNumber = messages.size
-									)
-								)
-							}
+							Log.d("HomeActivity", "tourFinalPrompt: $tourFinalPrompt")
 
-							val responseTime = System.currentTimeMillis() - startTime
-							// Record query response time for metrics
-							lifecycleScope.launch(Dispatchers.IO) {
-								metricsCollector.recordQueryResponse(sessionId, responseTime)
-							}
+							chatApi.generate(ChatRequest(tourFinalPrompt)).enqueue(object : Callback<ChatResponse> {
+								override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+									if (response.isSuccessful) {
+										val botReply = response.body()?.response ?: "Tour overview ready."
+										Log.d("LLM_LENGTH", "Length = ${botReply.length}")
+										Log.d("LLM_ENDING", "Ending = ${botReply.takeLast(80)}")
+										logLongText("LLM_RESPONSE", botReply)
+
+										addBotMessageWithProgressiveInfo(botReply)
+
+										lifecycleScope.launch {
+											dialogueHistoryDao.insert(
+												DialogueHistoryEntity(
+													userId = userId,
+													userText = userMessage,
+													systemResponse = botReply,
+													contextSnapshot = tourFinalPrompt,
+													turnNumber = messages.size
+												)
+											)
+										}
+
+										val responseTime = System.currentTimeMillis() - startTime
+										lifecycleScope.launch(Dispatchers.IO) {
+											metricsCollector.recordQueryResponse(sessionId, responseTime)
+										}
+									} else {
+										Log.e("ChatApi", "Failed final tour prompt: ${response.errorBody()?.string()}")
+									}
+								}
+
+								override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+									Log.e("ChatApi", "Final tour prompt error: ${t.message}", t)
+
+									runOnUiThread {
+										messages.add(
+											ChatMessage(
+												text = "The AI server is currently unavailable. Please try again.",
+												isUser = false,
+												suggestions = buildSuggestionsForCurrentState(false)
+											)
+										)
+										adapter.notifyItemInserted(messages.size - 1)
+										homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+									}
+								}
+							})
 						} else {
-							Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+							Log.e("ChatApi", "Failed tour plan prompt: ${response.errorBody()?.string()}")
 						}
 					}
 
 					override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-						Log.e("ChatApi", "Error: ${t.message}", t)
+						Log.e("ChatApi", "Tour plan prompt error: ${t.message}", t)
 
 						runOnUiThread {
 							messages.add(
@@ -1395,81 +1616,145 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 								// Filter POI data based on relevant tags
 								val filteredPoiData = ragEngine.filterPoiData(relevantTags)
 								val cleanPoiJson = cleanPoiJson(filteredPoiData)
-								val aiPrompt = """
-									### Persona
-									You are G.R.E.E.N., the official AI tour guide for De La Salle University.
-									
+								// =========================
+								// STAGE 1: PLANNING
+								// =========================
+								val qaPlanPrompt = """
+									### Role
+									You are an internal planning assistant for a campus tour AI.
+								
 									### Task
-									Answer the user's question accurately using only the provided context, dynamically.
-									
-									### Context & Data
+									Determine whether the user's question can be answered using the provided context, and extract only the supporting facts.
+								
+									### Input
 									User Question: "$userMessage"
 									User Role: $userRoleName
-									
+								
 									Context JSON:
 									$cleanPoiJson
-									
-									### Instructions
-									1. Provide a short, direct, and friendly answer.
-									2. If the user mentions a partial or full name of a building or facility, match it to the closest name in the context.
-									3. For other types of questions, use only the data in the JSON context. Do not invent facts not present there.
-									4. If the answer is not in the context, respond with: "I'm not sure, but I can help you with other campus information."
-									5. Output ONLY the answer text — no JSON, code blocks, or extra explanations.
-									
-									### Example
-									Question: "Where is the library?"
-									G.R.E.E.N.: Our main library is located inside the Henry Sy Sr. Hall. It's a great place to study with a fantastic view of the campus!	
-									Question: "Does Andrew Hall have elevators?"
-									G.R.E.E.N.: Yes, Br. Andrew Gonzalez Hall has elevators available for accessibility.
-									
-									Question: "Is there a cafeteria nearby?"
-									G.R.E.E.N.: I'm not sure, but I can help you with other campus information.
+								
+									### Rules
+									1. Use only the provided context.
+									2. Identify the most relevant entity, if any.
+									3. Extract only facts that directly support the answer.
+									4. If the context is insufficient, mark the question as unanswerable.
+									5. Do not write the final answer.
+									6. Output ONLY a valid JSON object.
+									7. Do not include markdown, explanations, or extra text.
+								
+									### Output Format
+									{
+									  "answerable": true,
+									  "matched_entity": "string or null",
+									  "supporting_facts": [
+										"fact 1",
+										"fact 2"
+									  ]
+									}
 								""".trimIndent()
 
-                                Log.d("HomeActivityQuestion", "aiPrompt: $aiPrompt")
-                                Log.d("HomeActivityQuestion", "User Message: $userMessage")
+								Log.d("HomeActivityQuestion", "qaPlanPrompt: $qaPlanPrompt")
+								Log.d("HomeActivityQuestion", "User Message: $userMessage")
 								Log.d("HomeActivityQuestion", "Filter POI Data: $filteredPoiData")
-                                Log.d("HomeActivityQuestion", "Cleaned POI Info: $cleanPoiJson")
+								Log.d("HomeActivityQuestion", "Cleaned POI Info: $cleanPoiJson")
 
-								chatApi.generate(ChatRequest(aiPrompt)).enqueue(object : Callback<ChatResponse> {
+								chatApi.generate(ChatRequest(qaPlanPrompt)).enqueue(object : Callback<ChatResponse> {
 									override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
 										if (response.isSuccessful) {
-											val botReply = response.body()?.response ?: "Answer:"
-											Log.d("LLM_RESPONSE_TO_QUESTION", botReply)
-											messages.add(
-												ChatMessage(
-													text = botReply,
-													isUser = false,
-													suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
-												)
-											)
-											adapter.notifyItemInserted(messages.size - 1)
-											homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+											val rawPlan = response.body()?.response ?: "{}"
+											val qaPlanJson = extractJsonPayload(rawPlan)
 
-											lifecycleScope.launch {
-												dialogueHistoryDao.insert(
-													DialogueHistoryEntity(
-														userId = userId,
-														userText = userMessage,
-														systemResponse = botReply,
-														contextSnapshot = aiPrompt,
-														turnNumber = messages.size
-													)
-												)
-											}
+											Log.d("LLM_QA_PLAN_RAW", rawPlan)
+											Log.d("LLM_QA_PLAN_JSON", qaPlanJson)
 
-											val responseTime = System.currentTimeMillis() - startTime
-											// Record query response time for metrics
-											lifecycleScope.launch(Dispatchers.IO) {
-												metricsCollector.recordQueryResponse(sessionId, responseTime)
-											}
+											// =========================
+											// STAGE 2: FINAL RESPONSE
+											// =========================
+											val qaFinalPrompt = """
+												### Persona
+												You are G.R.E.E.N., the official AI tour guide for De La Salle University.
+								
+												### Task
+												Answer the user's question using the structured plan.
+								
+												### User Question
+												"$userMessage"
+								
+												### Structured Plan
+												$qaPlanJson
+								
+												### Rules
+												1. Use only the supporting facts in the structured plan.
+												2. If "answerable" is false or no supporting facts are present, reply exactly:
+												"I'm not sure, but I can help you with other campus information."
+												3. Do not explain your reasoning.
+												4. Do not include planning text.
+												5. Keep the answer short, direct, and friendly.
+												6. Output ONLY the final answer text.
+											""".trimIndent()
+
+											Log.d("HomeActivityQuestion", "qaFinalPrompt: $qaFinalPrompt")
+
+											chatApi.generate(ChatRequest(qaFinalPrompt)).enqueue(object : Callback<ChatResponse> {
+												override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
+													if (response.isSuccessful) {
+														val botReply = response.body()?.response ?: "Answer:"
+														Log.d("LLM_RESPONSE_TO_QUESTION", botReply)
+
+														messages.add(
+															ChatMessage(
+																text = botReply,
+																isUser = false,
+																suggestions = buildSuggestionsForCurrentState(hasMoreInfo = false)
+															)
+														)
+														adapter.notifyItemInserted(messages.size - 1)
+														homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+
+														lifecycleScope.launch {
+															dialogueHistoryDao.insert(
+																DialogueHistoryEntity(
+																	userId = userId,
+																	userText = userMessage,
+																	systemResponse = botReply,
+																	contextSnapshot = qaFinalPrompt,
+																	turnNumber = messages.size
+																)
+															)
+														}
+
+														val responseTime = System.currentTimeMillis() - startTime
+														lifecycleScope.launch(Dispatchers.IO) {
+															metricsCollector.recordQueryResponse(sessionId, responseTime)
+														}
+													} else {
+														Log.e("ChatApi", "Failed final QA prompt: ${response.errorBody()?.string()}")
+													}
+												}
+
+												override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
+													Log.e("ChatApi", "Final QA prompt error: ${t.message}", t)
+
+													runOnUiThread {
+														messages.add(
+															ChatMessage(
+																text = "The AI server is currently unavailable. Please try again.",
+																isUser = false,
+																suggestions = buildSuggestionsForCurrentState(false)
+															)
+														)
+														adapter.notifyItemInserted(messages.size - 1)
+														homeBinding.recyclerViewChatReplies.scrollToPosition(messages.size - 1)
+													}
+												}
+											})
 										} else {
-											Log.e("ChatApi", "Failed: ${response.errorBody()?.string()}")
+											Log.e("ChatApi", "Failed QA plan prompt: ${response.errorBody()?.string()}")
 										}
 									}
 
 									override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
-										Log.e("ChatApi", "Error: ${t.message}", t)
+										Log.e("ChatApi", "QA plan prompt error: ${t.message}", t)
 
 										runOnUiThread {
 											messages.add(
