@@ -39,10 +39,14 @@ class AndroidSmallTriviaActivity : AppCompatActivity() {
 	}
 
 	private fun loadImages() {
-		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/euck9yhs_expires_30_days.png").into(findViewById(R.id.rtpmb3sfkxec))
-		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/2a2i3aud_expires_30_days.png").into(findViewById(R.id.rv2mkds8qk))
-		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/5tyj8imq_expires_30_days.png").into(findViewById(R.id.rm8ia53ujvf))
-		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/eirszlo0_expires_30_days.png").into(findViewById(R.id.rwt2433i01up))
+		triviaBinding.rtpmb3sfkxec.setImageResource(R.drawable.white_home_page_icon)
+		triviaBinding.rv2mkds8qk.setImageResource(R.drawable.black_trivia_page)
+		triviaBinding.rm8ia53ujvf.setImageResource(R.drawable.white_map_page)
+		triviaBinding.rwt2433i01up.setImageResource(R.drawable.white_profile_page)
+//		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/euck9yhs_expires_30_days.png").into(findViewById(R.id.rtpmb3sfkxec))
+//		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/2a2i3aud_expires_30_days.png").into(findViewById(R.id.rv2mkds8qk))
+//		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/5tyj8imq_expires_30_days.png").into(findViewById(R.id.rm8ia53ujvf))
+//		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/eirszlo0_expires_30_days.png").into(findViewById(R.id.rwt2433i01up))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/8g667ulq_expires_30_days.png").into(findViewById(R.id.rjr0kuafq29l))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/dfc89q7y_expires_30_days.png").into(findViewById(R.id.rjim834nbvr))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/w0zoa2pz_expires_30_days.png").into(findViewById(R.id.r8jqrksqg5si))

@@ -1,41 +1,23 @@
 package com.thsst2.greenapp
-import android.Manifest
-import android.annotation.SuppressLint
 import android.app.AlertDialog
-import android.app.PendingIntent
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.Toast
-import com.bumptech.glide.Glide
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import android.location.Location
-import android.util.Log
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.Geofence
-import com.google.android.gms.location.GeofencingClient
-import com.google.android.gms.location.GeofencingRequest
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PolylineOptions
 import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.databinding.ActivityAndroidSmallMapBinding
-import com.google.android.gms.maps.model.Dot
-import com.google.android.gms.maps.model.Dash
-import com.google.android.gms.maps.model.Gap
 
 
 class AndroidSmallMapActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -51,6 +33,11 @@ class AndroidSmallMapActivity : AppCompatActivity(), OnMapReadyCallback {
 		val mapFragment = supportFragmentManager
 			.findFragmentById(R.id.map_fragment) as SupportMapFragment
 		mapFragment.getMapAsync(this)
+
+		mapBinding.rm6mh7dlmac.setImageResource(R.drawable.white_home_page_icon)
+		mapBinding.rr4suqnw5xu8.setImageResource(R.drawable.white_trivia_page)
+		mapBinding.r4ygvniz63xa.setImageResource(R.drawable.black_map_page)
+		mapBinding.resno30rwma6.setImageResource(R.drawable.white_profile_page)
 
 		setupNavigationBar()
 	}

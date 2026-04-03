@@ -14,8 +14,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -24,6 +22,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -31,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.room.withTransaction
 import com.bumptech.glide.Glide
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.Geofence
@@ -42,23 +42,38 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CircleOptions
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PolylineOptions
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import com.thsst2.greenapp.data.DialogueHistoryEntity
 import com.thsst2.greenapp.data.IntentLogEntity
+import com.thsst2.greenapp.data.PoiEntity
 import com.thsst2.greenapp.data.SessionEntity
+import com.thsst2.greenapp.data.SessionLogEntity
 import com.thsst2.greenapp.data.UserEntity
+import com.thsst2.greenapp.data.UserLocationEntity
+import com.thsst2.greenapp.data.UserLogEntity
 import com.thsst2.greenapp.data.UserQueryEntity
 import com.thsst2.greenapp.data.repositories.SessionRepository
 import com.thsst2.greenapp.data.repositories.UserRepository
 import com.thsst2.greenapp.databinding.ActivityAndroidSmallHomeBinding
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import retrofit2.Call
@@ -68,28 +83,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CircleOptions
-import com.thsst2.greenapp.data.PoiEntity
-import com.google.android.gms.maps.model.PolylineOptions
-import com.google.android.gms.maps.model.Dot
-import com.google.android.gms.maps.model.Dash
-import com.google.android.gms.maps.model.Gap
-import com.google.firebase.database.FirebaseDatabase
-import com.thsst2.greenapp.MyAppDatabase
-import com.thsst2.greenapp.data.SessionLogEntity
-import com.thsst2.greenapp.data.UserLocationEntity
-import com.thsst2.greenapp.data.UserLogEntity
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.tasks.await
-import kotlin.Long
 import kotlin.math.sqrt
-import androidx.activity.OnBackPressedCallback
-import androidx.room.withTransaction
-import com.google.gson.JsonParser
-import com.thsst2.greenapp.data.PerformanceMetricsEntity
-import kotlinx.coroutines.CoroutineScope
 
 class AndroidSmallHomeActivity : AppCompatActivity() {
 	private lateinit var homeBinding: ActivityAndroidSmallHomeBinding
@@ -644,13 +638,18 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 	private fun loadImages() {
 		val urls = listOf(
-			homeBinding.rn6y677xm2op to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/59e2tcay_expires_30_days.png",
-			homeBinding.r1niin00ofei to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/g96kdk7e_expires_30_days.png",
-			homeBinding.ra0p1lhf2i3g to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/wklyakqn_expires_30_days.png",
-			homeBinding.rjvarnxwuapq to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/qz8xcg2m_expires_30_days.png",
+//			homeBinding.rn6y677xm2op to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/59e2tcay_expires_30_days.png",
+//			homeBinding.r1niin00ofei to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/g96kdk7e_expires_30_days.png",
+//			homeBinding.ra0p1lhf2i3g to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/wklyakqn_expires_30_days.png",
+//			homeBinding.rjvarnxwuapq to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/qz8xcg2m_expires_30_days.png",
 			homeBinding.rlqd4vorx07s to "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/b60kjme5_expires_30_days.png"
 		)
 		urls.forEach { Glide.with(this).load(it.second).into(it.first) }
+
+		homeBinding.rn6y677xm2op.setImageResource(R.drawable.black_home_page_icon)
+		homeBinding.r1niin00ofei.setImageResource(R.drawable.white_trivia_page)
+		homeBinding.ra0p1lhf2i3g.setImageResource(R.drawable.white_map_page)
+		homeBinding.rjvarnxwuapq.setImageResource(R.drawable.white_profile_page)
 	}
 
 	// LOADED MODEL USING GOOGLE COLAB
