@@ -14,6 +14,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -32,6 +34,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.room.withTransaction
 import com.bumptech.glide.Glide
+import com.getkeepsafe.taptargetview.TapTarget
+import com.getkeepsafe.taptargetview.TapTargetView
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
@@ -419,26 +423,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		//tourCoordinator = TourCoordinator(userId, this)
 		tourCoordinator = TourCoordinator(userId, this, metricsCollector, sessionId)
-		lifecycleScope.launch {
-			try {
-				Log.d("HomeActivity", "Saving user")
-				val user = UserEntity(
-					userId = userId
-				)
-				db.userDao().insert(user)
-
-				Log.d("HomeActivity", "Saving session")
-				val sessionProfile = SessionEntity(
-					sessionId = sessionId,
-					userId = user.userId,
-					componentsUsed = null,
-					sessionStartedAt = System.currentTimeMillis().toString()
-				)
-				db.sessionDao().insert(sessionProfile)
-			} catch (e: Exception) {
-				Log.e("HomeActivity", "User/session save failed: ${e.localizedMessage}", e)
-			}
-		}
 //
 //		lifecycleScope.launch {
 //			try {
@@ -453,36 +437,6 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 //				Log.e("HomeActivity", "User/session save failed: ${e.localizedMessage}", e)
 //			}
 //		}
-
-		// 🔹 NEW: Check if user has an existing profile
-		lifecycleScope.launch {
-			try {
-				// You can replace `userDao()` and `UserProfileDao` depending on your schema
-				val existingProfile = db.userPreferencesDao().getPreferencesByUser(userId)
-		// TODO
-			// problem: keeps redirectly user to profile creation even though user already did
-				// uncomment when solved
-
-				if (existingProfile == null) {
-					// If profile is missing or incomplete → redirect to profile creation
-					Log.d("HomeActivity", "No profile found. Redirecting to Profile Creation...")
-
-					val intent = Intent(
-						this@AndroidSmallHomeActivity,
-						AndroidSmallProfileActivity::class.java // ⚠️ Make sure this Activity exists
-					)
-					intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-					startActivity(intent)
-					finish()
-					return@launch
-				} else {
-					Log.d("HomeActivity", "User profile exists. Proceeding to home UI.")
-				}
-			} catch (e: Exception) {
-				Log.e("HomeActivity", "Profile check failed: ${e.localizedMessage}")
-			}
-		}
-		// 🔹 END OF NEW BLOCK
 
 		// Load images
 		loadImages()
@@ -625,15 +579,127 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 				adapter.notifyItemInserted(messages.size - 1)
 			}
 		}
-		onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-			override fun handleOnBackPressed() {
-				if (tourStarted && !sessionEnded) {
-					showEndTourDialog(true)
-				} else {
-					finish()
+//		onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+//			override fun handleOnBackPressed() {
+//				if (tourStarted && !sessionEnded) {
+//					showEndTourDialog(true)
+//				} else {
+//					finish()
+//				}
+//			}
+//		})
+
+		val isTutorial = intent.getBooleanExtra("tutorial_mode", false)
+		val step = intent.getIntExtra("tutorial_step", 0)
+		var currentTapTarget: TapTargetView? = null
+
+		lifecycleScope.launch {
+			try {
+				if (isTutorial && step == 4) {
+					currentTapTarget = TapTargetView.showFor(
+						this@AndroidSmallHomeActivity,
+						TapTarget.forView(
+							homeBinding.rlqd4vorx07s,
+							"Map Navigaton Area",
+							"This is the visual map that will be used throughout the tour experience."
+						)
+							.outerCircleColor(R.color.black)
+							.targetCircleColor(android.R.color.white)
+							.titleTextSize(20)
+							.descriptionTextSize(16)
+							.textColor(android.R.color.white)
+							.dimColor(android.R.color.black)
+							.cancelable(false)
+							.transparentTarget(true)
+					)
+
+					Handler(Looper.getMainLooper()).postDelayed({
+						currentTapTarget?.dismiss(false)
+
+						currentTapTarget = TapTargetView.showFor(
+							this@AndroidSmallHomeActivity,
+							TapTarget.forView(
+								homeBinding.r0zz50xix97ik,
+								"Chat Box Section",
+								"In here you will be able to interact with G.R.E.E.N."
+							)
+								.outerCircleColor(R.color.black)
+								.targetCircleColor(android.R.color.white)
+								.titleTextSize(20)
+								.descriptionTextSize(16)
+								.textColor(android.R.color.white)
+								.dimColor(android.R.color.black)
+								.cancelable(false)
+								.transparentTarget(true),
+						)
+					}, 3000)
+
+					Handler(Looper.getMainLooper()).postDelayed({
+						currentTapTarget?.dismiss(false)
+
+						currentTapTarget = TapTargetView.showFor(
+							this@AndroidSmallHomeActivity,
+							TapTarget.forView(
+								homeBinding.recyclerViewChatReplies,
+								"Chat Interaction Section",
+								"All messages, both yours and G.R.E.E.N.'s will reflect here."
+							)
+								.outerCircleColor(R.color.black)
+								.targetCircleColor(android.R.color.white)
+								.titleTextSize(20)
+								.descriptionTextSize(16)
+								.textColor(android.R.color.white)
+								.dimColor(android.R.color.black)
+								.cancelable(false)
+								.transparentTarget(true),
+						)
+					}, 6000)
+
+					Handler(Looper.getMainLooper()).postDelayed({
+						val nextIntent = Intent(this@AndroidSmallHomeActivity, AndroidSmallProfileActivity::class.java)
+						startActivity(nextIntent)
+						finish()
+					}, 12000)
 				}
+
+				return@launch
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "Profile check failed: ${e.localizedMessage}")
 			}
-		})
+		}
+
+		// 🔹 NEW: Check if user has an existing profile
+		lifecycleScope.launch {
+			if (isTutorial) return@launch
+
+			try {
+				// You can replace `userDao()` and `UserProfileDao` depending on your schema
+				val existingProfile = db.userPreferencesDao().getPreferencesByUser(userId)
+				// TODO
+				// problem: keeps redirectly user to profile creation even though user already did
+				// uncomment when solved
+
+				if (existingProfile == null) {
+//					// If profile is missing or incomplete → redirect to profile creation
+					Log.d("HomeActivity", "No profile found. Redirecting to Profile Creation...")
+
+					val intent = Intent(
+						this@AndroidSmallHomeActivity,
+						AndroidSmallTriviaActivity::class.java
+					)
+					intent.putExtra("tutorial_mode", true)
+					intent.putExtra("tutorial_step", 1)
+					startActivity(intent)
+					finish()
+					return@launch
+				} else {
+					Log.d("HomeActivity", "User profile exists. Proceeding to home UI.")
+				}
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "Profile check failed: ${e.localizedMessage}")
+			}
+		}
+		// 🔹 END OF NEW BLOCK
 	}
 
 	private fun loadImages() {
@@ -1862,6 +1928,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 							hasPassedEntryCheck = true //Temporary for testing
 							if (!hasPassedEntryCheck) {
+								// Uncomment for security
 //								finishAffinity()
 							}
 						}

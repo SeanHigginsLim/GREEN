@@ -3,8 +3,12 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.getkeepsafe.taptargetview.TapTarget
+import com.getkeepsafe.taptargetview.TapTargetView
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -40,6 +44,36 @@ class AndroidSmallMapActivity : AppCompatActivity(), OnMapReadyCallback {
 		mapBinding.resno30rwma6.setImageResource(R.drawable.white_profile_page)
 
 		setupNavigationBar()
+
+		val isTutorial = intent.getBooleanExtra("tutorial_mode", false)
+		val step = intent.getIntExtra("tutorial_step", 0)
+
+		if (isTutorial && step == 2) {
+			TapTargetView.showFor(
+				this,
+				TapTarget.forView(
+					mapBinding.rundefinedRlRl,
+					"Whole Google Map",
+					"This is the Map Page, where you can view a larger version of the Home Page map."
+				)
+					.outerCircleColor(R.color.black)
+					.targetCircleColor(android.R.color.white)
+					.titleTextSize(20)
+					.descriptionTextSize(16)
+					.textColor(android.R.color.white)
+					.dimColor(android.R.color.black)
+					.cancelable(false)
+					.transparentTarget(true)
+			)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				val nextIntent = Intent(this, AndroidSmallProfileActivity::class.java)
+				nextIntent.putExtra("tutorial_mode", true)
+				nextIntent.putExtra("tutorial_step", 3)
+				startActivity(nextIntent)
+				finish()
+			}, 3000)
+		}
 	}
 
 	override fun onMapReady(googleMap: GoogleMap) {

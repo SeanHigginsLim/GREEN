@@ -1,6 +1,8 @@
 package com.thsst2.greenapp
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
@@ -10,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.room.withTransaction
 import com.bumptech.glide.Glide
+import com.getkeepsafe.taptargetview.TapTarget
+import com.getkeepsafe.taptargetview.TapTargetView
 import com.google.firebase.auth.FirebaseAuth
 import com.thsst2.greenapp.data.UserPreferencesEntity
 import com.thsst2.greenapp.data.UserRoleEntity
@@ -101,6 +105,101 @@ class AndroidSmallProfileActivity : AppCompatActivity() {
 		openedFromChatbotFlow = intent.getBooleanExtra("open_prefs_dialog", false)
 		if (openedFromChatbotFlow) {
 			openPreferencesDialog()
+		}
+
+
+		val isTutorial = intent.getBooleanExtra("tutorial_mode", false)
+		val step = intent.getIntExtra("tutorial_step", 0)
+		var currentTapTarget: TapTargetView? = null
+
+		if (isTutorial && step == 3) {
+			currentTapTarget = TapTargetView.showFor(
+				this,
+				TapTarget.forView(
+					profileBinding.rxhutp6h6x5j,
+					"User Type",
+					"You can edit your user type here."
+				)
+					.outerCircleColor(R.color.black)
+					.targetCircleColor(android.R.color.white)
+					.titleTextSize(20)
+					.descriptionTextSize(16)
+					.textColor(android.R.color.white)
+					.dimColor(android.R.color.black)
+					.cancelable(false)
+					.transparentTarget(true)
+			)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				currentTapTarget?.dismiss(false)
+
+				currentTapTarget = TapTargetView.showFor(
+					this,
+					TapTarget.forView(
+						profileBinding.rnu7vqd6v5vd,
+						"Edit Profile Button",
+						"You can edit your profile preferences here."
+					)
+						.outerCircleColor(R.color.black)
+						.targetCircleColor(android.R.color.white)
+						.titleTextSize(20)
+						.descriptionTextSize(16)
+						.textColor(android.R.color.white)
+						.dimColor(android.R.color.black)
+						.cancelable(false)
+						.transparentTarget(true),
+				)
+			}, 3000)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				currentTapTarget?.dismiss(false)
+
+				currentTapTarget = TapTargetView.showFor(
+					this,
+					TapTarget.forView(
+						profileBinding.ri7k6f6snogg,
+						"Preferences Section",
+						"All preferences updates will be reflected in the preferences section."
+					)
+						.outerCircleColor(R.color.black)
+						.targetCircleColor(android.R.color.white)
+						.titleTextSize(20)
+						.descriptionTextSize(16)
+						.textColor(android.R.color.white)
+						.dimColor(android.R.color.black)
+						.cancelable(false)
+						.transparentTarget(true),
+				)
+			}, 6000)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				currentTapTarget?.dismiss(false)
+
+				currentTapTarget = TapTargetView.showFor(
+					this,
+					TapTarget.forView(
+						profileBinding.rqts8trhvc1o,
+						"Logout Button",
+						"You can logout through here."
+					)
+						.outerCircleColor(R.color.black)
+						.targetCircleColor(android.R.color.white)
+						.titleTextSize(20)
+						.descriptionTextSize(16)
+						.textColor(android.R.color.white)
+						.dimColor(android.R.color.black)
+						.cancelable(false)
+						.transparentTarget(true),
+				)
+			}, 9000)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				val nextIntent = Intent(this, AndroidSmallHomeActivity::class.java)
+				nextIntent.putExtra("tutorial_mode", true)
+				nextIntent.putExtra("tutorial_step", 4)
+				startActivity(nextIntent)
+				finish()
+			}, 12000)
 		}
 	}
 

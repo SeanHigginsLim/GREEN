@@ -12,6 +12,10 @@ import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.thsst2.greenapp.databinding.ActivityAndroidSmallTriviaBinding
+import android.os.Handler
+import android.os.Looper
+import com.getkeepsafe.taptargetview.TapTarget
+import com.getkeepsafe.taptargetview.TapTargetView
 
 class AndroidSmallTriviaActivity : AppCompatActivity() {
 
@@ -36,6 +40,100 @@ class AndroidSmallTriviaActivity : AppCompatActivity() {
 		setupNavigationBar()
 		setupButtons()
 		loadRandomApprovedTrivia()
+
+		val isTutorial = intent.getBooleanExtra("tutorial_mode", false)
+		val step = intent.getIntExtra("tutorial_step", 0)
+		var currentTapTarget: TapTargetView? = null
+
+		if (isTutorial && step == 1) {
+			currentTapTarget = TapTargetView.showFor(
+				this,
+				TapTarget.forView(
+					triviaBinding.ryyr5k91pzg,
+					"Trivia Section",
+					"This is the trivia section, where you can view campus trivia."
+				)
+					.outerCircleColor(R.color.black)
+					.targetCircleColor(android.R.color.white)
+					.titleTextSize(20)
+					.descriptionTextSize(16)
+					.textColor(android.R.color.white)
+					.dimColor(android.R.color.black)
+					.cancelable(false)
+					.transparentTarget(true),
+			)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				currentTapTarget?.dismiss(false)
+
+				currentTapTarget = TapTargetView.showFor(
+					this,
+					TapTarget.forView(
+						triviaBinding.shareTriviaButton,
+						"Share Trivia Button",
+						"This is the share trivia button, where you can share your own trivia."
+					)
+						.outerCircleColor(R.color.black)
+						.targetCircleColor(android.R.color.white)
+						.titleTextSize(20)
+						.descriptionTextSize(16)
+						.textColor(android.R.color.white)
+						.dimColor(android.R.color.black)
+						.cancelable(false)
+						.transparentTarget(true),
+				)
+			}, 3000)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				currentTapTarget?.dismiss(false)
+
+				currentTapTarget = TapTargetView.showFor(
+					this,
+					TapTarget.forView(
+						triviaBinding.r3nbi4xpq42p,
+						"See Map Button",
+						"This button redirects you to the map page."
+					)
+						.outerCircleColor(R.color.black)
+						.targetCircleColor(android.R.color.white)
+						.titleTextSize(20)
+						.descriptionTextSize(16)
+						.textColor(android.R.color.white)
+						.dimColor(android.R.color.black)
+						.cancelable(false)
+						.transparentTarget(true),
+				)
+			}, 6000)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				currentTapTarget?.dismiss(false)
+
+				currentTapTarget = TapTargetView.showFor(
+					this,
+					TapTarget.forView(
+						triviaBinding.rijut4xpsfv,
+						"Ask G.R.E.E.N. Button",
+						"This button redirects you to the home page."
+					)
+						.outerCircleColor(R.color.black)
+						.targetCircleColor(android.R.color.white)
+						.titleTextSize(20)
+						.descriptionTextSize(16)
+						.textColor(android.R.color.white)
+						.dimColor(android.R.color.black)
+						.cancelable(false)
+						.transparentTarget(true),
+				)
+			}, 9000)
+
+			Handler(Looper.getMainLooper()).postDelayed({
+				val nextIntent = Intent(this, AndroidSmallMapActivity::class.java)
+				nextIntent.putExtra("tutorial_mode", true)
+				nextIntent.putExtra("tutorial_step", 2)
+				startActivity(nextIntent)
+				finish()
+			}, 12000)
+		}
 	}
 
 	private fun loadImages() {
@@ -48,8 +146,8 @@ class AndroidSmallTriviaActivity : AppCompatActivity() {
 //		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/5tyj8imq_expires_30_days.png").into(findViewById(R.id.rm8ia53ujvf))
 //		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/eirszlo0_expires_30_days.png").into(findViewById(R.id.rwt2433i01up))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/8g667ulq_expires_30_days.png").into(findViewById(R.id.rjr0kuafq29l))
-		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/dfc89q7y_expires_30_days.png").into(findViewById(R.id.rjim834nbvr))
-		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/w0zoa2pz_expires_30_days.png").into(findViewById(R.id.r8jqrksqg5si))
+//		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/dfc89q7y_expires_30_days.png").into(findViewById(R.id.rjim834nbvr))
+//		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/w0zoa2pz_expires_30_days.png").into(findViewById(R.id.r8jqrksqg5si))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/mq69qsuu_expires_30_days.png").into(findViewById(R.id.rybdh3kflfnm))
 		Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/5KZSjaV7Nf/g70x0upd_expires_30_days.png").into(findViewById(R.id.rjuo5tbsq7m))
 	}
@@ -57,6 +155,18 @@ class AndroidSmallTriviaActivity : AppCompatActivity() {
 	private fun setupButtons() {
 		findViewById<LinearLayout>(R.id.shareTriviaButton).setOnClickListener {
 			showShareTriviaDialog()
+		}
+
+		triviaBinding.r3nbi4xpq42p.setOnClickListener {
+			val intent = Intent(this@AndroidSmallTriviaActivity, AndroidSmallMapActivity::class.java)
+			startActivity(intent)
+			finish()
+		}
+
+		triviaBinding.rijut4xpsfv.setOnClickListener {
+			val intent = Intent(this@AndroidSmallTriviaActivity, AndroidSmallHomeActivity::class.java)
+			startActivity(intent)
+			finish()
 		}
 	}
 
