@@ -659,7 +659,7 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 						val nextIntent = Intent(this@AndroidSmallHomeActivity, AndroidSmallProfileActivity::class.java)
 						startActivity(nextIntent)
 						finish()
-					}, 12000)
+					}, 9000)
 				}
 
 				return@launch

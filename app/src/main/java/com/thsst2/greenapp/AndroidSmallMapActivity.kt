@@ -53,7 +53,7 @@ class AndroidSmallMapActivity : AppCompatActivity(), OnMapReadyCallback {
 				this,
 				TapTarget.forView(
 					mapBinding.rundefinedRlRl,
-					"Whole Google Map",
+					"Google Map",
 					"This is the Map Page, where you can view a larger version of the Home Page map."
 				)
 					.outerCircleColor(R.color.black)
