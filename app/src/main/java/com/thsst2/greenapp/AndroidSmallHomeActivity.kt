@@ -423,6 +423,26 @@ class AndroidSmallHomeActivity : AppCompatActivity() {
 
 		//tourCoordinator = TourCoordinator(userId, this)
 		tourCoordinator = TourCoordinator(userId, this, metricsCollector, sessionId)
+		lifecycleScope.launch {
+			try {
+				Log.d("HomeActivity", "Saving user")
+				val user = UserEntity(
+					userId = userId
+				)
+				db.userDao().insert(user)
+
+				Log.d("HomeActivity", "Saving session")
+				val sessionProfile = SessionEntity(
+					sessionId = sessionId,
+					userId = user.userId,
+					componentsUsed = null,
+					sessionStartedAt = System.currentTimeMillis().toString()
+				)
+				db.sessionDao().insert(sessionProfile)
+			} catch (e: Exception) {
+				Log.e("HomeActivity", "User/session save failed: ${e.localizedMessage}", e)
+			}
+		}
 //
 //		lifecycleScope.launch {
 //			try {
