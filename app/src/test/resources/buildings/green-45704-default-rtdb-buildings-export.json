@@ -1,0 +1,573 @@
+[
+  {
+    "accessibility": [
+      "acc_ramp",
+      "acc_elevator"
+    ],
+    "building_id": "B_LASALLE",
+    "coordinates": {
+      "lat": 14.5643,
+      "lng": 120.9937
+    },
+    "declared_cultural_property": true,
+    "description": "A historic landmark of DLSU that serves as a central academic, administrative, and cultural building on campus.",
+    "edges": [
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_HSSH__B_LASALLE",
+        "from": "B_HSSH",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_LASALLE",
+        "w": 84.5
+      },
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_LASALLE__B_RAZON",
+        "from": "B_LASALLE",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_RAZON",
+        "w": 76
+      }
+    ],
+    "function_tags": [
+      "fn_admin",
+      "fn_academic",
+      "fn_cultural"
+    ],
+    "graphVersion": 1,
+    "hours": {
+      "close": "21:00",
+      "open": "06:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "St. La Salle Hall",
+    "radius": 35,
+    "type_tags": [
+      "type_historic",
+      "type_student",
+      "type_faculty",
+      "type_guest"
+    ],
+    "year_built": 1921
+  },
+  {
+    "accessibility": [
+      "acc_elevator",
+      "acc_restroom"
+    ],
+    "building_id": "B_HSSH",
+    "coordinates": {
+      "lat": 14.565,
+      "lng": 120.9931
+    },
+    "description": "A 14-story building housing the academic services hub, administrative offices, and the university library, now called the Learning Commons.",
+    "edges": [
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_ANDREW__B_HSSH",
+        "from": "B_ANDREW",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_HSSH",
+        "w": 44.8
+      },
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_HSSH__B_LASALLE",
+        "from": "B_HSSH",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_LASALLE",
+        "w": 84.5
+      },
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_HSSH__B_YUCHENGCO",
+        "from": "B_HSSH",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_YUCHENGCO",
+        "w": 77.4
+      }
+    ],
+    "floors": 14,
+    "function_tags": [
+      "fn_academic"
+    ],
+    "graphVersion": 1,
+    "hours": {
+      "close": "20:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Henry Sy Sr. Hall",
+    "radius": 35,
+    "type_tags": [
+      "type_green",
+      "type_modern",
+      "type_student",
+      "type_faculty"
+    ]
+  },
+  {
+    "accessibility": [
+      "acc_ramp"
+    ],
+    "building_id": "B_RAZON",
+    "coordinates": {
+      "lat": 14.567,
+      "lng": 120.9921
+    },
+    "description": "The university sports complex that houses athletic, fitness, and recreational facilities for the DLSU community and guests.",
+    "edges": [
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_BLOEMEN__B_RAZON",
+        "from": "B_BLOEMEN",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_RAZON",
+        "w": 75
+      },
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_LASALLE__B_RAZON",
+        "from": "B_LASALLE",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_RAZON",
+        "w": 76
+      }
+    ],
+    "function_tags": [
+      "fn_sports"
+    ],
+    "graphVersion": 1,
+    "hours": {
+      "close": "22:00",
+      "open": "06:00"
+    },
+    "location_tags": [
+      "loc_facility"
+    ],
+    "name": "Enrique Razon Sports Center",
+    "radius": 35,
+    "type_tags": [
+      "type_student",
+      "type_faculty",
+      "type_guest"
+    ]
+  },
+  {
+    "accessibility": [
+      "acc_elevator",
+      "acc_restroom"
+    ],
+    "building_id": "B_ANDREW",
+    "coordinates": {
+      "lat": 14.567,
+      "lng": 120.9926
+    },
+    "description": "A high-rise campus building that contains classrooms, offices, and administrative spaces used by students, faculty, and visitors.",
+    "edges": [
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_ANDREW__B_HSSH",
+        "from": "B_ANDREW",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_HSSH",
+        "w": 44.8
+      },
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_ANDREW__B_VELASCO",
+        "from": "B_ANDREW",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_VELASCO",
+        "w": 50.4
+      }
+    ],
+    "floors": 21,
+    "function_tags": [
+      "fn_academic",
+      "fn_admin"
+    ],
+    "graphVersion": 1,
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Br. Andrew Gonzalez Hall",
+    "radius": 25,
+    "type_tags": [
+      "type_modern",
+      "type_student",
+      "type_faculty",
+      "type_guest"
+    ]
+  },
+  {
+    "accessibility": [
+      "acc_elevator"
+    ],
+    "building_id": "B_YUCHENGCO",
+    "coordinates": {
+      "lat": 14.5643,
+      "lng": 120.9931
+    },
+    "description": "A modern academic building that supports classes, offices, and student activity spaces in a central part of campus. It houses the Teresa G. Yuchengco Auditorium used for various events and activities.",
+    "edges": [
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_HSSH__B_YUCHENGCO",
+        "from": "B_HSSH",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_YUCHENGCO",
+        "w": 77.4
+      }
+    ],
+    "function_tags": [
+      "fn_academic"
+    ],
+    "graphVersion": 1,
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Yuchengco Hall",
+    "radius": 30,
+    "type_tags": [
+      "type_modern",
+      "type_student",
+      "type_faculty",
+      "type_guest"
+    ]
+  },
+  {
+    "building_id": "B_BLOEMEN",
+    "coordinates": {
+      "lat": 14.5653,
+      "lng": 120.9925
+    },
+    "description": "A building that houses food stalls and the studio of Green Giant FM.",
+    "edges": [
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_BLOEMEN__B_RAZON",
+        "from": "B_BLOEMEN",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_RAZON",
+        "w": 75
+      }
+    ],
+    "function_tags": [
+      "fn_academic"
+    ],
+    "graphVersion": 1,
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Br. Bloemen Hall",
+    "radius": 18,
+    "type_tags": [
+      "type_historic",
+      "type_student"
+    ]
+  },
+  {
+    "building_id": "B_VELASCO",
+    "coordinates": {
+      "lat": 14.5654,
+      "lng": 120.993
+    },
+    "description": "An academic building commonly associated with classes, laboratories, and faculty activities.",
+    "edges": [
+      {
+        "attrs": [
+          "pedestrian"
+        ],
+        "bidirectional": true,
+        "edgeId": "B_ANDREW__B_VELASCO",
+        "from": "B_ANDREW",
+        "graphVersion": 1,
+        "metric": "seconds",
+        "to": "B_VELASCO",
+        "w": 50.4
+      }
+    ],
+    "function_tags": [
+      "fn_academic"
+    ],
+    "graphVersion": 1,
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Velasco Hall",
+    "radius": 20,
+    "type_tags": [
+      "type_student",
+      "type_faculty"
+    ]
+  },
+  {
+    "building_id": "B_GOKO",
+    "coordinates": {
+      "lat": 14.5663,
+      "lng": 120.9929
+    },
+    "description": "An academic and laboratory building that supports classes, research, and student-faculty academic work.",
+    "function_tags": [
+      "fn_academic",
+      "fn_labs"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Gokongwei Hall",
+    "radius": 20,
+    "type_tags": [
+      "type_student",
+      "type_faculty"
+    ]
+  },
+  {
+    "building_id": "B_SJH",
+    "coordinates": {
+      "lat": 14.5649,
+      "lng": 120.9924
+    },
+    "description": "An academic building used by students and faculty for classes and related university activities.",
+    "function_tags": [
+      "fn_academic"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "St. Joseph Hall",
+    "radius": 17,
+    "type_tags": [
+      "type_student",
+      "type_faculty"
+    ]
+  },
+  {
+    "building_id": "B_SMIG",
+    "coordinates": {
+      "lat": 14.565662,
+      "lng": 120.992506
+    },
+    "description": "A campus academic building used for classes and faculty-related activities, commonly referred to as St. Miguel Hall.",
+    "function_tags": [
+      "fn_academic"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "St. Miguel Hall",
+    "radius": 26,
+    "type_tags": [
+      "type_student",
+      "type_faculty"
+    ]
+  },
+  {
+    "building_id": "B_MUTIEN",
+    "coordinates": {
+      "lat": 14.56595,
+      "lng": 120.99235
+    },
+    "description": "A newer academic building primarily intended for student use, with access that may still be partially limited.",
+    "function_tags": [
+      "fn_academic"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "St. Mutien Marie Hall",
+    "radius": 22,
+    "type_tags": [
+      "type_student"
+    ]
+  },
+  {
+    "building_id": "B_FC",
+    "coordinates": {
+      "lat": 14.5646,
+      "lng": 120.9923
+    },
+    "description": "A faculty-centered building that contains offices, consultation spaces, and administrative functions for academic staff. It used to be the university library",
+    "function_tags": [
+      "fn_admin",
+      "fn_faculty"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Faculty Center",
+    "radius": 18,
+    "type_tags": [
+      "type_faculty"
+    ]
+  },
+  {
+    "building_id": "B_CONNON",
+    "coordinates": {
+      "lat": 14.564,
+      "lng": 120.9933
+    },
+    "description": "A student-oriented campus building that supports academic, study, and student service functions.",
+    "function_tags": [
+      "fn_study",
+      "fn_academic"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Br. Connon Hall",
+    "radius": 17,
+    "type_tags": [
+      "type_student"
+    ]
+  },
+  {
+    "building_id": "B_STRC",
+    "coordinates": {
+      "lat": 14.566396,
+      "lng": 120.992155
+    },
+    "description": "A research and academic building that supports laboratories, classes, and faculty-led scientific work.",
+    "function_tags": [
+      "fn_academic",
+      "fn_labs"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "Science & Technology Research Center",
+    "radius": 20,
+    "type_tags": [
+      "type_student",
+      "type_faculty"
+    ]
+  },
+  {
+    "building_id": "B_WH",
+    "coordinates": {
+      "lat": 14.565,
+      "lng": 120.992
+    },
+    "description": "A faculty-oriented building used for academic and administrative functions within the university.",
+    "function_tags": [
+      "fn_academic",
+      "fn_admin"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "07:00"
+    },
+    "location_tags": [
+      "loc_building"
+    ],
+    "name": "William J. Shaw Hall",
+    "radius": 10,
+    "type_tags": [
+      "type_faculty"
+    ]
+  },
+  {
+    "accessibility": [
+      "acc_elevator"
+    ],
+    "building_id": "B_ENRIQUE_RAZON_LAGUNA",
+    "coordinates": {
+      "lat": 14.34102742388873,
+      "lng": 121.06548500529289
+    },
+    "declared_cultural_property": false,
+    "function_tags": [
+      "fn_academic"
+    ],
+    "hours": {
+      "close": "19:00",
+      "open": "19:00"
+    },
+    "location_tags": [
+      "loc_open_space"
+    ],
+    "name": "Enrique Razon (Laguna)",
+    "radius": 163,
+    "type_tags": [
+      "type_historic",
+      "type_study"
+    ]
+  }
+]
