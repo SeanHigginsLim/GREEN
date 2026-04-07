@@ -614,7 +614,7 @@
             return adjacencyList
         }
 
-        // Return list of all buildings (For displaying geofences and distance measurement)
+        // Return list of all buildings for the tour plan base on selected poiIds
         suspend fun getTourPlanBuildings(poiIds: List<String>): List<String> {
             val buildingsSnapshot = db
                 .child("server_side")
